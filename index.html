@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Cat Top Sim — Suki the jealous cat wants boyfriend attention. Push everything off the counters." />
+    <title>Cat Top Sim — Suki's Jealous Reign</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Title Screen -->
+      <div id="screen-title" class="screen active">
+        <div class="title-bg"></div>
+        <div class="title-vignette"></div>
+        <div class="title-content">
+          <p class="title-tagline">An Otome Comedy of Claws &amp; Chaos</p>
+          <h1 class="title-logo">Cat Top Sim</h1>
+          <p class="title-sub">Suki's Jealous Reign</p>
+          <button id="btn-start" class="btn-primary">Begin the Reign</button>
+          <p class="title-hint">WASD / arrows move · Space / click nudge · Esc pause</p>
+        </div>
+        <div class="title-suki">
+          <img src="./assets/characters/suki-portrait.jpg" alt="Suki" />
+        </div>
+      </div>
+
+      <!-- Level Intro -->
+      <div id="screen-intro" class="screen">
+        <div class="intro-card">
+          <div class="intro-portrait-row">
+            <img id="intro-suki" src="./assets/characters/suki-portrait.jpg" alt="Suki" />
+            <div class="intro-hearts">♥</div>
+            <img id="intro-boy" src="" alt="Boyfriend" />
+          </div>
+          <p class="intro-label">Tonight's Intruder</p>
+          <h2 id="intro-name">—</h2>
+          <p id="intro-desc" class="intro-desc"></p>
+          <p id="intro-suki-line" class="intro-suki-line"></p>
+          <button id="btn-intro-go" class="btn-primary">Onto the Counter</button>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" class="hud hidden">
+        <div class="hud-top">
+          <div class="hud-level">
+            <span class="hud-label">Surface</span>
+            <span id="hud-level-name">Kitchen Island</span>
+          </div>
+          <div class="hud-chaos">
+            <span class="hud-label">Chaos</span>
+            <div class="chaos-bar"><div id="chaos-fill" class="chaos-fill"></div></div>
+            <span id="chaos-text">0 / 0</span>
+          </div>
+          <div class="hud-boy">
+            <img id="hud-boy-img" src="" alt="" />
+            <span id="hud-boy-name">—</span>
+          </div>
+        </div>
+        <div class="hud-hint" id="hud-hint">Nudge every trinket off the edge…</div>
+        <div class="touch-controls" id="touch-controls">
+          <div class="stick-zone" id="stick-zone">
+            <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+          </div>
+          <button type="button" class="touch-nudge" id="btn-touch-nudge" aria-label="Nudge">🐾</button>
+        </div>
+      </div>
+
+      <!-- Dialogue / cutscene overlay -->
+      <div id="screen-cutscene" class="screen">
+        <div class="cutscene-bg">
+          <img id="cutscene-img" src="" alt="" />
+        </div>
+        <div class="dialogue-box">
+          <div class="dialogue-speaker-row">
+            <img id="dialogue-portrait" src="" alt="" />
+            <span id="dialogue-speaker" class="dialogue-speaker"></span>
+          </div>
+          <p id="dialogue-text" class="dialogue-text"></p>
+          <button id="btn-dialogue-next" class="btn-ghost">Continue ▸</button>
+        </div>
+      </div>
+
+      <!-- Level complete -->
+      <div id="screen-complete" class="screen">
+        <div class="complete-card">
+          <p class="complete-label">Attention Secured</p>
+          <h2 id="complete-title">He came for you.</h2>
+          <p id="complete-body" class="complete-body"></p>
+          <div class="complete-stats">
+            <div><span class="stat-num" id="stat-broken">0</span><span class="stat-label">Broken</span></div>
+            <div><span class="stat-num" id="stat-time">0s</span><span class="stat-label">Time</span></div>
+          </div>
+          <button id="btn-next-level" class="btn-primary">Next Boyfriend</button>
+        </div>
+      </div>
+
+      <!-- Ending -->
+      <div id="screen-ending" class="screen">
+        <div class="ending-card">
+          <img src="./assets/characters/suki-portrait.jpg" class="ending-suki" alt="Suki" />
+          <h2>Queen of the Apartment</h2>
+          <p>Every boyfriend learned the truth: the real date was always with Suki.</p>
+          <p class="ending-tag">Heather will buy more trinkets. You will break them again.</p>
+          <button id="btn-replay" class="btn-primary">Reign Again</button>
+        </div>
+      </div>
+
+      <!-- Pause -->
+      <div id="screen-pause" class="screen">
+        <div class="pause-card">
+          <h2>Paused</h2>
+          <button id="btn-resume" class="btn-primary">Resume</button>
+          <button id="btn-quit-title" class="btn-ghost">Title Screen</button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="screen-loading" class="screen">
+        <div class="loading-inner">
+          <div class="loading-paw">🐾</div>
+          <p>Setting the counters…</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
