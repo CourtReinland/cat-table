@@ -43,28 +43,7 @@ export class Game {
   async init() {
     this.ui.show('loading');
 
-    // Prefer WebGPU when available; fall back to WebGL
-    try {
-      const WebGPU = await import('three/webgpu');
-      if (navigator.gpu && WebGPU.WebGPURenderer) {
-        const r = new WebGPU.WebGPURenderer({ canvas: this.canvas, antialias: true });
-        await r.init();
-        this.renderer = r as unknown as THREE.WebGLRenderer;
-        this.usingWebGPU = true;
-        console.info('[CatTopSim] WebGPU renderer active');
-      } else {
-        throw new Error('WebGPU unavailable');
-      }
-    } catch (err) {
-      console.info('[CatTopSim] WebGPU unavailable, using WebGL:', err);
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: this.canvas,
-        antialias: true,
-        powerPreference: 'high-performance',
-      });
-      this.usingWebGPU = false;
-      console.info('[CatTopSim] WebGL renderer active');
-    }
+    await this.initRenderer();
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -110,6 +89,47 @@ export class Game {
     this.ui.show('title');
     this.clock.start();
     this.loop();
+  }
+
+  /** WebGPU first; on failure swap canvas so WebGL can attach cleanly */
+  private async initRenderer() {
+    const tryWebGPU = async () => {
+      if (!('gpu' in navigator) || !(navigator as Navigator & { gpu?: unknown }).gpu) {
+        throw new Error('no navigator.gpu');
+      }
+      const WebGPU = await import('three/webgpu');
+      const r = new WebGPU.WebGPURenderer({ canvas: this.canvas, antialias: true });
+      await r.init();
+      this.renderer = r as unknown as THREE.WebGLRenderer;
+      this.usingWebGPU = true;
+      console.info('[CatTopSim] WebGPU renderer active');
+    };
+
+    const tryWebGL = () => {
+      // If a previous attempt bound a GPU context, replace the canvas
+      const parent = this.canvas.parentElement;
+      if (parent) {
+        const fresh = this.canvas.cloneNode(false) as HTMLCanvasElement;
+        fresh.id = this.canvas.id;
+        parent.replaceChild(fresh, this.canvas);
+        this.canvas = fresh;
+      }
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+      });
+      this.usingWebGPU = false;
+      console.info('[CatTopSim] WebGL renderer active');
+    };
+
+    try {
+      await tryWebGPU();
+    } catch (err) {
+      console.info('[CatTopSim] WebGPU skipped:', err);
+      tryWebGL();
+    }
   }
 
   private bindInput() {
