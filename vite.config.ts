@@ -2,13 +2,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   base: './',
-  server: {
-    port: 5173,
-    open: false,
-  },
   build: {
-    target: 'esnext',
-    outDir: 'dist',
-    assetsInlineLimit: 0,
+    target: 'es2022',
+    chunkSizeWarningLimit: 1500,
   },
 });

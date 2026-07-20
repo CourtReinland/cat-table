@@ -1,134 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="Cat Top Sim — Suki the jealous cat wants boyfriend attention. Push everything off the counters." />
+    <meta name="theme-color" content="#0c0714" />
     <title>Cat Top Sim — Suki's Jealous Reign</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐈</text></svg>" />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <div id="app">
-      <canvas id="game-canvas"></canvas>
+    <canvas id="game-canvas"></canvas>
+    <div id="cg-overlay"></div>
 
-      <!-- Title Screen -->
-      <div id="screen-title" class="screen active">
-        <div class="title-bg"></div>
-        <div class="title-vignette"></div>
-        <div class="title-content">
-          <p class="title-tagline">An Otome Comedy of Claws &amp; Chaos</p>
-          <h1 class="title-logo">Cat Top Sim</h1>
-          <p class="title-sub">Suki's Jealous Reign</p>
-          <button id="btn-start" class="btn-primary">Begin the Reign</button>
-          <p class="title-hint">WASD / arrows move · Space / click paw-swat · Esc pause</p>
-        </div>
-        <div class="title-suki">
-          <img src="./assets/characters/suki-portrait.jpg" alt="Suki" />
-        </div>
-      </div>
+    <div id="ui">
+      <!-- Loading -->
+      <section id="screen-loading" class="screen visible">
+        <div class="loading-cat">🐈</div>
+        <div class="loading-text">warming up the counters…</div>
+      </section>
 
-      <!-- Level Intro -->
-      <div id="screen-intro" class="screen">
+      <!-- Title -->
+      <section id="screen-title" class="screen">
+        <div class="title-art"></div>
+        <div class="title-block">
+          <h1 class="game-logo">CAT&nbsp;TOP&nbsp;SIM</h1>
+          <div class="game-subtitle">— Suki's Jealous Reign —</div>
+          <div class="title-tagline">Every trinket must fall. Every boy must kneel.</div>
+          <nav class="title-menu">
+            <button id="btn-start" class="btn btn-primary">Begin the Chaos</button>
+            <button id="btn-levels" class="btn">Choose Your Victim</button>
+            <button id="btn-settings" class="btn">Settings</button>
+          </nav>
+          <div class="title-hint">a jealous-cat otome · headphones recommended 🎧</div>
+        </div>
+      </section>
+
+      <!-- Level select -->
+      <section id="screen-levels" class="screen">
+        <h2 class="screen-title">Tonight's Suitors</h2>
+        <div id="level-cards" class="level-cards"></div>
+        <button id="btn-levels-back" class="btn btn-ghost">← back</button>
+      </section>
+
+      <!-- Level intro card -->
+      <section id="screen-intro" class="screen">
         <div class="intro-card">
-          <div class="intro-portrait-row">
-            <img id="intro-suki" src="./assets/characters/suki-portrait.jpg" alt="Suki" />
-            <div class="intro-hearts">♥</div>
-            <img id="intro-boy" src="" alt="Boyfriend" />
+          <div class="intro-portrait"><img id="intro-img" alt="" /></div>
+          <div class="intro-body">
+            <div class="intro-kicker" id="intro-kicker">Level 1</div>
+            <h2 class="intro-name" id="intro-name">Eli Moreau</h2>
+            <div class="intro-title" id="intro-title">The Soft-Spoken Neighbor</div>
+            <p class="intro-desc" id="intro-desc"></p>
+            <p class="intro-verdict" id="intro-verdict"></p>
+            <div class="intro-level" id="intro-level"></div>
+            <button id="btn-intro-go" class="btn btn-primary">Take the Counter</button>
           </div>
-          <p class="intro-label">Tonight's Intruder</p>
-          <h2 id="intro-name">—</h2>
-          <p id="intro-desc" class="intro-desc"></p>
-          <p id="intro-suki-line" class="intro-suki-line"></p>
-          <button id="btn-intro-go" class="btn-primary">Onto the Counter</button>
         </div>
-      </div>
+      </section>
 
       <!-- HUD -->
-      <div id="hud" class="hud hidden">
+      <div id="hud">
         <div class="hud-top">
-          <div class="hud-level">
-            <span class="hud-label">Surface</span>
-            <span id="hud-level-name">Kitchen Island</span>
+          <div class="hud-level" id="hud-level">The Kitchen Island</div>
+          <div class="hud-attention">
+            <div class="hud-attention-label">BOYFRIEND ATTENTION</div>
+            <div class="hud-hearts" id="hud-hearts"></div>
           </div>
-          <div class="hud-chaos">
-            <span class="hud-label">Chaos</span>
-            <div class="chaos-bar"><div id="chaos-fill" class="chaos-fill"></div></div>
-            <span id="chaos-text">0 / 0</span>
-          </div>
-          <div class="hud-boy">
-            <img id="hud-boy-img" src="" alt="" />
-            <span id="hud-boy-name">—</span>
+          <div class="hud-score">
+            <div id="hud-score">0</div>
+            <div id="hud-combo" class="hud-combo"></div>
           </div>
         </div>
-        <div class="hud-hint" id="hud-hint">Swat clutter off the edge · heavies need multiple hits</div>
-        <div class="touch-controls" id="touch-controls">
-          <div class="stick-zone" id="stick-zone">
-            <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+        <div class="hud-hint" id="hud-hint">WASD prowl · Space shove · E meow · Esc pause</div>
+        <div id="bark" class="bark">
+          <img id="bark-img" alt="" />
+          <div class="bark-text-wrap">
+            <div class="bark-name" id="bark-name"></div>
+            <div class="bark-text" id="bark-text"></div>
           </div>
-          <button type="button" class="touch-nudge" id="btn-touch-nudge" aria-label="Nudge">🐾</button>
         </div>
+        <div id="combo-pop" class="combo-pop"></div>
       </div>
 
-      <!-- Dialogue / cutscene overlay -->
-      <div id="screen-cutscene" class="screen">
-        <div class="cutscene-bg">
-          <img id="cutscene-img" src="" alt="" />
-        </div>
-        <div class="dialogue-box">
-          <div class="dialogue-speaker-row">
-            <img id="dialogue-portrait" src="" alt="" />
-            <span id="dialogue-speaker" class="dialogue-speaker"></span>
+      <!-- Dialogue (cutscene) -->
+      <div id="dialogue" class="dialogue">
+        <div class="dlg-box">
+          <img id="dlg-img" class="dlg-portrait" alt="" />
+          <div class="dlg-main">
+            <div class="dlg-name" id="dlg-name"></div>
+            <div class="dlg-text" id="dlg-text"></div>
+            <div class="dlg-next">click / space ▸</div>
           </div>
-          <p id="dialogue-text" class="dialogue-text"></p>
-          <button id="btn-dialogue-next" class="btn-ghost">Continue ▸</button>
         </div>
       </div>
 
       <!-- Level complete -->
-      <div id="screen-complete" class="screen">
+      <section id="screen-complete" class="screen">
         <div class="complete-card">
-          <p class="complete-label">Attention Secured</p>
-          <h2 id="complete-title">He came for you.</h2>
-          <p id="complete-body" class="complete-body"></p>
-          <div class="complete-stats">
-            <div><span class="stat-num" id="stat-broken">0</span><span class="stat-label">Broken</span></div>
-            <div><span class="stat-num" id="stat-time">0s</span><span class="stat-label">Time</span></div>
+          <div class="complete-rank" id="complete-rank">S</div>
+          <h2 class="complete-title" id="complete-title">Surface Cleared</h2>
+          <p class="complete-body" id="complete-body"></p>
+          <div class="complete-stats" id="complete-stats"></div>
+          <div class="complete-actions">
+            <button id="btn-next-level" class="btn btn-primary">Next Suitor →</button>
+            <button id="btn-replay-level" class="btn">Replay</button>
+            <button id="btn-complete-title" class="btn btn-ghost">Title</button>
           </div>
-          <button id="btn-next-level" class="btn-primary">Next Boyfriend</button>
         </div>
-      </div>
-
-      <!-- Ending -->
-      <div id="screen-ending" class="screen">
-        <div class="ending-card">
-          <img src="./assets/characters/suki-portrait.jpg" class="ending-suki" alt="Suki" />
-          <h2>Queen of the Apartment</h2>
-          <p>Every boyfriend learned the truth: the real date was always with Suki.</p>
-          <p class="ending-tag">Heather will buy more trinkets. You will break them again.</p>
-          <button id="btn-replay" class="btn-primary">Reign Again</button>
-        </div>
-      </div>
+      </section>
 
       <!-- Pause -->
-      <div id="screen-pause" class="screen">
+      <section id="screen-pause" class="screen">
         <div class="pause-card">
-          <h2>Paused</h2>
-          <button id="btn-resume" class="btn-primary">Resume</button>
-          <button id="btn-quit-title" class="btn-ghost">Title Screen</button>
+          <h2>Pawsed 🐾</h2>
+          <button id="btn-resume" class="btn btn-primary">Resume</button>
+          <button id="btn-restart" class="btn">Restart Level</button>
+          <button id="btn-pause-settings" class="btn">Settings</button>
+          <button id="btn-quit-title" class="btn btn-ghost">Quit to Title</button>
         </div>
-      </div>
+      </section>
 
-      <!-- Loading -->
-      <div id="screen-loading" class="screen">
-        <div class="loading-inner">
-          <div class="loading-paw">🐾</div>
-          <p>Setting the counters…</p>
+      <!-- Settings -->
+      <section id="screen-settings" class="screen">
+        <div class="settings-card">
+          <h2>Settings</h2>
+          <label class="slider-row">Master <input id="set-master" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Music <input id="set-music" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Sound <input id="set-sfx" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Voices <input id="set-voice" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Quality
+            <select id="set-quality">
+              <option value="auto">Auto</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </label>
+          <button id="btn-settings-back" class="btn btn-primary">Done</button>
+          <button id="btn-wipe" class="btn btn-ghost">erase Suki's memories (reset save)</button>
+        </div>
+      </section>
+
+      <!-- Ending -->
+      <section id="screen-ending" class="screen">
+        <div class="ending-art"></div>
+        <div class="ending-card">
+          <h2 class="ending-title">Suki's Reign Complete</h2>
+          <div id="ending-lines" class="ending-lines"></div>
+          <div class="complete-actions">
+            <button id="btn-ending-title" class="btn btn-primary">Back to Title</button>
+          </div>
+          <div class="credits">
+            art: Grok Imagine · voices &amp; sfx: ElevenLabs · engine: three.js WebGPU<br />
+            made with 💜 and broken ceramics
+          </div>
+        </div>
+      </section>
+
+      <!-- Touch controls -->
+      <div id="touch-ui">
+        <div id="stick-zone"><div id="stick-knob"></div></div>
+        <div class="touch-buttons">
+          <button id="btn-touch-meow" class="touch-btn">🐱</button>
+          <button id="btn-touch-nudge" class="touch-btn">🐾</button>
         </div>
       </div>
     </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

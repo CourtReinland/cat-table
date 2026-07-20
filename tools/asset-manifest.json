@@ -1,0 +1,144 @@
+{
+  "images": [
+    {
+      "path": "public/assets/ui/title-keyart.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome video game key art, painterly anime illustration: an elegant cream-apricot cat with a pink bow collar sits on a kitchen counter at night, one paw delicately pushing a wine glass off the edge, dramatic rim lighting, city lights bokeh through a dark window behind, mysterious cinematic mood, rich warm amber and violet palette, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/suki-portrait.jpg",
+      "size": [640, 800],
+      "prompt": "Otome visual novel character portrait, painterly anime style: a cute cream-apricot cat with big glossy amber eyes and a pink bow collar, chest-up, confident smug expression, evening apartment bokeh background, soft warm lighting, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/boy-eli.jpg",
+      "size": [640, 800],
+      "prompt": "Otome game character portrait, painterly anime illustration: a gentle young man with warm brown hair and soft hazel eyes, cream knit cardigan, holding a tea mug, shy warm smile, evening kitchen bokeh background, amber lighting, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/boy-jasper.jpg",
+      "size": [640, 800],
+      "prompt": "Otome game character portrait, painterly anime illustration: a cheerful athletic young man with golden blonde hair, freckles and bright blue eyes, open denim jacket over a tee, huge sunny grin, cozy evening living room bokeh background, warm lighting, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/boy-kai.jpg",
+      "size": [640, 800],
+      "prompt": "Otome game character portrait, painterly anime illustration: a brooding beautiful young man with silver hair and dark eyes, black turtleneck and long coat, holding a sketchbook, moody mysterious expression, cold blue night lighting, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/boy-theo.jpg",
+      "size": [640, 800],
+      "prompt": "Otome game character portrait, painterly anime illustration: a sweet young pastry chef with dark curly hair and warm brown eyes, white chef apron over rolled-up sleeves, holding a pastry box, gentle kind smile, rosy evening lighting, high detail, no text"
+    },
+    {
+      "path": "public/assets/characters/boy-ren.jpg",
+      "size": [640, 800],
+      "prompt": "Otome game character portrait, painterly anime illustration: an elegant aloof young man with slicked black hair and sharp violet eyes, tailored dark plum coat, holding a cello bow, cool composed expression, candlelit background, high detail, no text"
+    },
+    {
+      "path": "public/assets/cutscenes/cuddle-eli.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game CG, painterly anime illustration: a gentle brown-haired young man in a cream cardigan kneels at a kitchen counter cuddling a smug cream-apricot cat with a pink bow, floating heart sparkles, warm evening kitchen, tender comedic mood, high detail, no text"
+    },
+    {
+      "path": "public/assets/cutscenes/cuddle-jasper.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game CG, painterly anime illustration: a cheerful blonde freckled young man lifts a smug cream-apricot cat high into the air like a trophy, cozy living room at night with TV glow, floating hearts, joyful comedic mood, high detail, no text"
+    },
+    {
+      "path": "public/assets/cutscenes/cuddle-kai.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game CG, painterly anime illustration: a brooding silver-haired young man in black cradles a smug cream-apricot cat at a messy artist desk at night, cold blue lamplight, floating hearts, he smiles despite himself, high detail, no text"
+    },
+    {
+      "path": "public/assets/cutscenes/cuddle-theo.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game CG, painterly anime illustration: a sweet young pastry chef in a white apron cuddles a smug cream-apricot cat against his cheek, bedroom dresser with flower vase behind, rosy warm light, floating hearts, high detail, no text"
+    },
+    {
+      "path": "public/assets/cutscenes/cuddle-ren.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game CG, painterly anime illustration: an elegant black-haired young man in a plum coat holds a smug cream-apricot cat like royalty at a candlelit dinner table, a rare gentle smile, wine glasses and candelabra, floating hearts, high detail, no text"
+    },
+    {
+      "path": "public/assets/ui/ending.jpg",
+      "size": [1280, 720],
+      "prompt": "Otome game ending CG, painterly anime illustration: a smug cream-apricot cat with a pink bow sleeps like a queen on a throne of cushions, five handsome adoring young men in the soft-focus background of a warm evening apartment, floating hearts and sparkles, comedic reverse-harem finale, high detail, no text"
+    }
+  ],
+  "voiceCast": {
+    "narrator": { "name": "Sarah", "style": "smooth, warm, slightly mischievous female narrator" },
+    "eli": { "name": "Antoni", "style": "soft warm gentle young male" },
+    "jasper": { "name": "Josh", "style": "energetic sunny young male, golden retriever energy" },
+    "kai": { "name": "Callum", "style": "low, slow, dramatic, mysterious male" },
+    "theo": { "name": "Thomas", "style": "warm gentle sweet male" },
+    "ren": { "name": "Daniel", "style": "deep precise composed British male" }
+  },
+  "voices": [
+    { "path": "public/assets/audio/voice/narrator-title.mp3", "cast": "narrator", "text": "Cat Top Sim. Suki's Jealous Reign." },
+    { "path": "public/assets/audio/voice/narrator-ending.mp3", "cast": "narrator", "text": "Five boyfriends. Five spotless floors of evidence. One very smug cat." },
+    { "path": "public/assets/audio/voice/narrator-ending2.mp3", "cast": "narrator", "text": "Heather will buy more trinkets. Suki will be waiting." },
+    { "path": "public/assets/audio/voice/eli-intro.mp3", "cast": "eli", "text": "Wow, Heather, your kitchen is so— wait. Is that cat… staring at me?" },
+    { "path": "public/assets/audio/voice/eli-bark1.mp3", "cast": "eli", "text": "…Did something just explode in the kitchen?" },
+    { "path": "public/assets/audio/voice/eli-bark2.mp3", "cast": "eli", "text": "That is the fourth mug. Should we… should we stop her? She looks so calm about it." },
+    { "path": "public/assets/audio/voice/eli-bark3.mp3", "cast": "eli", "text": "I can't look away. It's like a tiny, furry avalanche with eye contact." },
+    { "path": "public/assets/audio/voice/eli-cuddle1.mp3", "cast": "eli", "text": "Oh—hi, little one. You're much more interesting than the documentary, aren't you?" },
+    { "path": "public/assets/audio/voice/eli-cuddle2.mp3", "cast": "eli", "text": "Was this whole thing… for attention? Honestly? Respect." },
+    { "path": "public/assets/audio/voice/jasper-intro.mp3", "cast": "jasper", "text": "Movie night! I brought popcorn, I brought candy, I— oh my gosh, HI KITTY!" },
+    { "path": "public/assets/audio/voice/jasper-bark1.mp3", "cast": "jasper", "text": "WHOA! Cat tornado! That was awesome— are you okay, buddy?!" },
+    { "path": "public/assets/audio/voice/jasper-bark2.mp3", "cast": "jasper", "text": "She is SPEED-RUNNING your coffee table! Should I be filming this? I am filming this." },
+    { "path": "public/assets/audio/voice/jasper-bark3.mp3", "cast": "jasper", "text": "That candle had a family, man! …Do it again." },
+    { "path": "public/assets/audio/voice/jasper-cuddle1.mp3", "cast": "jasper", "text": "Haha, okay okay! Up you go, chaos queen. You're the MVP tonight!" },
+    { "path": "public/assets/audio/voice/jasper-cuddle2.mp3", "cast": "jasper", "text": "You are SO much better than the movie. No offense to the movie." },
+    { "path": "public/assets/audio/voice/kai-intro.mp3", "cast": "kai", "text": "I only work at night, when the light is honest. …Your cat is judging my posture." },
+    { "path": "public/assets/audio/voice/kai-bark1.mp3", "cast": "kai", "text": "That was… a statement piece. Abstract glass on hardwood." },
+    { "path": "public/assets/audio/voice/kai-bark2.mp3", "cast": "kai", "text": "Destruction as critique. She hates my sketchbook. She might be my best critic." },
+    { "path": "public/assets/audio/voice/kai-bark3.mp3", "cast": "kai", "text": "The laptop too? Brutal. Brave. Devastatingly curated." },
+    { "path": "public/assets/audio/voice/kai-cuddle1.mp3", "cast": "kai", "text": "Alright, diva. Come here. You're the only gallery worth visiting tonight." },
+    { "path": "public/assets/audio/voice/kai-cuddle2.mp3", "cast": "kai", "text": "I shall title this evening: Jealousy, with Fur. My masterpiece." },
+    { "path": "public/assets/audio/voice/theo-intro.mp3", "cast": "theo", "text": "I made choux pastry from scratch! It only took nine hours— oh! Hello, your majesty." },
+    { "path": "public/assets/audio/voice/theo-bark1.mp3", "cast": "theo", "text": "The perfume! That was a gift! …Please not the jewelry box." },
+    { "path": "public/assets/audio/voice/theo-bark2.mp3", "cast": "theo", "text": "She looked me in the eye while she did that one. IN THE EYE, Heather." },
+    { "path": "public/assets/audio/voice/theo-bark3.mp3", "cast": "theo", "text": "I can't compete with this. She's magnificent. I bake for a living and I'm the side dish." },
+    { "path": "public/assets/audio/voice/theo-cuddle1.mp3", "cast": "theo", "text": "Okay, I understand now. It's your apartment. We're just baking in it." },
+    { "path": "public/assets/audio/voice/theo-cuddle2.mp3", "cast": "theo", "text": "You're softer than my brioche. Don't tell my brioche." },
+    { "path": "public/assets/audio/voice/ren-intro.mp3", "cast": "ren", "text": "A table is an instrument. Tonight we dine in D minor. …The cat has already begun." },
+    { "path": "public/assets/audio/voice/ren-bark1.mp3", "cast": "ren", "text": "The first violin of glassware has fallen. Fascinating. Continue." },
+    { "path": "public/assets/audio/voice/ren-bark2.mp3", "cast": "ren", "text": "Four glasses, one candelabra. She composes in percussion." },
+    { "path": "public/assets/audio/voice/ren-bark3.mp3", "cast": "ren", "text": "I was told this would be a quiet dinner. I have never been so… moved." },
+    { "path": "public/assets/audio/voice/ren-cuddle1.mp3", "cast": "ren", "text": "Encore finished. Come here, maestro. You conducted the whole evening." },
+    { "path": "public/assets/audio/voice/ren-cuddle2.mp3", "cast": "ren", "text": "Is this… laughter? Ah. So that is what it feels like. Thank you, small tyrant." }
+  ],
+  "sfx": [
+    { "path": "public/assets/audio/sfx/shatter-glass.mp3", "duration": 1.6, "prompt": "single wine glass shattering on a wooden floor, bright crystalline crash, sharp and satisfying" },
+    { "path": "public/assets/audio/sfx/shatter-ceramic.mp3", "duration": 1.6, "prompt": "ceramic mug smashing on hardwood floor, deep pottery crash with shards scattering" },
+    { "path": "public/assets/audio/sfx/clatter-metal.mp3", "duration": 1.2, "prompt": "small remote control clattering and bouncing on a hard floor, metallic plastic rattle" },
+    { "path": "public/assets/audio/sfx/thud-soft.mp3", "duration": 1.0, "prompt": "hardcover book thudding onto a carpeted floor, soft heavy whump" },
+    { "path": "public/assets/audio/sfx/smash-grand.mp3", "duration": 2.2, "prompt": "brass candelabra crashing loudly onto a wooden floor, dramatic metal clang with glass breaking, big reverb" },
+    { "path": "public/assets/audio/sfx/meow-cute.mp3", "duration": 1.0, "prompt": "single cute short cat meow, high pitch, adorable" },
+    { "path": "public/assets/audio/sfx/meow-sassy.mp3", "duration": 1.4, "prompt": "sassy demanding drawn-out cat meow, attitude, slightly annoyed" },
+    { "path": "public/assets/audio/sfx/meow-triumph.mp3", "duration": 1.4, "prompt": "triumphant proud cat meow trill chirp, victorious" },
+    { "path": "public/assets/audio/sfx/purr.mp3", "duration": 4.0, "prompt": "cat purring steadily close to microphone, soothing deep rumble, loopable" },
+    { "path": "public/assets/audio/sfx/whoosh.mp3", "duration": 0.6, "prompt": "quick soft paw swipe whoosh through the air, subtle" },
+    { "path": "public/assets/audio/sfx/ui-pop.mp3", "duration": 0.5, "prompt": "soft cute minimal UI pop click, bubble" },
+    { "path": "public/assets/audio/sfx/success.mp3", "duration": 2.0, "prompt": "sparkly magical chime arpeggio, cute game level-complete jingle, warm" },
+    { "path": "public/assets/audio/sfx/heart-pop.mp3", "duration": 0.5, "prompt": "cute soft bubble pop kiss sound, tiny heart sparkle" }
+  ],
+  "music": [
+    {
+      "path": "public/assets/audio/music/title.mp3",
+      "seconds": 60,
+      "prompt": "dreamy mysterious lo-fi waltz, soft piano and music box, vinyl crackle, cozy evening in a city apartment, whimsical and a little mischievous, instrumental, loopable"
+    },
+    {
+      "path": "public/assets/audio/music/play.mp3",
+      "seconds": 60,
+      "prompt": "sneaky playful pizzicato strings, mischievous cat tip-toeing across a piano, quiet jazzy upright bass, light brushed drums, whimsical heist vibe, instrumental, loopable"
+    },
+    {
+      "path": "public/assets/audio/music/cuddle.mp3",
+      "seconds": 45,
+      "prompt": "warm tender acoustic lullaby, soft nylon guitar and glockenspiel, heartfelt cozy romance, gentle and sweet, instrumental, loopable"
+    }
+  ]
+}

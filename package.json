@@ -1,22 +1,24 @@
 {
   "name": "cat-top-sim",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Cat Top Sim — jealous cat otome push-and-break on apartment counters",
+  "description": "Cat Top Sim — Suki's Jealous Reign: an otome comedy push-and-break on apartment counters",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "shot": "node tools/shot.mjs",
+    "gen:assets": "node tools/gen-assets.mjs"
   },
   "dependencies": {
-    "three": "^0.172.0",
-    "cannon-es": "^0.20.0"
+    "three": "^0.185.1"
   },
   "devDependencies": {
-    "@types/three": "^0.172.0",
+    "@types/three": "^0.185.1",
+    "playwright": "^1.49.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.6"
+    "vite": "^6.3.5"
   }
 }

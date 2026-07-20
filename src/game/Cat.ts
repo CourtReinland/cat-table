@@ -1,561 +1,260 @@
-import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
+import * as THREE from 'three/webgpu';
+import { stdMat } from './Props';
 
-export type CatAnim = 'idle' | 'walk' | 'swat';
+const CREAM = 0xecd2ac;
+const APRICOT = 0xdca878;
+const PINK = 0xf08bb0;
 
 /**
- * Hierarchical cream cat with real feline proportions,
- * diagonal walk gait, and a paw-swat attack cycle.
+ * Suki — procedural stylized cat. Origin at the feet; faces +Z when yaw = 0.
  */
 export class Cat {
-  readonly group = new THREE.Group();
-  readonly velocity = new THREE.Vector3();
-  facingYaw = 0;
-  speed = 3.9;
-  sprintMul = 1.35;
-  nudgeCooldown = 0;
-  mass = 4.2;
+  group = new THREE.Group();
+  body!: THREE.Mesh;
+  head!: THREE.Group;
+  tailSegs: THREE.Mesh[] = [];
+  legs: THREE.Mesh[] = [];
+  private earL!: THREE.Mesh;
+  private earR!: THREE.Mesh;
+  private eyeL!: THREE.Mesh;
+  private eyeR!: THREE.Mesh;
+  private pawR!: THREE.Mesh;
 
-  /** 0–1 how hard the last swat hit (for camera/UI) */
-  lastSwatStrength = 0;
-  /** World-space point of paw impact during swat peak */
-  readonly swatPoint = new THREE.Vector3();
-  swatActive = false;
-  swatPeakHit = false;
-
-  private root = new THREE.Group();
-  private pelvis!: THREE.Group;
-  private chest!: THREE.Group;
-  private neck!: THREE.Group;
-  private head!: THREE.Group;
-  private tailSegs: THREE.Group[] = [];
-  private legs: {
-    root: THREE.Group;
-    upper: THREE.Group;
-    lower: THREE.Group;
-    paw: THREE.Group;
-    side: 1 | -1;
-    front: boolean;
-  }[] = [];
-
-  private phase = 0;
-  private anim: CatAnim = 'idle';
-  private swatT = 0;
-  private readonly swatDuration = 0.42;
-  private bodyMat!: THREE.MeshStandardMaterial;
-  private accentMat!: THREE.MeshStandardMaterial;
-  private worldBody: CANNON.Body | null = null;
-  private world: CANNON.World | null = null;
+  // anim state
+  private walkPhase = 0;
+  private blinkTimer = 2.5;
+  private blink = 0;
+  private earTwitch = 4;
+  private pushTimer = 0;
+  private idleTime = 0;
+  private sitK = 0;
+  yaw = 0;
+  speed = 0;
 
   constructor() {
-    this.buildMesh();
-    this.group.add(this.root);
-    this.root.scale.setScalar(1.0);
+    this.build();
+    this.group.scale.setScalar(1.18);
   }
 
-  /** Attach a kinematic capsule used to shove rigid props */
-  attachPhysics(world: CANNON.World, y: number) {
-    this.world = world;
-    if (this.worldBody) world.removeBody(this.worldBody);
-    this.worldBody = new CANNON.Body({
-      mass: 0, // kinematic-style via manual velocity injection
-      type: CANNON.Body.KINEMATIC,
-      shape: new CANNON.Sphere(0.18),
-      position: new CANNON.Vec3(0, y + 0.18, 0),
-      collisionFilterGroup: 2,
-      collisionFilterMask: 1,
-    });
-    // Slightly larger interaction radius
-    this.worldBody.addShape(new CANNON.Sphere(0.14), new CANNON.Vec3(0.16, 0, 0));
-    world.addBody(this.worldBody);
-  }
+  private build() {
+    const fur = stdMat(CREAM, { rough: 0.95 });
+    const furDark = stdMat(APRICOT, { rough: 0.95 });
+    const pinkMat = stdMat(PINK, { rough: 0.6 });
 
-  detachPhysics() {
-    if (this.world && this.worldBody) {
-      this.world.removeBody(this.worldBody);
-    }
-    this.worldBody = null;
-    this.world = null;
-  }
+    // body — horizontal capsule along Z
+    this.body = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.24, 6, 12), fur);
+    this.body.rotation.x = Math.PI / 2;
+    this.body.position.y = 0.115;
+    this.body.castShadow = true;
+    this.group.add(this.body);
 
-  private buildMesh() {
-    this.bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xf2d4b5,
-      roughness: 0.78,
-      metalness: 0.02,
-      envMapIntensity: 0.45,
-    });
-    this.accentMat = new THREE.MeshStandardMaterial({
-      color: 0xfff6ec,
-      roughness: 0.82,
-      metalness: 0.0,
-    });
-    const pink = new THREE.MeshStandardMaterial({
-      color: 0xf4a0b8,
-      roughness: 0.45,
-      emissive: 0x3a1020,
-      emissiveIntensity: 0.12,
-    });
-    const eyeMat = new THREE.MeshStandardMaterial({
-      color: 0xe8a020,
-      emissive: 0xd47810,
-      emissiveIntensity: 0.65,
-      roughness: 0.25,
-    });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x1a100c, roughness: 0.5 });
+    // apricot back patch
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), furDark);
+    patch.scale.set(1.0, 0.55, 1.6);
+    patch.position.set(0.02, 0.17, -0.04);
+    this.group.add(patch);
 
-    // Hierarchy: root → pelvis → chest → neck → head
-    //            pelvis → hind legs, tail
-    //            chest → front legs
-    this.pelvis = new THREE.Group();
-    this.pelvis.position.set(-0.06, 0.22, 0);
-    this.root.add(this.pelvis);
-
-    this.chest = new THREE.Group();
-    this.chest.position.set(0.16, 0.02, 0);
-    this.pelvis.add(this.chest);
-
-    // Torso — longer, leaner feline silhouette
-    const hind = this.mesh(new THREE.SphereGeometry(0.11, 16, 12), this.bodyMat);
-    hind.scale.set(1.25, 0.95, 0.85);
-    hind.position.set(-0.02, 0.02, 0);
-    this.pelvis.add(hind);
-
-    const mid = this.mesh(new THREE.CapsuleGeometry(0.095, 0.18, 6, 12), this.bodyMat);
-    mid.rotation.z = Math.PI / 2;
-    mid.position.set(0.1, 0.03, 0);
-    mid.scale.set(1, 1.0, 0.88);
-    this.pelvis.add(mid);
-
-    const chestMesh = this.mesh(new THREE.SphereGeometry(0.12, 16, 14), this.bodyMat);
-    chestMesh.scale.set(1.25, 0.95, 0.9);
-    chestMesh.position.set(0.04, 0.01, 0);
-    this.chest.add(chestMesh);
-
-    // Apricot shoulder marking (Suki identity)
-    const mark = this.mesh(
-      new THREE.SphereGeometry(0.05, 10, 8),
-      new THREE.MeshStandardMaterial({ color: 0xe8b090, roughness: 0.85 }),
-    );
-    mark.position.set(0.06, 0.06, 0.08);
-    mark.scale.set(1.2, 0.6, 0.8);
-    this.chest.add(mark);
-
-    // White blaze
-    const blaze = this.mesh(new THREE.SphereGeometry(0.07, 12, 10), this.accentMat);
-    blaze.position.set(0.1, -0.02, 0);
-    blaze.scale.set(0.7, 1.1, 0.55);
-    this.chest.add(blaze);
-
-    // Neck + head — cat skull (tapered muzzle)
-    this.neck = new THREE.Group();
-    this.neck.position.set(0.12, 0.06, 0);
-    this.chest.add(this.neck);
-
+    // head
     this.head = new THREE.Group();
-    this.head.position.set(0.1, 0.04, 0);
-    this.neck.add(this.head);
-
-    const skull = this.mesh(new THREE.SphereGeometry(0.105, 16, 14), this.bodyMat);
-    skull.scale.set(1.05, 0.95, 0.92);
+    this.head.position.set(0, 0.225, 0.2);
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 12), fur);
+    skull.castShadow = true;
     this.head.add(skull);
-
-    const cheekL = this.mesh(new THREE.SphereGeometry(0.045, 10, 8), this.bodyMat);
-    cheekL.position.set(0.02, -0.02, 0.07);
-    cheekL.scale.set(1.1, 0.8, 0.9);
-    this.head.add(cheekL);
-    const cheekR = cheekL.clone();
-    cheekR.position.z = -0.07;
-    this.head.add(cheekR);
-
-    // Muzzle
-    const muzzle = this.mesh(new THREE.SphereGeometry(0.055, 12, 10), this.accentMat);
-    muzzle.position.set(0.09, -0.02, 0);
-    muzzle.scale.set(1.15, 0.75, 0.8);
+    const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), stdMat(0xf8e8d2, { rough: 0.95 }));
+    muzzle.position.set(0, -0.03, 0.075);
     this.head.add(muzzle);
-
-    const nose = this.mesh(new THREE.SphereGeometry(0.018, 8, 8), pink);
-    nose.position.set(0.14, -0.01, 0);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.011, 0.014, 6), pinkMat);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, -0.012, 0.115);
     this.head.add(nose);
 
-    // Ears — tall triangles, cat-like
-    for (const side of [1, -1] as const) {
-      const ear = new THREE.Group();
-      ear.position.set(0.02, 0.1, 0.055 * side);
-      ear.rotation.z = -0.15;
-      ear.rotation.x = 0.15 * side;
-      const outer = this.mesh(new THREE.ConeGeometry(0.045, 0.11, 6), this.bodyMat);
-      outer.position.y = 0.05;
-      ear.add(outer);
-      const inner = this.mesh(new THREE.ConeGeometry(0.022, 0.07, 5), pink);
-      inner.position.set(0.005, 0.045, 0);
-      ear.add(inner);
-      this.head.add(ear);
-    }
+    // ears
+    const earGeo = new THREE.ConeGeometry(0.042, 0.078, 8);
+    this.earL = new THREE.Mesh(earGeo, fur);
+    this.earL.position.set(-0.05, 0.085, 0.01);
+    this.earL.rotation.z = 0.25;
+    this.earR = new THREE.Mesh(earGeo, fur);
+    this.earR.position.set(0.05, 0.085, 0.01);
+    this.earR.rotation.z = -0.25;
+    const innerGeo = new THREE.ConeGeometry(0.018, 0.035, 6);
+    const innerL = new THREE.Mesh(innerGeo, pinkMat);
+    innerL.position.set(-0.048, 0.078, 0.022);
+    innerL.rotation.z = 0.25;
+    const innerR = new THREE.Mesh(innerGeo, pinkMat);
+    innerR.position.set(0.048, 0.078, 0.022);
+    innerR.rotation.z = -0.25;
+    this.head.add(this.earL, this.earR, innerL, innerR);
 
-    // Eyes
-    for (const side of [1, -1] as const) {
-      const eye = this.mesh(new THREE.SphereGeometry(0.028, 12, 10), eyeMat);
-      eye.position.set(0.08, 0.025, 0.055 * side);
-      eye.scale.set(0.9, 1.15, 0.55);
-      this.head.add(eye);
-      const pupil = this.mesh(new THREE.SphereGeometry(0.012, 8, 8), dark);
-      pupil.position.set(0.1, 0.025, 0.055 * side);
-      pupil.scale.set(0.7, 1.4, 0.5);
-      this.head.add(pupil);
-    }
+    // eyes — big glossy amber
+    const eyeGeo = new THREE.SphereGeometry(0.022, 10, 8);
+    const eyeMat = stdMat(0x8a5a20, { rough: 0.15, emissive: 0x3a2408, emissiveIntensity: 0.5 });
+    this.eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    this.eyeL.position.set(-0.042, 0.012, 0.082);
+    this.eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    this.eyeR.position.set(0.042, 0.012, 0.082);
+    const glintGeo = new THREE.SphereGeometry(0.005, 6, 4);
+    const glintMat = stdMat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 2.2 });
+    const glintL = new THREE.Mesh(glintGeo, glintMat);
+    glintL.position.set(-0.037, 0.02, 0.097);
+    const glintR = new THREE.Mesh(glintGeo, glintMat);
+    glintR.position.set(0.047, 0.02, 0.097);
+    this.head.add(this.eyeL, this.eyeR, glintL, glintR);
 
-    // Whisker stubs
-    for (const side of [1, -1] as const) {
+    // whiskers
+    const whiskerMat = new THREE.MeshBasicNodeMaterial({ color: 0xfff8ee, transparent: true, opacity: 0.55 });
+    for (const side of [-1, 1]) {
       for (let i = 0; i < 3; i++) {
-        const w = this.mesh(
-          new THREE.CylinderGeometry(0.002, 0.002, 0.1, 4),
-          new THREE.MeshStandardMaterial({ color: 0xf8f0e8, roughness: 0.4 }),
-        );
-        w.position.set(0.1, -0.02 + i * 0.012, 0.04 * side);
-        w.rotation.z = Math.PI / 2;
-        w.rotation.y = 0.35 * side;
-        w.rotation.x = (i - 1) * 0.2;
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.0006, 0.0006, 0.09, 3), whiskerMat);
+        w.rotation.z = Math.PI / 2 + side * (0.1 + i * 0.12);
+        w.position.set(side * 0.09, -0.02 - i * 0.008, 0.1);
         this.head.add(w);
       }
     }
 
-    // Legs — upper, lower, paw
-    const legDefs: { front: boolean; side: 1 | -1; x: number; z: number }[] = [
-      { front: true, side: 1, x: 0.08, z: 0.08 },
-      { front: true, side: -1, x: 0.08, z: -0.08 },
-      { front: false, side: 1, x: -0.05, z: 0.09 },
-      { front: false, side: -1, x: -0.05, z: -0.09 },
+    // pink bow on right ear
+    const bowMat = stdMat(PINK, { rough: 0.5 });
+    const bowL = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.03, 4), bowMat);
+    bowL.rotation.z = Math.PI / 2;
+    bowL.position.set(0.062, 0.115, 0.01);
+    const bowR = bowL.clone();
+    bowR.rotation.z = -Math.PI / 2;
+    bowR.position.x = 0.095;
+    const bowC = new THREE.Mesh(new THREE.SphereGeometry(0.011, 6, 5), bowMat);
+    bowC.position.set(0.078, 0.115, 0.01);
+    this.head.add(bowL, bowR, bowC);
+
+    this.group.add(this.head);
+
+    // collar + bell
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.011, 8, 18), pinkMat);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.set(0, 0.155, 0.135);
+    collar.rotation.x = 1.25;
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), stdMat(0xf5c95a, { metal: 0.85, rough: 0.25 }));
+    bell.position.set(0, 0.115, 0.185);
+    this.group.add(collar, bell);
+
+    // legs
+    const legGeo = new THREE.CapsuleGeometry(0.024, 0.1, 4, 8);
+    const legPos: [number, number][] = [
+      [-0.055, 0.13],
+      [0.055, 0.13],
+      [-0.055, -0.13],
+      [0.055, -0.13],
     ];
+    for (const [x, z] of legPos) {
+      const leg = new THREE.Mesh(legGeo, fur);
+      leg.position.set(x, 0.07, z);
+      leg.castShadow = true;
+      this.legs.push(leg);
+      this.group.add(leg);
+    }
+    this.pawR = this.legs[1];
 
-    for (const def of legDefs) {
-      const parent = def.front ? this.chest : this.pelvis;
-      const root = new THREE.Group();
-      root.position.set(def.x, -0.02, def.z);
-      parent.add(root);
-
-      const upper = new THREE.Group();
-      root.add(upper);
-      const upperMesh = this.mesh(new THREE.CapsuleGeometry(0.035, 0.06, 4, 8), this.bodyMat);
-      upperMesh.position.y = -0.05;
-      upper.add(upperMesh);
-
-      const lower = new THREE.Group();
-      lower.position.y = -0.1;
-      upper.add(lower);
-      const lowerMesh = this.mesh(new THREE.CapsuleGeometry(0.028, 0.05, 4, 8), this.bodyMat);
-      lowerMesh.position.y = -0.04;
-      lower.add(lowerMesh);
-
-      const paw = new THREE.Group();
-      paw.position.y = -0.09;
-      lower.add(paw);
-      const pawMesh = this.mesh(new THREE.SphereGeometry(0.032, 10, 8), this.accentMat);
-      pawMesh.scale.set(1.2, 0.55, 1.0);
-      pawMesh.position.y = -0.01;
-      paw.add(pawMesh);
-
-      this.legs.push({ root, upper, lower, paw, side: def.side, front: def.front });
+    // tail — chained segments curving up
+    const tailMat = fur;
+    let parent: THREE.Object3D = this.group;
+    let basePos = new THREE.Vector3(0, 0.15, -0.19);
+    for (let i = 0; i < 6; i++) {
+      const seg = new THREE.Mesh(new THREE.CapsuleGeometry(0.016 - i * 0.0012, 0.05, 4, 8), i >= 4 ? furDark : tailMat);
+      const pivot = new THREE.Group();
+      pivot.position.copy(basePos);
+      seg.position.y = 0.035;
+      pivot.add(seg);
+      parent.add(pivot);
+      this.tailSegs.push(pivot as any);
+      parent = pivot;
+      basePos = new THREE.Vector3(0, 0.07, 0);
     }
 
-    // Multi-segment tail chain
-    this.tailSegs = [];
-    let tailParent: THREE.Object3D = this.pelvis;
-    for (let i = 0; i < 5; i++) {
-      const seg = new THREE.Group();
-      seg.position.set(i === 0 ? -0.14 : -0.07, i === 0 ? 0.06 : 0.01, 0);
-      tailParent.add(seg);
-      this.tailSegs.push(seg);
-      const r = 0.032 - i * 0.004;
-      const m = this.mesh(new THREE.CapsuleGeometry(r, 0.04, 3, 6), this.bodyMat);
-      m.rotation.z = Math.PI / 2;
-      m.position.x = -0.03;
-      seg.add(m);
-      tailParent = seg;
-    }
-  }
-
-  private mesh(geo: THREE.BufferGeometry, mat: THREE.Material) {
-    const m = new THREE.Mesh(geo, mat);
-    m.castShadow = true;
-    m.receiveShadow = true;
-    return m;
-  }
-
-  setPosition(x: number, y: number, z: number) {
-    this.group.position.set(x, y, z);
-    this.syncPhysics();
-  }
-
-  get position() {
-    return this.group.position;
-  }
-
-  /** Trigger paw swat; returns true if started */
-  trySwat(): boolean {
-    if (this.anim === 'swat' || this.nudgeCooldown > 0) return false;
-    this.anim = 'swat';
-    this.swatT = 0;
-    this.swatActive = true;
-    this.swatPeakHit = false;
-    this.nudgeCooldown = 0.55;
-    this.lastSwatStrength = 0;
-    return true;
-  }
-
-  /**
-   * @returns swat impulse event at peak frame, else null
-   */
-  update(
-    dt: number,
-    input: { x: number; z: number },
-    bounds: { halfW: number; halfD: number },
-    surfaceY: number,
-  ): { swatImpulse: number; origin: THREE.Vector3; direction: THREE.Vector3 } | null {
-    this.nudgeCooldown = Math.max(0, this.nudgeCooldown - dt);
-    let swatEvent: { swatImpulse: number; origin: THREE.Vector3; direction: THREE.Vector3 } | null =
-      null;
-
-    // --- Swat state machine ---
-    if (this.anim === 'swat') {
-      this.swatT += dt;
-      const t = this.swatT / this.swatDuration;
-      this.animateSwat(t);
-
-      // Peak impact ~55% through the cycle
-      if (!this.swatPeakHit && t >= 0.52) {
-        this.swatPeakHit = true;
-        const strength = 1.0;
-        this.lastSwatStrength = strength;
-        this.updateSwatPoint();
-        const dir = new THREE.Vector3(Math.cos(this.facingYaw), 0.15, Math.sin(this.facingYaw));
-        swatEvent = {
-          swatImpulse: strength,
-          origin: this.swatPoint.clone(),
-          direction: dir,
-        };
-      }
-
-      if (t >= 1) {
-        this.anim = 'idle';
-        this.swatActive = false;
-        this.resetPoseBase();
-      }
-
-      // Still allow slight reposition during windup
-      this.applyMovement(dt, input, bounds, 0.25);
-      this.syncPhysics();
-      this.group.position.y = surfaceY;
-      return swatEvent;
-    }
-
-    // --- Locomotion ---
-    const moving = Math.hypot(input.x, input.z) > 0.05;
-    this.anim = moving ? 'walk' : 'idle';
-
-    this.applyMovement(dt, input, bounds, 1);
-    this.group.position.y = surfaceY;
-
-    // Face movement direction smoothly (full 360, not flip-only)
-    if (moving) {
-      const targetYaw = Math.atan2(input.z, input.x);
-      let dy = targetYaw - this.facingYaw;
-      while (dy > Math.PI) dy -= Math.PI * 2;
-      while (dy < -Math.PI) dy += Math.PI * 2;
-      this.facingYaw += dy * Math.min(1, 12 * dt);
-    }
-    this.root.rotation.y = this.facingYaw;
-
-    // Gait
-    const speed = Math.hypot(this.velocity.x, this.velocity.z);
-    this.phase += dt * (moving ? 11 + speed * 1.5 : 2.2);
-    if (moving) this.animateWalk(this.phase, speed);
-    else this.animateIdle(this.phase);
-
-    this.syncPhysics();
-    return null;
-  }
-
-  private applyMovement(
-    dt: number,
-    input: { x: number; z: number },
-    bounds: { halfW: number; halfD: number },
-    mul: number,
-  ) {
-    const len = Math.hypot(input.x, input.z);
-    if (len > 0.05) {
-      const nx = input.x / len;
-      const nz = input.z / len;
-      const sp = this.speed * mul;
-      // Accelerate toward input
-      this.velocity.x = THREE.MathUtils.damp(this.velocity.x, nx * sp, 12, dt);
-      this.velocity.z = THREE.MathUtils.damp(this.velocity.z, nz * sp, 12, dt);
-    } else {
-      this.velocity.x = THREE.MathUtils.damp(this.velocity.x, 0, 10, dt);
-      this.velocity.z = THREE.MathUtils.damp(this.velocity.z, 0, 10, dt);
-    }
-
-    this.group.position.x += this.velocity.x * dt;
-    this.group.position.z += this.velocity.z * dt;
-
-    const margin = 0.28;
-    this.group.position.x = THREE.MathUtils.clamp(
-      this.group.position.x,
-      -bounds.halfW + margin,
-      bounds.halfW - margin,
-    );
-    this.group.position.z = THREE.MathUtils.clamp(
-      this.group.position.z,
-      -bounds.halfD + margin,
-      bounds.halfD - margin,
-    );
-  }
-
-  private animateIdle(phase: number) {
-    this.resetPoseBase();
-    const breathe = Math.sin(phase * 0.8) * 0.012;
-    this.chest.position.y = 0.02 + breathe;
-    this.head.rotation.x = Math.sin(phase * 0.5) * 0.04;
-    this.head.rotation.z = Math.sin(phase * 0.35) * 0.03;
-    // Tail slow curl
-    this.tailSegs.forEach((s, i) => {
-      s.rotation.y = Math.sin(phase * 0.7 + i * 0.4) * 0.18;
-      s.rotation.z = 0.25 + Math.sin(phase * 0.5 + i * 0.3) * 0.08;
-    });
-    // Slight crouch settle on paws
-    for (const leg of this.legs) {
-      leg.upper.rotation.x = 0.08;
-      leg.lower.rotation.x = -0.12;
-    }
-  }
-
-  private animateWalk(phase: number, speed: number) {
-    this.resetPoseBase();
-    const amp = THREE.MathUtils.clamp(speed / this.speed, 0.35, 1.1);
-
-    // Body pitch/bob
-    this.pelvis.position.y = 0.22 + Math.sin(phase * 2) * 0.018 * amp;
-    this.chest.rotation.x = Math.sin(phase) * 0.06 * amp;
-    this.pelvis.rotation.z = Math.sin(phase) * 0.04 * amp;
-    this.head.rotation.x = -Math.sin(phase) * 0.05 * amp;
-    this.head.rotation.y = Math.sin(phase * 0.5) * 0.06;
-
-    // Diagonal gait: FL+HR phase 0, FR+HL phase PI
-    for (const leg of this.legs) {
-      const pairPhase = leg.front === (leg.side === 1) ? phase : phase + Math.PI;
-      const swing = Math.sin(pairPhase) * 0.55 * amp;
-      const lift = Math.max(0, Math.sin(pairPhase)) * 0.12 * amp;
-      leg.upper.rotation.x = swing * (leg.front ? 1 : 0.85);
-      leg.lower.rotation.x = -Math.abs(swing) * 0.7 - 0.1;
-      leg.root.position.y = -0.02 + lift;
-      leg.paw.rotation.x = -swing * 0.3;
-    }
-
-    // Tail counter-balance
-    this.tailSegs.forEach((s, i) => {
-      s.rotation.y = Math.sin(phase + i * 0.5) * 0.35 * amp;
-      s.rotation.z = 0.4 + Math.sin(phase * 1.2 + i * 0.4) * 0.12;
+    this.group.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
     });
   }
 
-  private animateSwat(t: number) {
-    // 0–0.35 crouch windup, 0.35–0.6 strike, 0.6–1 recover
-    this.resetPoseBase();
-    const ease = (x: number) => x * x * (3 - 2 * x);
+  /** Paw-swipe animation trigger */
+  push() {
+    this.pushTimer = 0.32;
+  }
 
-    if (t < 0.35) {
-      const u = ease(t / 0.35);
-      this.pelvis.position.y = 0.22 - 0.06 * u;
-      this.chest.rotation.x = -0.25 * u;
-      this.head.rotation.x = 0.15 * u;
-      // Front-right paw loads back
-      const fr = this.legs.find((l) => l.front && l.side === -1)!;
-      fr.upper.rotation.x = -0.9 * u;
-      fr.lower.rotation.x = -0.4 * u;
-      // Plant other legs
-      for (const leg of this.legs) {
-        if (leg === fr) continue;
-        leg.upper.rotation.x = 0.2 * u;
-        leg.lower.rotation.x = -0.25 * u;
-      }
-    } else if (t < 0.62) {
-      const u = ease((t - 0.35) / 0.27);
-      this.pelvis.position.y = 0.16 + 0.04 * u;
-      this.chest.rotation.x = -0.25 + 0.55 * u;
-      this.chest.rotation.y = 0.35 * u;
-      const fr = this.legs.find((l) => l.front && l.side === -1)!;
-      fr.upper.rotation.x = -0.9 + 2.2 * u;
-      fr.lower.rotation.x = -0.4 + 0.2 * u;
-      fr.root.position.x = 0.08 + 0.12 * u;
-      // Body weight shift
-      this.pelvis.rotation.z = -0.15 * u;
+  update(dt: number, t: number) {
+    const sp = this.speed;
+    this.walkPhase += dt * (4 + sp * 9);
+    const p = this.walkPhase;
+    const moving = sp > 0.05;
+    this.idleTime = moving ? 0 : this.idleTime + dt;
+
+    // settle into a sit when idle for a while
+    const wantSit = this.idleTime > 3.5 && this.pushTimer <= 0 ? 1 : 0;
+    this.sitK += (wantSit - this.sitK) * Math.min(1, dt * 3.2);
+    const sit = this.sitK;
+
+    // legs
+    const amp = Math.min(1, sp * 1.6) * 0.55;
+    const sitLeg = -2.2 * sit;
+    this.legs[0].rotation.x = Math.sin(p) * amp * (1 - sit) + sitLeg;
+    this.legs[1].rotation.x = Math.sin(p + Math.PI) * amp * (1 - sit) + sitLeg;
+    this.legs[2].rotation.x = Math.sin(p + Math.PI) * amp * (1 - sit) + sitLeg * 0.9;
+    this.legs[3].rotation.x = Math.sin(p) * amp * (1 - sit) + sitLeg * 0.9;
+
+    // push animation overrides right paw
+    if (this.pushTimer > 0) {
+      this.pushTimer -= dt;
+      const k = Math.sin((1 - this.pushTimer / 0.32) * Math.PI);
+      this.pawR.rotation.x = -1.6 * k;
+      this.pawR.position.z = 0.13 + 0.09 * k;
+      this.body.rotation.x = Math.PI / 2 + 0.12 * k;
     } else {
-      const u = ease((t - 0.62) / 0.38);
-      this.pelvis.position.y = 0.2 + 0.02 * (1 - u);
-      this.chest.rotation.x = 0.3 * (1 - u);
-      this.chest.rotation.y = 0.35 * (1 - u);
-      const fr = this.legs.find((l) => l.front && l.side === -1)!;
-      fr.upper.rotation.x = 1.3 * (1 - u);
-      fr.lower.rotation.x = -0.2 * (1 - u);
-      fr.root.position.x = 0.08 + 0.12 * (1 - u);
+      this.pawR.position.z = 0.13;
+      this.body.rotation.x = Math.PI / 2 + Math.sin(p * 2) * 0.02 * amp + sit * 0.38;
     }
 
-    // Tail lash during swat
-    this.tailSegs.forEach((s, i) => {
-      s.rotation.y = Math.sin(t * 20 + i) * 0.4;
-      s.rotation.z = 0.5;
-    });
-  }
+    // body bob + breathing; lower haunches when sitting
+    const bob = moving ? Math.abs(Math.sin(p)) * 0.012 : Math.sin(t * 2.2) * 0.004;
+    this.body.position.y = 0.115 + bob - sit * 0.028;
+    this.head.position.y = 0.225 - sit * 0.012;
+    this.head.position.z = 0.2 - sit * 0.03;
 
-  private resetPoseBase() {
-    this.pelvis.position.set(-0.06, 0.22, 0);
-    this.pelvis.rotation.set(0, 0, 0);
-    this.chest.position.set(0.16, 0.02, 0);
-    this.chest.rotation.set(0, 0, 0);
-    this.neck.rotation.set(0, 0, 0);
-    this.head.rotation.set(0, 0, 0);
-    for (const leg of this.legs) {
-      leg.root.position.y = -0.02;
-      leg.root.position.x = leg.front ? 0.08 : -0.05;
-      leg.upper.rotation.set(0, 0, 0);
-      leg.lower.rotation.set(0, 0, 0);
-      leg.paw.rotation.set(0, 0, 0);
+    // head: look-around when idle, forward when moving
+    const headTargetY = moving ? 0 : Math.sin(t * 0.6) * 0.35;
+    this.head.rotation.y += (headTargetY - this.head.rotation.y) * Math.min(1, dt * 3);
+    this.head.rotation.x = moving ? 0.08 : Math.sin(t * 0.9) * 0.06;
+
+    // tail: sine wave down the chain, wraps around when sitting
+    const wag = moving ? 2.8 : 1.4;
+    const wagAmp = (moving ? 0.28 : 0.16) * (1 - sit * 0.5);
+    for (let i = 0; i < this.tailSegs.length; i++) {
+      const seg = this.tailSegs[i];
+      seg.rotation.z = Math.sin(t * wag + i * 0.7) * wagAmp * (0.3 + i * 0.16) + sit * i * 0.16;
+      seg.rotation.x = -0.55 + Math.sin(t * wag * 0.7 + i * 0.5) * 0.1 - sit * 0.12;
     }
-  }
 
-  private updateSwatPoint() {
-    const fr = this.legs.find((l) => l.front && l.side === -1);
-    if (fr) {
-      fr.paw.getWorldPosition(this.swatPoint);
+    // blink
+    this.blinkTimer -= dt;
+    if (this.blinkTimer <= 0) {
+      this.blink = 0.14;
+      this.blinkTimer = 2 + Math.random() * 3.5;
+    }
+    if (this.blink > 0) {
+      this.blink -= dt;
+      const s = this.blink > 0.07 ? 0.12 : 1;
+      this.eyeL.scale.y = s;
+      this.eyeR.scale.y = s;
     } else {
-      this.swatPoint.set(
-        this.group.position.x + Math.cos(this.facingYaw) * 0.35,
-        this.group.position.y + 0.15,
-        this.group.position.z + Math.sin(this.facingYaw) * 0.35,
-      );
+      this.eyeL.scale.y = 1;
+      this.eyeR.scale.y = 1;
     }
-  }
 
-  private syncPhysics() {
-    if (!this.worldBody) return;
-    this.worldBody.position.set(
-      this.group.position.x,
-      this.group.position.y + 0.18,
-      this.group.position.z,
-    );
-    this.worldBody.velocity.set(this.velocity.x, 0, this.velocity.z);
-    this.worldBody.quaternion.setFromEuler(0, -this.facingYaw, 0, 'YZX');
-  }
+    // ear twitch
+    this.earTwitch -= dt;
+    if (this.earTwitch <= 0) {
+      this.earTwitch = 3 + Math.random() * 5;
+      const ear = Math.random() < 0.5 ? this.earL : this.earR;
+      ear.scale.setScalar(1.25);
+      setTimeout(() => ear.scale.setScalar(1), 140);
+    }
 
-  getPushOrigin(): THREE.Vector3 {
-    return new THREE.Vector3(
-      this.group.position.x + Math.cos(this.facingYaw) * 0.28,
-      this.group.position.y + 0.12,
-      this.group.position.z + Math.sin(this.facingYaw) * 0.28,
-    );
-  }
-
-  get facing() {
-    return this.facingYaw;
+    // facing
+    this.group.rotation.y = this.yaw;
   }
 }
