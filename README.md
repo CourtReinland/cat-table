@@ -42,11 +42,21 @@ npm run preview
 
 ## Deploy
 
-Built for static hosting (GitHub Pages friendly). `vite.config.ts` uses `base: './'`.
+Built for static hosting. `vite.config.ts` uses `base: './'`.
+
+**Live:** [courtreinland.github.io/cat-top-sim](https://courtreinland.github.io/cat-top-sim/)  
+**Source:** [github.com/CourtReinland/cat-top-sim](https://github.com/CourtReinland/cat-top-sim)
 
 ```bash
 npm run build
-# upload dist/ or enable Pages from /docs or gh-actions
+# Publish dist/ to the gh-pages branch (already configured for GitHub Pages)
+```
+
+Local play anytime:
+
+```bash
+npm install && npm run dev
+# → http://localhost:5173
 ```
 
 ## Credits
