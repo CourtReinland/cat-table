@@ -62,7 +62,8 @@ URL debug params: `?auto=1&level=2` (autopilot), `window.__cat.state` in console
 
 Static site; `vite.config.ts` uses `base: './'`. GitHub Actions deploys `dist/` to Pages on every push to `main`.
 
-**Live:** [courtreinland.github.io/cat-top-sim](https://courtreinland.github.io/cat-top-sim/)
+**Live:** [courtreinland.github.io/cat-table](https://courtreinland.github.io/cat-table/)
+**Source:** [github.com/CourtReinland/cat-table](https://github.com/CourtReinland/cat-table) (repo of record)
 
 ## Credits
 
