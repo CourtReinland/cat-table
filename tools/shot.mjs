@@ -32,6 +32,9 @@ const page = await browser.newPage({
   isMobile: vw < 700,
   hasTouch: vw < 700,
 });
+page.on('response', (r) => {
+  if (r.status() >= 400) console.log(`HTTP ${r.status()}: ${r.url()}`);
+});
 const logs = [];
 page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => logs.push(`[PAGEERROR] ${e.message}`));

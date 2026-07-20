@@ -289,7 +289,8 @@ export class UI {
       <span class="stat-score">${score} pts</span>
     `;
     ($('btn-next-level') as HTMLButtonElement).textContent = isFinal ? 'The Finale Awaits →' : 'Next Suitor →';
-    $('screen-complete').style.setProperty('--cg', `url('${boy.cutsceneImg}')`);
+    const cgUrl = new URL(boy.cutsceneImg, document.baseURI).href;
+    $('screen-complete').style.setProperty('--cg', `url('${cgUrl}')`);
     this.show('complete');
   }
 
