@@ -98,6 +98,7 @@ export class Game {
   async init() {
     await this.engine.init();
     this.fx.init(this.engine.scene);
+    await this.apartment.cat.wait();
     this.ui.init(this.save);
     this.input.bindCanvas(this.canvas);
     this.bindUI();
@@ -417,6 +418,7 @@ export class Game {
     if (meow && this.meowCooldown <= 0) {
       this.meowCooldown = 1.2;
       audio.meow(Math.random() < 0.5 ? 'cute' : 'sassy');
+      this.apartment.cat.meowAnim?.();
       this.fx.heartBurst(catPos.clone().add(new THREE.Vector3(0, 0.4, 0)), 3, 0.2);
       audio.sfx('heart-pop', { vol: 0.5 });
       this.apartment.boyfriend?.lookAt(catPos.clone());
@@ -510,6 +512,7 @@ export class Game {
     if (t >= 3.4 && this.cineT - dt < 3.4) {
       bf.setPose('cuddle', 0.8);
       bf.lookAt(cat.group.position.clone().add(new THREE.Vector3(0, 0.25, 0)));
+      this.apartment.cat.cuddlePose?.();
     }
 
     // cat: hop to the counter edge nearest him (3.0–3.8), then face him

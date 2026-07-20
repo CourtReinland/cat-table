@@ -48,12 +48,22 @@ Score combos by chaining shatters, earn ranks (B → A → S → S+), and unlock
 - Voices, sound effects & music: **ElevenLabs** (TTS + sound generation), with procedural WebAudio fallbacks
 - UI: hand-rolled otome visual-novel overlay, localStorage saves
 
+## Asset pipelines
+
+**Suki (rigged character):** Quaternius *Ultimate Animated Animals* Fox, restyled in headless Blender (`tools/blender/restyle_cat.py`) — cat-ified proportions, cream palette, pink bow & collar, exported as `public/assets/models/suki.glb` with its 12 baked animation clips (Idle, Walk, Gallop, Attack, Eating…). The game drives it with an `AnimationMixer` state machine (`src/game/Suki.ts`), falling back to the fully procedural cat if the GLB is missing. Drop the pack into `UltimateAnimatedAnimals/` (git-ignored) and re-run the script any time.
+
+**img2threejs (image → procedural Three.js):** the hoainho/img2threejs skill lives in `tools/img2threejs/` (MIT). Grok Imagine makes a reference photo → `probe_image` → agent-authored `ObjectSculptSpec` (strict-quality gated) → generator emits a TypeScript factory with runtime hierarchy (pivots, sockets, colliders, destruction groups) → `refineCandelabra.ts` replaces fallback geometry with lathe/tube profiles → Playwright render + comparison sheet review. The shipped example is the finale's **candelabra** (`src/game/models/`); spec + evidence in `tools/img2threejs/work/`.
+
+**Art/voice/music:** Grok Imagine + ElevenLabs via `tools/gen-assets.mjs` (needs `.env` keys).
+
 ## Dev harness
 
 ```bash
 node tools/shot.mjs title play break cine complete ending   # screenshots → tools/out/
 LEVEL=3 node tools/shot.mjs autoplay                        # AI cat playthrough test
-node tools/gen-assets.mjs                                   # regenerate art/audio (needs .env keys)
+node tools/model-shot.mjs mymodel                           # preview.html factory render
+node tools/gen-assets.mjs                                   # regenerate art/audio
+blender --background --python tools/blender/restyle_cat.py  # rebuild suki.glb
 ```
 
 URL debug params: `?auto=1&level=2` (autopilot), `window.__cat.state` in console.

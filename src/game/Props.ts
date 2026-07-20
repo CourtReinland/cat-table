@@ -1,5 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { PROP_LIBRARY, type PropKind } from '../data/content';
+import { createCandelabraModel } from './models/createCandelabraModel';
+import { refineCandelabra } from './models/refineCandelabra';
 
 export interface PropVisual {
   group: THREE.Group;
@@ -238,24 +240,14 @@ export function buildProp(kind: PropKind): PropVisual {
       break;
     }
     case 'candelabra': {
-      const gold = stdMat(c, { metal: 0.85, rough: 0.3 });
-      const base = mesh(CYL(w * 0.16, w * 0.3, h * 0.08), gold);
-      base.position.y = h * 0.04;
-      const stem = mesh(CYL(0.014, 0.02, h * 0.55), gold);
-      stem.position.y = h * 0.35;
-      g.add(base, stem);
-      for (let i = -1; i <= 1; i++) {
-        const arm = mesh(CYL(0.01, 0.01, Math.abs(i) * w * 0.28 + 0.001, 6), gold);
-        arm.rotation.z = Math.PI / 2;
-        arm.position.set(i * w * 0.14, h * (0.62 - Math.abs(i) * 0.06), 0);
-        const cup = mesh(CYL(0.02, 0.014, 0.03), gold);
-        cup.position.set(i * w * 0.28, h * (0.64 - Math.abs(i) * 0.06), 0);
-        const candleStick = mesh(CYL(0.011, 0.011, h * 0.2), stdMat(0xf5e6c8, { rough: 0.5 }));
-        candleStick.position.set(i * w * 0.28, h * (0.76 - Math.abs(i) * 0.06), 0);
-        const f = flame(0.9);
-        f.position.set(i * w * 0.28, h * (0.87 - Math.abs(i) * 0.06), 0);
-        g.add(arm, cup, candleStick, f);
-      }
+      // img2threejs pipeline build (see tools/img2threejs + spec in repo) —
+      // lathed brass, S-curve arms, bobeche cups, emissive teardrop flames
+      const model = createCandelabraModel({ textureSize: 512, textureAnisotropy: 4 });
+      refineCandelabra(model);
+      model.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) o.castShadow = true;
+      });
+      g.add(model);
       break;
     }
     case 'teapot': {

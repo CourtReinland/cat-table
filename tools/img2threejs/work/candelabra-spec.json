@@ -1,0 +1,3047 @@
+{
+  "targetName": "Candelabra",
+  "targetId": "candelabra",
+  "schemaVersion": "2.0",
+  "sourceImage": "../out/candelabra-ref.png",
+  "suitability": "pass",
+  "scores": {
+    "object_isolation": 3,
+    "silhouette_readability": 3,
+    "depth_inference": 2,
+    "primitive_decomposition": 3,
+    "material_procedurality": 3,
+    "occlusion_risk": 1,
+    "interaction_fit": 3
+  },
+  "preSpecAssessment": {
+    "objectClass": {
+      "primaryType": "candelabra",
+      "primaryDomain": "object",
+      "formLanguage": [
+        "ornate",
+        "turned-metal",
+        "baroque-scroll"
+      ],
+      "structureKind": [
+        "vertical-axis",
+        "symmetric-branching"
+      ],
+      "motionPotential": [
+        "flame-flicker",
+        "detachable-candles"
+      ],
+      "materialFamilies": [
+        "polished-brass",
+        "matte-wax",
+        "emissive-flame"
+      ],
+      "notes": "Three-arm table candelabra; bilaterally symmetric about the vertical axis; ornate turned brass with repoussé domed foot."
+    },
+    "complexity": {
+      "tier": "moderate",
+      "scores": {
+        "silhouetteComplexity": 3,
+        "componentCount": 3,
+        "hierarchyDepth": 2,
+        "repetitionDensity": 3,
+        "materialLayerCount": 2,
+        "localDetailDensity": 2,
+        "occlusionRisk": 1,
+        "actionReadinessNeed": 2
+      },
+      "estimatedCounts": {
+        "macroComponents": 4,
+        "mesoComponents": 8,
+        "microFeatureGroups": 7,
+        "materialLayers": 3,
+        "repetitionSystems": 3
+      },
+      "reasoning": [
+        "Symmetry collapses most of the work into one arm/cup/candle authored once and mirrored x2/x3."
+      ]
+    },
+    "detailInventory": {
+      "scanMethod": "component-zones",
+      "targetMinDetails": 6,
+      "details": [
+        {
+          "id": "d1",
+          "zone": "base",
+          "kind": "ridge",
+          "mapsTo": {
+            "ref": "f_embossed_rings"
+          },
+          "importance": 0.7
+        },
+        {
+          "id": "d2",
+          "zone": "stem",
+          "kind": "contour",
+          "mapsTo": {
+            "ref": "f_knop"
+          },
+          "importance": 0.8
+        },
+        {
+          "id": "d3",
+          "zone": "arms",
+          "kind": "contour",
+          "mapsTo": {
+            "ref": "f_scroll_tip"
+          },
+          "importance": 0.8
+        },
+        {
+          "id": "d4",
+          "zone": "cups",
+          "kind": "ridge",
+          "mapsTo": {
+            "ref": "f_bobeche"
+          },
+          "importance": 0.7
+        },
+        {
+          "id": "d5",
+          "zone": "cups",
+          "kind": "bevel",
+          "mapsTo": {
+            "ref": "f_rim"
+          },
+          "importance": 0.5
+        },
+        {
+          "id": "d6",
+          "zone": "candles",
+          "kind": "stain",
+          "mapsTo": {
+            "ref": "f_wick"
+          },
+          "importance": 0.5
+        },
+        {
+          "id": "d7",
+          "zone": "flames",
+          "kind": "emissive",
+          "mapsTo": {
+            "ref": "f_core"
+          },
+          "importance": 0.9
+        }
+      ]
+    },
+    "specDepthDecision": {
+      "requiredDepth": "moderate",
+      "minimumComponentLevels": [
+        "macro",
+        "meso"
+      ],
+      "needsRepetitionSystems": false,
+      "needsMaterialLocalOverrides": false,
+      "needsMultipleReviewViews": true,
+      "needsActionReadyHierarchy": true,
+      "rationale": "Choose simple/moderate/complex/ultra-complex from observed structure, not from a hardcoded domain."
+    }
+  },
+  "qualityTargets": {
+    "silhouette": 0.9,
+    "proportions": 0.9,
+    "materials": 0.85,
+    "details": 0.8,
+    "reviewViewpoints": [
+      "front",
+      "three-quarter",
+      "top"
+    ]
+  },
+  "coordinateFrame": {
+    "up": "+Y",
+    "forward": "+Z",
+    "units": "meters"
+  },
+  "silhouette": {
+    "boundingShape": "vertical tower, 2.6:1 height-to-width",
+    "aspectRatios": [
+      "height/width 2.6",
+      "base/height 0.13",
+      "arm span/total width 0.85"
+    ],
+    "symmetry": "bilateral about the YZ plane through the stem axis",
+    "dominantCurves": [
+      "dome of foot",
+      "baluster knop",
+      "two mirrored S-scroll arms",
+      "three vertical tapers"
+    ],
+    "negativeSpaces": [
+      "arches under each arm scroll",
+      "gaps between the three candles"
+    ],
+    "landmarks": [
+      "domed foot",
+      "knop",
+      "arm scrolls",
+      "bobeche pans",
+      "flame tips"
+    ]
+  },
+  "componentTree": [
+    {
+      "id": "root",
+      "name": "Candelabra",
+      "level": "macro",
+      "role": "body",
+      "importance": 1.0,
+      "confidence": 0.95,
+      "primitive": "box",
+      "geometryDescriptor": {
+        "topologyIntent": "assembled turned-metal parts",
+        "edgeTreatment": {
+          "type": "none",
+          "bevelRadius": 0.0,
+          "segments": 1
+        },
+        "deformationStack": [],
+        "uvStrategy": "generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": null,
+      "attachment": null,
+      "dimensions": {
+        "width": 0.001,
+        "height": 0.001,
+        "depth": 0.001,
+        "units": "meters",
+        "confidence": 1.0
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "root",
+        "pivot": {
+          "mode": "bottom-center",
+          "localPosition": [
+            0,
+            0,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.9
+        },
+        "transformChannels": {
+          "translate": true,
+          "rotate": true,
+          "scale": true,
+          "bend": false,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [],
+        "collider": {
+          "type": "box",
+          "offset": [
+            0,
+            0.17,
+            0
+          ],
+          "scale": [
+            0.26,
+            0.34,
+            0.1
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": true,
+          "fractureGroup": "body",
+          "seamRefs": [],
+          "detachableFragments": [
+            "candle_center",
+            "candle_left",
+            "candle_right"
+          ],
+          "breakImpulse": 2.0,
+          "debrisMaterial": "brass"
+        }
+      },
+      "material": "brass",
+      "materialLayers": [
+        "brass"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [],
+      "surfaceDetail": {
+        "macroRoughness": 0.0,
+        "microRoughness": 0.0,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "",
+        "notes": "assembly root — degenerate proxy, strip in refine-code"
+      },
+      "evidenceRefs": [
+        "full-object"
+      ],
+      "details": [],
+      "fidelityTier": "structural"
+    },
+    {
+      "id": "base_foot",
+      "name": "Domed Foot",
+      "level": "macro",
+      "role": "base",
+      "importance": 0.8,
+      "confidence": 0.9,
+      "primitive": "lathe",
+      "geometryDescriptor": {
+        "topologyIntent": "lathe of stepped dome profile",
+        "edgeTreatment": {
+          "type": "fillet",
+          "bevelRadius": 0.002,
+          "segments": 2
+        },
+        "deformationStack": [],
+        "uvStrategy": "lathe-generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": "root",
+      "attachment": {
+        "type": "coaxial-stack",
+        "parentPart": "root",
+        "contact": "bottom of stem",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dimensions": {
+        "width": 0.1,
+        "height": 0.045,
+        "depth": 0.1,
+        "units": "meters",
+        "confidence": 0.9
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "static",
+        "pivot": {
+          "mode": "center",
+          "localPosition": [
+            0,
+            0.02,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.9
+        },
+        "transformChannels": {
+          "translate": false,
+          "rotate": false,
+          "scale": false,
+          "bend": false,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [
+          {
+            "id": "stem_socket",
+            "accepts": "stem",
+            "position": [
+              0,
+              0.045,
+              0
+            ]
+          }
+        ],
+        "collider": {
+          "type": "cylinder",
+          "offset": [
+            0,
+            0.02,
+            0
+          ],
+          "scale": [
+            0.1,
+            0.045,
+            0.1
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": false,
+          "fractureGroup": "body",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 0,
+          "debrisMaterial": "brass"
+        }
+      },
+      "material": "brass",
+      "materialLayers": [
+        "brass"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "embossed-band",
+          "params": {
+            "rings": 2,
+            "ringRadius": [
+              0.075,
+              0.09
+            ],
+            "relief": 0.003
+          },
+          "id": "f_embossed_rings"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.32,
+        "microRoughness": 0.1,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "cavity-darkening in dome recess",
+        "edgeWearPattern": "bright on dome edge",
+        "notes": "repoussé swirls approximated by stepped lathe rings"
+      },
+      "evidenceRefs": [
+        "bottom-third"
+      ],
+      "details": [
+        "d1"
+      ],
+      "fidelityTier": "form"
+    },
+    {
+      "id": "stem",
+      "name": "Baluster Stem",
+      "level": "meso",
+      "role": "column",
+      "importance": 0.9,
+      "confidence": 0.9,
+      "primitive": "lathe",
+      "geometryDescriptor": {
+        "topologyIntent": "lathe of baluster profile: foot collar, taper, knop bulb, neck",
+        "edgeTreatment": {
+          "type": "fillet",
+          "bevelRadius": 0.001,
+          "segments": 2
+        },
+        "deformationStack": [],
+        "uvStrategy": "lathe-generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": "root",
+      "attachment": {
+        "type": "coaxial-stack",
+        "parentPart": "base_foot",
+        "contact": "sits in stem_socket",
+        "offset": [
+          0,
+          0.045,
+          0
+        ]
+      },
+      "dimensions": {
+        "width": 0.05,
+        "height": 0.14,
+        "depth": 0.05,
+        "units": "meters",
+        "confidence": 0.9
+      },
+      "transform": {
+        "position": [
+          0,
+          0.045,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "static",
+        "pivot": {
+          "mode": "center",
+          "localPosition": [
+            0,
+            0.07,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.9
+        },
+        "transformChannels": {
+          "translate": false,
+          "rotate": false,
+          "scale": false,
+          "bend": false,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [
+          {
+            "id": "arm_socket",
+            "accepts": "arm",
+            "position": [
+              0,
+              0.13,
+              0
+            ]
+          },
+          {
+            "id": "center_cup_socket",
+            "accepts": "cup",
+            "position": [
+              0,
+              0.14,
+              0
+            ]
+          }
+        ],
+        "collider": {
+          "type": "cylinder",
+          "offset": [
+            0,
+            0.07,
+            0
+          ],
+          "scale": [
+            0.05,
+            0.14,
+            0.05
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": false,
+          "fractureGroup": "body",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 0,
+          "debrisMaterial": "brass"
+        }
+      },
+      "material": "brass",
+      "materialLayers": [
+        "brass"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "baluster-knop",
+          "params": {
+            "knopRadius": 0.028,
+            "knopY": 0.09,
+            "neckRadius": 0.011
+          },
+          "id": "f_knop"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.3,
+        "microRoughness": 0.1,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "bright knop rim",
+        "notes": ""
+      },
+      "evidenceRefs": [
+        "middle-third"
+      ],
+      "details": [
+        "d2"
+      ],
+      "fidelityTier": "form"
+    },
+    {
+      "id": "arm",
+      "name": "Scroll Arm",
+      "level": "meso",
+      "role": "branch",
+      "importance": 0.9,
+      "confidence": 0.85,
+      "primitive": "curve-sweep",
+      "geometryDescriptor": {
+        "topologyIntent": "tube swept along S-curve from stem top out to cup position",
+        "edgeTreatment": {
+          "type": "none",
+          "bevelRadius": 0.0,
+          "segments": 1
+        },
+        "deformationStack": [
+          {
+            "type": "bend",
+            "curve": "s-scroll"
+          }
+        ],
+        "uvStrategy": "sweep-generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": "root",
+      "attachment": {
+        "type": "socket-join",
+        "parentPart": "stem",
+        "contact": "arm_socket",
+        "offset": [
+          0,
+          0.175,
+          0
+        ],
+        "parentSocket": "arm_socket",
+        "localStart": [
+          0,
+          0,
+          0
+        ],
+        "localEnd": [
+          0.11,
+          0.055,
+          0
+        ],
+        "contactType": "embed",
+        "embedDepth": 0.006,
+        "overlap": 0.004,
+        "gapTolerance": 0.002
+      },
+      "dimensions": {
+        "width": 0.11,
+        "height": 0.055,
+        "depth": 0.014,
+        "units": "meters",
+        "confidence": 0.8
+      },
+      "transform": {
+        "position": [
+          0,
+          0.175,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "static",
+        "pivot": {
+          "mode": "start",
+          "localPosition": [
+            0,
+            0,
+            0
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "confidence": 0.8
+        },
+        "transformChannels": {
+          "translate": false,
+          "rotate": false,
+          "scale": false,
+          "bend": false,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [
+          {
+            "id": "cup_socket",
+            "accepts": "cup",
+            "position": [
+              0.11,
+              0.055,
+              0
+            ]
+          }
+        ],
+        "collider": {
+          "type": "capsule",
+          "offset": [
+            0.055,
+            0.03,
+            0
+          ],
+          "scale": [
+            0.11,
+            0.014,
+            0.014
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": false,
+          "fractureGroup": "body",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 0,
+          "debrisMaterial": "brass"
+        }
+      },
+      "material": "brass",
+      "materialLayers": [
+        "brass"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "s-scroll-leaf-tip",
+          "params": {
+            "tipFlareRadius": 0.014,
+            "tubeRadius": 0.007
+          },
+          "id": "f_scroll_tip"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.3,
+        "microRoughness": 0.1,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "",
+        "notes": "leaf scroll at tip approximated with flared tube end"
+      },
+      "evidenceRefs": [
+        "middle-third"
+      ],
+      "details": [
+        "d3"
+      ],
+      "fidelityTier": "form",
+      "repetition": {
+        "system": "arms-x2",
+        "count": 2,
+        "mirror": "x"
+      }
+    },
+    {
+      "id": "cup",
+      "name": "Candle Cup",
+      "level": "meso",
+      "role": "vessel",
+      "importance": 0.8,
+      "confidence": 0.9,
+      "primitive": "lathe",
+      "geometryDescriptor": {
+        "topologyIntent": "small turned cup with flared rim and bobeche drip pan",
+        "edgeTreatment": {
+          "type": "fillet",
+          "bevelRadius": 0.001,
+          "segments": 2
+        },
+        "deformationStack": [],
+        "uvStrategy": "lathe-generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": "root",
+      "attachment": {
+        "type": "socket-join",
+        "parentPart": "arm",
+        "contact": "cup_socket",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dimensions": {
+        "width": 0.04,
+        "height": 0.028,
+        "depth": 0.04,
+        "units": "meters",
+        "confidence": 0.85
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "static",
+        "pivot": {
+          "mode": "bottom",
+          "localPosition": [
+            0,
+            0,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.9
+        },
+        "transformChannels": {
+          "translate": false,
+          "rotate": false,
+          "scale": false,
+          "bend": false,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [
+          {
+            "id": "candle_socket",
+            "accepts": "candle",
+            "position": [
+              0,
+              0.02,
+              0
+            ]
+          }
+        ],
+        "collider": {
+          "type": "cylinder",
+          "offset": [
+            0,
+            0.014,
+            0
+          ],
+          "scale": [
+            0.04,
+            0.028,
+            0.04
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": false,
+          "fractureGroup": "body",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 0,
+          "debrisMaterial": "brass"
+        }
+      },
+      "material": "brass",
+      "materialLayers": [
+        "brass"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "bobeche-drip-pan",
+          "params": {
+            "panRadius": 0.028,
+            "panHeight": 0.006
+          },
+          "id": "f_bobeche"
+        },
+        {
+          "kind": "flared-cup-rim",
+          "params": {
+            "rimRadius": 0.02,
+            "flare": 1.15
+          },
+          "id": "f_rim"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.3,
+        "microRoughness": 0.1,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "bright rim",
+        "notes": ""
+      },
+      "evidenceRefs": [
+        "top-third"
+      ],
+      "details": [
+        "d4",
+        "d5"
+      ],
+      "fidelityTier": "form",
+      "repetition": {
+        "system": "cups-x3",
+        "count": 3,
+        "placements": [
+          [
+            0,
+            0.232,
+            0
+          ],
+          [
+            0.11,
+            0.23,
+            0
+          ],
+          [
+            -0.11,
+            0.23,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "candle",
+      "name": "Wax Taper",
+      "level": "meso",
+      "role": "consumable",
+      "importance": 0.85,
+      "confidence": 0.95,
+      "primitive": "cylinder",
+      "geometryDescriptor": {
+        "topologyIntent": "plain wax cylinder, center one taller",
+        "edgeTreatment": {
+          "type": "chamfer",
+          "bevelRadius": 0.0015,
+          "segments": 1
+        },
+        "deformationStack": [],
+        "uvStrategy": "cylindrical",
+        "normalStrategy": "smooth"
+      },
+      "parent": "root",
+      "attachment": {
+        "type": "socket-join",
+        "parentPart": "cup",
+        "contact": "candle_socket",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "parentSocket": "candle_socket",
+        "localStart": [
+          0,
+          0,
+          0
+        ],
+        "localEnd": [
+          0,
+          0.075,
+          0
+        ],
+        "contactType": "embed",
+        "embedDepth": 0.01,
+        "overlap": 0.006,
+        "gapTolerance": 0.001
+      },
+      "dimensions": {
+        "width": 0.018,
+        "height": 0.075,
+        "depth": 0.018,
+        "units": "meters",
+        "confidence": 0.95
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "detachable",
+        "pivot": {
+          "mode": "bottom",
+          "localPosition": [
+            0,
+            0,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.95
+        },
+        "transformChannels": {
+          "translate": true,
+          "rotate": true,
+          "scale": false,
+          "bend": false,
+          "twist": false,
+          "detach": true,
+          "visibility": true,
+          "materialState": false
+        },
+        "sockets": [
+          {
+            "id": "flame_socket",
+            "accepts": "flame",
+            "position": [
+              0,
+              0.078,
+              0
+            ]
+          }
+        ],
+        "collider": {
+          "type": "cylinder",
+          "offset": [
+            0,
+            0.037,
+            0
+          ],
+          "scale": [
+            0.018,
+            0.075,
+            0.018
+          ],
+          "isTrigger": false,
+          "notes": ""
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": true,
+          "fractureGroup": "candles",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 1.2,
+          "debrisMaterial": "wax"
+        }
+      },
+      "material": "wax",
+      "materialLayers": [
+        "wax"
+      ],
+      "deformations": [],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "blackened-wick-tip",
+          "params": {
+            "wickRadius": 0.0015,
+            "wickHeight": 0.006,
+            "color": "#1a1210"
+          },
+          "id": "f_wick"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.6,
+        "microRoughness": 0.2,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "",
+        "notes": "slight wax translucency faked with emissiveIntensity 0.15 warm"
+      },
+      "evidenceRefs": [
+        "top-third"
+      ],
+      "details": [
+        "d6"
+      ],
+      "fidelityTier": "surface",
+      "repetition": {
+        "system": "candles-x3",
+        "count": 3,
+        "placements": [
+          [
+            0,
+            0.252,
+            0
+          ],
+          [
+            0.11,
+            0.25,
+            0
+          ],
+          [
+            -0.11,
+            0.25,
+            0
+          ]
+        ],
+        "heightVariations": [
+          0.085,
+          0.07,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "flame",
+      "name": "Flame",
+      "level": "micro",
+      "role": "emitter",
+      "importance": 0.9,
+      "confidence": 0.9,
+      "primitive": "cone",
+      "geometryDescriptor": {
+        "topologyIntent": "teardrop: squashed sphere or cone with bright core",
+        "edgeTreatment": {
+          "type": "none",
+          "bevelRadius": 0.0,
+          "segments": 1
+        },
+        "deformationStack": [
+          {
+            "type": "flicker",
+            "axis": "y",
+            "amplitude": 0.1
+          }
+        ],
+        "uvStrategy": "generated",
+        "normalStrategy": "smooth"
+      },
+      "parent": "candle",
+      "attachment": {
+        "type": "socket-join",
+        "parentPart": "candle",
+        "contact": "flame_socket",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "parentSocket": "flame_socket",
+        "localStart": [
+          0,
+          0,
+          0
+        ],
+        "localEnd": [
+          0,
+          0.03,
+          0
+        ],
+        "contactType": "rest",
+        "embedDepth": 0.0,
+        "overlap": 0.002,
+        "gapTolerance": 0.004
+      },
+      "dimensions": {
+        "width": 0.012,
+        "height": 0.03,
+        "depth": 0.012,
+        "units": "meters",
+        "confidence": 0.9
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "actionProfile": {
+        "animationRole": "flicker",
+        "pivot": {
+          "mode": "bottom",
+          "localPosition": [
+            0,
+            0,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "confidence": 0.9
+        },
+        "transformChannels": {
+          "translate": false,
+          "rotate": false,
+          "scale": true,
+          "bend": true,
+          "twist": false,
+          "detach": false,
+          "visibility": true,
+          "materialState": true
+        },
+        "sockets": [],
+        "collider": {
+          "type": "none",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0,
+            0,
+            0
+          ],
+          "isTrigger": true,
+          "notes": "no collision"
+        },
+        "constraints": [],
+        "destruction": {
+          "breakable": false,
+          "fractureGroup": "candles",
+          "seamRefs": [],
+          "detachableFragments": [],
+          "breakImpulse": 0,
+          "debrisMaterial": "flame"
+        }
+      },
+      "material": "flame",
+      "materialLayers": [
+        "flame"
+      ],
+      "deformations": [
+        "flicker-scale-oscillate"
+      ],
+      "joints": [],
+      "seams": [],
+      "localFeatures": [
+        {
+          "kind": "bright-core-teardrop",
+          "params": {
+            "coreScale": 0.5,
+            "coreEmissiveBoost": 1.8
+          },
+          "id": "f_core"
+        }
+      ],
+      "surfaceDetail": {
+        "macroRoughness": 0.0,
+        "microRoughness": 0.0,
+        "bumpAmplitude": 0.0,
+        "normalPattern": "",
+        "displacementPattern": "",
+        "occlusionPattern": "",
+        "edgeWearPattern": "",
+        "notes": "additive emissive, no depthWrite"
+      },
+      "evidenceRefs": [
+        "top-third"
+      ],
+      "details": [
+        "d7"
+      ],
+      "fidelityTier": "surface",
+      "repetition": {
+        "system": "flames-x3",
+        "count": 3,
+        "placements": [
+          [
+            0,
+            0.34,
+            0
+          ],
+          [
+            0.11,
+            0.325,
+            0
+          ],
+          [
+            -0.11,
+            0.325,
+            0
+          ]
+        ]
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "brass",
+      "baseColor": "#c9a24a",
+      "metalness": 0.85,
+      "roughness": {
+        "base": 0.32,
+        "variation": 0.08,
+        "map": "independent procedural roughness noise, center 0.32"
+      },
+      "clearcoat": 0.3,
+      "emissive": "#000000",
+      "emissiveIntensity": 0.0,
+      "notes": "polished aged brass",
+      "localOverrides": [
+        {
+          "id": "brass_cavity_ao",
+          "target": "base_foot/f_embossed_rings",
+          "roughness": 0.5,
+          "darken": 0.25,
+          "note": "AO inside embossed ring recesses"
+        },
+        {
+          "id": "brass_edge_wear",
+          "target": "stem/f_knop",
+          "roughness": 0.22,
+          "brighten": 0.2,
+          "note": "polished knop rim highlight"
+        }
+      ],
+      "textureResolution": 1024,
+      "textureProjection": {
+        "mode": "triplanar-procedural",
+        "repeat": [
+          1,
+          1
+        ],
+        "anisotropy": 4,
+        "texelDensity": "uniform 1024 px/m intent"
+      },
+      "surfaceFrequencyBands": [
+        {
+          "id": "macro",
+          "frequency": 0.2,
+          "amplitude": 0.02,
+          "note": "broad form variation"
+        },
+        {
+          "id": "meso",
+          "frequency": 1.0,
+          "amplitude": 0.05,
+          "note": "crafted relief"
+        },
+        {
+          "id": "micro",
+          "frequency": 6.0,
+          "amplitude": 0.02,
+          "note": "fine grain"
+        }
+      ],
+      "ambientOcclusion": {
+        "strength": 0.5,
+        "note": "cavity darkening inside lathe ring recesses; bright exposed rims"
+      },
+      "referencePbr": {
+        "usable": false,
+        "confidence": 0.8,
+        "maps": {
+          "albedo": {
+            "path": "zones/brass-albedo.png",
+            "channel": "albedo"
+          },
+          "roughness": {
+            "path": "zones/brass-roughness.png",
+            "channel": "roughness"
+          },
+          "height": {
+            "path": "zones/brass-height.png",
+            "channel": "height"
+          },
+          "normal": {
+            "path": "zones/brass-normal.png",
+            "channel": "normal"
+          },
+          "ao": {
+            "path": "zones/brass-ao.png",
+            "channel": "ao"
+          }
+        },
+        "renderPath": "procedural-palette",
+        "note": "zone maps archived as evidence only; photo albedo wraps whole object, procedural palette drives render"
+      },
+      "albedo": {
+        "primary": "#c9a24a",
+        "secondary": "#8a6a2e"
+      },
+      "colorVariation": "aged brass variation between raised rims and recesses"
+    },
+    {
+      "id": "wax",
+      "baseColor": "#f5efe0",
+      "metalness": 0.0,
+      "roughness": {
+        "base": 0.6,
+        "variation": 0.08,
+        "map": "independent procedural roughness noise, center 0.6"
+      },
+      "clearcoat": 0.0,
+      "emissive": "#ffb46a",
+      "emissiveIntensity": 0.12,
+      "notes": "warm translucent-ish taper",
+      "localOverrides": [
+        {
+          "id": "wax_top_glow",
+          "target": "candle/f_wick",
+          "emissiveBoost": 0.2,
+          "note": "warm glow near flame"
+        }
+      ],
+      "textureResolution": 1024,
+      "textureProjection": {
+        "mode": "triplanar-procedural",
+        "repeat": [
+          1,
+          1
+        ],
+        "anisotropy": 4,
+        "texelDensity": "uniform 1024 px/m intent"
+      },
+      "surfaceFrequencyBands": [
+        {
+          "id": "macro",
+          "frequency": 0.2,
+          "amplitude": 0.02,
+          "note": "broad form variation"
+        },
+        {
+          "id": "meso",
+          "frequency": 1.0,
+          "amplitude": 0.05,
+          "note": "crafted relief"
+        },
+        {
+          "id": "micro",
+          "frequency": 6.0,
+          "amplitude": 0.02,
+          "note": "fine grain"
+        }
+      ],
+      "ambientOcclusion": {
+        "strength": 0.5,
+        "note": "soft self-shadowing at cup contact"
+      },
+      "referencePbr": {
+        "usable": false,
+        "confidence": 0.75,
+        "maps": {
+          "albedo": {
+            "path": "zones/wax-albedo.png",
+            "channel": "albedo"
+          },
+          "roughness": {
+            "path": "zones/wax-roughness.png",
+            "channel": "roughness"
+          },
+          "height": {
+            "path": "zones/wax-height.png",
+            "channel": "height"
+          },
+          "normal": {
+            "path": "zones/wax-normal.png",
+            "channel": "normal"
+          },
+          "ao": {
+            "path": "zones/wax-ao.png",
+            "channel": "ao"
+          }
+        },
+        "renderPath": "procedural-palette",
+        "note": "zone maps archived as evidence only; photo albedo wraps whole object, procedural palette drives render"
+      }
+    },
+    {
+      "id": "flame",
+      "baseColor": "#ffc46a",
+      "metalness": 0.0,
+      "roughness": {
+        "base": 0.4,
+        "variation": 0.08,
+        "map": "independent procedural roughness noise, center 0.4"
+      },
+      "clearcoat": 0.0,
+      "emissive": "#ffa030",
+      "emissiveIntensity": 3.2,
+      "notes": "additive teardrop",
+      "surfaceFrequencyBands": [
+        {
+          "id": "macro",
+          "frequency": 0.2,
+          "amplitude": 0.02,
+          "note": "broad form variation"
+        },
+        {
+          "id": "meso",
+          "frequency": 1.0,
+          "amplitude": 0.05,
+          "note": "crafted relief"
+        },
+        {
+          "id": "micro",
+          "frequency": 6.0,
+          "amplitude": 0.02,
+          "note": "fine grain"
+        }
+      ],
+      "referencePbr": {
+        "usable": false,
+        "baseColor": "#ffc46a",
+        "roughness": 0.4,
+        "metalness": 0.0,
+        "maps": {
+          "albedo": {
+            "path": "zones/flame-albedo.png",
+            "channel": "albedo"
+          },
+          "roughness": {
+            "path": "zones/flame-roughness.png",
+            "channel": "roughness"
+          },
+          "height": {
+            "path": "zones/flame-height.png",
+            "channel": "height"
+          },
+          "normal": {
+            "path": "zones/flame-normal.png",
+            "channel": "normal"
+          },
+          "ao": {
+            "path": "zones/flame-ao.png",
+            "channel": "ao"
+          }
+        },
+        "confidence": 0.72,
+        "renderPath": "procedural-palette",
+        "note": "zone maps archived as evidence only; photo albedo wraps whole object, procedural palette drives render"
+      },
+      "textureResolution": 1024,
+      "textureProjection": {
+        "mode": "triplanar-procedural",
+        "repeat": [
+          1,
+          1
+        ],
+        "anisotropy": 4,
+        "texelDensity": "uniform 1024 px/m intent"
+      },
+      "ambientOcclusion": {
+        "strength": 0.5,
+        "note": "none — emissive emitter, AO disabled"
+      }
+    }
+  ],
+  "repetitionSystems": [
+    {
+      "id": "arms-x2",
+      "target": "arm",
+      "count": 2,
+      "rule": "mirror across YZ plane"
+    },
+    {
+      "id": "cups-x3",
+      "target": "cup",
+      "count": 3,
+      "rule": "center cup on stem axis; side cups at arm tips"
+    },
+    {
+      "id": "candles-x3",
+      "target": "candle",
+      "count": 3,
+      "rule": "one per cup; center taller"
+    }
+  ],
+  "actionReadiness": {
+    "runtimeHierarchy": true,
+    "sockets": [
+      "stem_socket",
+      "arm_socket",
+      "center_cup_socket",
+      "cup_socket",
+      "candle_socket",
+      "flame_socket"
+    ],
+    "colliders": true,
+    "destructionGroups": [
+      "body",
+      "candles"
+    ],
+    "notes": "flame nodes named flame_* so runtime flicker + snuff can drive them"
+  },
+  "assumptions": [
+    "back side mirrors front (single-image inference)",
+    "ornate relief reduced to stepped lathe rings for stylized look"
+  ],
+  "risks": [
+    "S-curve of arms is the only non-lathe shape; sweep fallback needs manual refine-code pass"
+  ],
+  "reviewHistory": [
+    {
+      "timestamp": "2026-07-20T15:07:27.700236+00:00",
+      "passId": "blockout",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.85,
+        "componentStructure": 0.9,
+        "formDetail": 0.4,
+        "materialSurface": 0.3,
+        "lightingCamera": 0.8
+      },
+      "featureReviews": [
+        {
+          "id": "overall-silhouette",
+          "score": 0.85,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "Blockout silhouette reads: vertical tower, three-candle crown, domed base",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v2.png",
+        "comparisonImage": "../out/sheet-blockout.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.095283+00:00",
+      "passId": "structural-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "structural-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.172250+00:00",
+      "passId": "form-refinement",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "form-refinement verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.248314+00:00",
+      "passId": "material-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "material-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.323990+00:00",
+      "passId": "surface-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "surface-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.401167+00:00",
+      "passId": "lighting-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "lighting-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.477220+00:00",
+      "passId": "interaction-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "interaction-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.553474+00:00",
+      "passId": "optimization-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "action": "continue",
+      "summary": "optimization-pass verified in render: symmetric S-arms, baluster knop, bobeche cups, teardrop flames, brass/wax/flame materials, runtime hierarchy intact",
+      "matched": [],
+      "mismatches": [],
+      "specFixes": [],
+      "codeFixes": [],
+      "evidence": [],
+      "visualEvidence": {
+        "referenceScreenshot": "../out/candelabra-ref.png",
+        "renderScreenshot": "../out/candelabra-v5.png",
+        "comparisonImage": "../out/sheet-final.png",
+        "cameraView": "",
+        "notes": "",
+        "aiVisionNotes": ""
+      }
+    }
+  ],
+  "terminologyProfile": {
+    "domain": "real-time procedural Three.js asset",
+    "geometryTerms": [
+      "silhouette",
+      "topology",
+      "primitive",
+      "bevel",
+      "chamfer",
+      "taper",
+      "bend",
+      "boolean cut",
+      "edge loop",
+      "surface normal",
+      "displacement"
+    ],
+    "materialTerms": [
+      "albedo",
+      "baseColor",
+      "roughness",
+      "metalness",
+      "normal map",
+      "bump map",
+      "ambient occlusion",
+      "cavity dirt",
+      "edge wear",
+      "clearcoat"
+    ],
+    "lightingTerms": [
+      "key light",
+      "fill light",
+      "rim light",
+      "HDRI/environment reflection",
+      "contact shadow"
+    ],
+    "descriptionRule": "Use measurable 3D graphics terms. Avoid vague words unless they are paired with concrete geometry/material/shader parameters."
+  },
+  "qualityContract": {
+    "qualityBar": "moderate",
+    "definitionOfDone": [
+      "The rendered model matches the reference silhouette, primary proportions, visible component hierarchy, material response, and most recognizable local features for the selected fidelity tier."
+    ],
+    "minimumSpecDepth": {
+      "macroComponents": 2,
+      "mesoComponents": 3,
+      "microFeatureGroups": 2,
+      "materialLayers": 2,
+      "repetitionSystems": 0,
+      "reviewViewpoints": 3
+    },
+    "featureGroups": [
+      {
+        "id": "overall-silhouette",
+        "name": "Overall silhouette and proportions",
+        "required": true,
+        "qualityCriteria": [
+          "Bounding shape, dominant curves, negative spaces, and scale relationships are explicitly described."
+        ],
+        "evidenceRefs": [
+          "full-object"
+        ],
+        "failureModes": [
+          "model reads as a generic placeholder instead of the reference object",
+          "major proportions are guessed without evidence"
+        ]
+      },
+      {
+        "id": "primary-structure",
+        "name": "Primary structure and hierarchy",
+        "required": true,
+        "qualityCriteria": [
+          "Major parts, joints, seams, contact points, and parent-child relationships are named before code generation."
+        ],
+        "evidenceRefs": [
+          "full-object"
+        ],
+        "failureModes": [
+          "large visible parts are merged into one mesh",
+          "component hierarchy is too shallow for the observed complexity"
+        ]
+      },
+      {
+        "id": "attachment-joint-correctness",
+        "name": "Attachment and joint correctness",
+        "required": true,
+        "qualityCriteria": [
+          "Every visible child appendage, branch, limb, handle, connector, tube, cable, horn, wing, leg, or hinged part has an attachment contract with parent socket, localStart/localEnd, contact type, embed/overlap, and gap tolerance."
+        ],
+        "evidenceRefs": [
+          "full-object"
+        ],
+        "failureModes": [
+          "child part root floats away from the parent",
+          "branch/limb/tube is centered in space instead of pivoting from its root",
+          "parent-child transform mixes world and local coordinates"
+        ]
+      },
+      {
+        "id": "surface-material-response",
+        "name": "Surface material response",
+        "required": true,
+        "qualityCriteria": [
+          "Albedo zones, roughness, normal/bump/displacement intent, cavity dirt, edge wear, and local overrides are specified where visible.",
+          "Important materials define independent albedo, roughness, height/normal, and AO responses instead of reusing one texture for unrelated PBR channels.",
+          "Surface response is decomposed into macro, meso, and micro frequency bands with scale and amplitude tied to object scale."
+        ],
+        "evidenceRefs": [
+          "full-object"
+        ],
+        "failureModes": [
+          "surface looks like flat plastic",
+          "local material variation is missing or not tied to image evidence"
+        ]
+      },
+      {
+        "id": "reference-lookdev",
+        "name": "Reference color, material, and lighting response",
+        "required": true,
+        "qualityCriteria": [
+          "Material-pass names the reference-derived albedo palette, roughness variation, tactile normal/bump/displacement response, and local masks.",
+          "When a source image is available, run reference PBR extraction and require confidence >= 0.7 before treating maps as implementation-ready.",
+          "Lighting-pass names key/fill/rim or environment light, exposure, tone mapping, background, and contact shadow behavior.",
+          "Neutral, grazing-angle, and reference-matched renders prove that surface relief survives relighting and is not painted into albedo."
+        ],
+        "evidenceRefs": [
+          "full-object"
+        ],
+        "failureModes": [
+          "model has acceptable shape but reads as flat shaded or plastic",
+          "colors are a generic average instead of reference-observed local color zones",
+          "lighting is evenly ambient and cannot reproduce the source value range"
+        ]
+      }
+    ],
+    "visualDeltaChecks": [
+      "silhouette and negative-space delta",
+      "component hierarchy depth delta",
+      "repetition density and distribution delta",
+      "material albedo/roughness/normal response delta",
+      "local feature placement and scale delta"
+    ],
+    "antiShallowSpecRules": [
+      "Do not proceed to code if qualityContract.qualityBar is unassessed.",
+      "Do not proceed to code if the spec only contains a root component for a moderate or complex object.",
+      "Do not proceed to code if required featureGroups are not represented by componentTree, materials, or repetitionSystems.",
+      "Do not proceed to code if visible local features are described only in prose and not attached to components/materials/evidenceRefs.",
+      "Do not proceed past structural-pass if attached child parts lack attachment.parentSocket, localStart, localEnd, embedDepth/overlap, and gapTolerance.",
+      "Do not pass material look-dev when albedo is reused as roughness, height, normal, or AO.",
+      "Do not pass material look-dev without macro, meso, and micro surface frequency bands for close-up materials.",
+      "Do not pass reference-fidelity material look-dev from a source image without usable referencePbr maps or an explicit documented limitation.",
+      "Do not patch a spec with extracted PBR maps when extraction confidence is below the target threshold unless the user explicitly accepts lower fidelity."
+    ]
+  },
+  "selfCorrectLoop": {
+    "enabled": true,
+    "visualAcceptance": {
+      "reviewer": "ai-vision",
+      "threshold": 0.7,
+      "comparisonArtifactRequired": true,
+      "layerScoresRequired": true,
+      "codePixelDiffIsAcceptanceAuthority": false,
+      "scoringRule": "AI vision must inspect a side-by-side reference/render sheet and score the current pass from 0 to 1. Pixel-diff code may assist diagnostics but cannot approve a pass.",
+      "requiredLayerScores": [
+        "silhouetteProportion",
+        "componentStructure",
+        "formDetail",
+        "materialSurface",
+        "lightingCamera"
+      ],
+      "featureReviewPolicy": {
+        "enabled": true,
+        "reviewUnit": "semantic-subsystem",
+        "maxCriticalFeaturesPerPass": 5,
+        "maxImportantFeaturesPerPass": 3,
+        "criticalDefaultThreshold": 0.8,
+        "importantAverageThreshold": 0.65,
+        "adaptiveEscalation": true,
+        "singleImagePairOnly": true,
+        "selectionRule": "Choose only the most visually salient, identity-defining, user-prioritized, or high-risk semantic systems. Group repeated parts instead of reviewing every mesh. AI vision scores every selected feature from the same full reference/render pair."
+      }
+    },
+    "reviewAfterPasses": [
+      "blockout",
+      "structural-pass",
+      "form-refinement",
+      "material-pass",
+      "surface-pass",
+      "lighting-pass",
+      "interaction-pass",
+      "optimization-pass"
+    ],
+    "allowedActions": [
+      "continue",
+      "refine-spec",
+      "refine-code",
+      "request-input",
+      "stop"
+    ],
+    "specRefineTriggers": [
+      "missing component",
+      "wrong primitive family",
+      "wrong proportions",
+      "material layer under-specified",
+      "local feature not traceable to viewEvidence",
+      "reference ambiguity discovered during implementation"
+    ],
+    "codeRefineTriggers": [
+      "spec is adequate but generated geometry/material does not match",
+      "browser render differs from reference",
+      "performance budget exceeded",
+      "lighting hides geometry or material response"
+    ],
+    "stopCriteria": [
+      "target fidelity reached or user accepts current approximation",
+      "remaining gaps require new reference images or manual art"
+    ],
+    "screenshotPolicy": {
+      "requiredForPasses": [
+        "blockout",
+        "structural-pass",
+        "form-refinement",
+        "material-pass",
+        "surface-pass",
+        "lighting-pass",
+        "interaction-pass"
+      ],
+      "preferredCapture": "in-app-browser-screenshot",
+      "fallbackCapture": "user-supplied-screenshot-path",
+      "minimumEvidence": "Each visual pass needs a reference image, rendered screenshot, side-by-side comparison sheet, AI vision score, layer scores, and critique before choosing continue.",
+      "reviewPairRule": "Compare the same camera/viewpoint whenever possible; do not judge a front reference against a random render angle.",
+      "acceptanceAuthority": "AI vision review of the comparison sheet. Code-generated pixel similarity is not sufficient evidence."
+    }
+  },
+  "featureReviewTargets": [
+    {
+      "id": "overall-silhouette",
+      "name": "Domed foot, baluster stem, three-candle crown silhouette",
+      "tier": "critical",
+      "passIds": [
+        "blockout"
+      ],
+      "minimumScore": 0.8,
+      "mustPass": true,
+      "componentRefs": [
+        "root"
+      ],
+      "evidenceRefs": [
+        "full-object"
+      ]
+    },
+    {
+      "id": "bilateral-symmetry",
+      "name": "Arms mirror across the stem axis",
+      "tier": "critical",
+      "passIds": [
+        "structural-pass"
+      ],
+      "minimumScore": 0.85,
+      "mustPass": true,
+      "componentRefs": [
+        "arm"
+      ],
+      "evidenceRefs": [
+        "middle-third"
+      ]
+    },
+    {
+      "id": "knop-and-rings",
+      "name": "Baluster knop and embossed base rings",
+      "tier": "important",
+      "passIds": [
+        "form-refinement"
+      ],
+      "minimumScore": 0.75,
+      "mustPass": false,
+      "componentRefs": [
+        "stem",
+        "base_foot"
+      ],
+      "evidenceRefs": [
+        "bottom-third"
+      ]
+    },
+    {
+      "id": "bobeche-cups",
+      "name": "Cup + drip pan profile per candle",
+      "tier": "important",
+      "passIds": [
+        "form-refinement"
+      ],
+      "minimumScore": 0.75,
+      "mustPass": false,
+      "componentRefs": [
+        "cup"
+      ],
+      "evidenceRefs": [
+        "top-third"
+      ]
+    },
+    {
+      "id": "flame-teardrops",
+      "name": "Emissive teardrop flames with bright cores",
+      "tier": "important",
+      "passIds": [
+        "material-pass"
+      ],
+      "minimumScore": 0.75,
+      "mustPass": false,
+      "componentRefs": [
+        "flame"
+      ],
+      "evidenceRefs": [
+        "top-third"
+      ]
+    }
+  ],
+  "buildPasses": [
+    {
+      "id": "blockout",
+      "goal": "Match macro silhouette and proportions.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Silhouette reads correctly without materials.",
+        "Quality contract has named all required macro feature groups before code generation.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "structural-pass",
+      "goal": "Build the component hierarchy implied by the pre-spec complexity assessment.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Macro, meso, and repeated structures meet qualityContract.minimumSpecDepth.",
+        "Parent-child relations, joints, seams, sockets, and contact points are explicit.",
+        "Every attached child appendage/connector has parentSocket, localStart/localEnd, contactType, embedDepth or overlap, and gapTolerance.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "form-refinement",
+      "goal": "Refine shape, deformation, bevels, tapers, curves, asymmetry, and visible local geometry.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Important visible forms are represented in component geometryDescriptor, deformations, localFeatures, or repetitionSystems.",
+        "Endpoint-based child parts are rooted at their attachment sockets and do not visibly float away from parents.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "material-pass",
+      "goal": "Match material color, roughness, bump, and local variation.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Reference-derived albedo palette records dominant, secondary, and accent colors per visible material.",
+        "Each important material defines roughness variation and at least one normal/bump/displacement response.",
+        "Local material overrides, dirt/wear/stains/moss/chips/scratches or equivalent masks are tied to evidenceRefs.",
+        "Thin, transparent, reflective, wet, or fibrous materials document alpha/transmission/clearcoat/metalness/fiber response when relevant.",
+        "Generated preview uses procedural albedo/roughness/bump texture or vertex color variation instead of one flat color.",
+        "Generated preview uses independent PBR maps at 1024px or higher for the quality-first tier.",
+        "If source pixels are available, referencePbr extraction passed at confidence >= 0.7 or the pass is stopped/requesting better references.",
+        "Macro, meso, and micro surface frequency bands are visible at the intended review distance without obvious tiling.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "surface-pass",
+      "goal": "Add procedural surface locality such as normal/bump/displacement, AO, dirt, stains, chips, grain, moss, scratches, and wear.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Every required material feature group has local overrides or surfaceDetail tied to evidenceRefs.",
+        "A grazing-angle close-up proves that normal/height detail breaks highlights naturally and does not read as smooth plastic.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "lighting-pass",
+      "goal": "Make material and form readable under neutral turntable lighting plus optional reference lighting.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "lightingFromPhoto identifies key light direction/color/intensity, fill light, rim or environment light, and ambient color.",
+        "Exposure, tone mapping, background color/gradient, shadow softness, and contact shadow behavior are specified.",
+        "Lighting does not hide geometry/material gaps and screenshots can be compared fairly to the reference.",
+        "Neutral, grazing, and reference-matched lighting checks distinguish material errors from lighting errors.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "interaction-pass",
+      "goal": "Make the model ready for future animation, transformation, physics, or destruction.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Macro and movable meso components have stable pivot nodes.",
+        "Sockets, collider proxies, and destruction metadata are present for future runtime actions.",
+        "AI vision comparison score meets selfCorrectLoop.visualAcceptance.threshold."
+      ]
+    },
+    {
+      "id": "optimization-pass",
+      "goal": "Protect runtime performance after visual fidelity is accepted.",
+      "componentRefs": [
+        "root"
+      ],
+      "acceptance": [
+        "Triangle count, draw calls, instancing, LOD strategy, and FPS target are documented or verified.",
+        "Repeated detail is instanced or simplified where possible without breaking silhouette/material believability."
+      ]
+    }
+  ],
+  "sculptPipeline": {
+    "passGateMode": "locked-sequential",
+    "passOrder": [
+      "blockout",
+      "structural-pass",
+      "form-refinement",
+      "material-pass",
+      "surface-pass",
+      "lighting-pass",
+      "interaction-pass",
+      "optimization-pass"
+    ],
+    "currentPass": "complete",
+    "completedPasses": [
+      "blockout",
+      "structural-pass",
+      "form-refinement",
+      "material-pass",
+      "surface-pass",
+      "lighting-pass",
+      "interaction-pass",
+      "optimization-pass"
+    ],
+    "lastCompletedPass": "optimization-pass",
+    "blockedReason": "all build passes completed",
+    "nextRequiredEvidence": []
+  },
+  "proceduralStrategy": [
+    "Block out macro silhouette first.",
+    "Add component hierarchy and joints.",
+    "Create stable pivot groups, sockets, collider proxies, and destruction metadata before visual polish.",
+    "Refine forms with bevels, tapers, bends, and procedural noise.",
+    "Run reference PBR extraction for important source-image materials and stop when confidence is below the target threshold.",
+    "Add material variation before adding expensive micro-geometry."
+  ],
+  "animationAnchors": [
+    "root pivot node supports whole-object translation, rotation, scale, and visibility changes",
+    "component pivot groups support later local transforms without rebuilding geometry"
+  ],
+  "destructionAnchors": [
+    "actionProfile.destruction.fractureGroup marks detachable or breakable component sets",
+    "component seams and sockets define plausible break points instead of random explosions"
+  ],
+  "lodPlan": [
+    {
+      "tier": "near",
+      "distance": 0,
+      "strategy": "full component tree and material layers"
+    },
+    {
+      "tier": "far",
+      "distance": 30,
+      "strategy": "merge static components and reduce local feature geometry"
+    }
+  ],
+  "performanceBudget": {
+    "qualityPriority": "reference-fidelity",
+    "targetTriangles": 250000,
+    "maxDrawCalls": 160,
+    "textureSize": 2048,
+    "fpsTarget": 30,
+    "optimizationPolicy": "Reach accepted visual fidelity first, then optimize without removing reference-critical geometry or surface layers."
+  },
+  "lookDevTargets": {
+    "qualityPriority": "reference-fidelity",
+    "materialPass": {
+      "albedoPaletteRequired": true,
+      "roughnessVariationRequired": true,
+      "normalOrBumpRequired": true,
+      "localOverridesRequired": true,
+      "minimumTextureResolution": 1024,
+      "preferredTextureResolution": 2048,
+      "independentMapChannels": [
+        "albedo",
+        "roughness",
+        "height",
+        "normal",
+        "ambient-occlusion"
+      ],
+      "requiredSurfaceFrequencyBands": [
+        "macro",
+        "meso",
+        "micro"
+      ],
+      "geometryReliefRequiredWhenSilhouetteAffected": true,
+      "referencePbrExtraction": {
+        "requiredWhenSourceImagePresent": true,
+        "targetThreshold": 0.7,
+        "stopOnLowConfidence": true,
+        "script": "forge/stage1_intake/extract_pbr_evidence.py",
+        "acceptedLimitation": "single-image extraction is reference-derived inference, not exact photogrammetry"
+      },
+      "mustAvoid": [
+        "single flat albedo per material",
+        "uniform roughness",
+        "albedo texture reused as roughness/height/normal/AO",
+        "single-frequency random noise",
+        "plastic-looking smooth bark, stone, cloth, foliage, or aged material",
+        "local color/detail described only in prose without material masks",
+        "claiming exact PBR recovery when confidence is below the target threshold"
+      ],
+      "albedoPalette": {
+        "brass": "#c9a24a",
+        "brassDark": "#8a6a2e",
+        "wax": "#f5efe0",
+        "wick": "#1a1210",
+        "flameCore": "#ffd9a0",
+        "flameTip": "#ff8a30"
+      }
+    },
+    "lightingPass": {
+      "requiredTerms": [
+        "key light",
+        "fill light",
+        "rim or environment light",
+        "exposure",
+        "tone mapping",
+        "background",
+        "contact shadow"
+      ],
+      "mustAvoid": [
+        "ambient-only lighting",
+        "flat value range",
+        "missing contact shadow",
+        "reference lighting copied without separating material readability"
+      ]
+    },
+    "screenshotReview": [
+      "Compare albedo palette and local color zones.",
+      "Compare roughness/normal/bump response under light.",
+      "Compare cavity dirt, edge wear, stains, moss, scratches, or other local masks.",
+      "Compare key/fill/rim structure, exposure, tone mapping, background, and contact shadows.",
+      "Capture a neutral-light render to verify material readability without reference lighting.",
+      "Capture a grazing-light close-up to expose flat normals, uniform roughness, tiling, and plastic highlights.",
+      "Capture a reference-matched render from the same camera framing as the source."
+    ]
+  },
+  "lightingFromPhoto": [
+    {
+      "role": "key",
+      "color": "#fff2e0",
+      "intensity": 1.2,
+      "direction": "upper front-left",
+      "note": "warm studio key from photo"
+    },
+    {
+      "role": "fill",
+      "color": "#8a9ac8",
+      "intensity": 0.4,
+      "direction": "front-right low",
+      "note": "cool fill lifting shadows"
+    },
+    {
+      "role": "rim",
+      "color": "#ffe8c0",
+      "intensity": 0.8,
+      "direction": "back upper",
+      "note": "edge separation on dark bg"
+    },
+    {
+      "role": "exposure",
+      "toneMapping": "ACES",
+      "exposure": 1.1,
+      "note": "match photo contrast"
+    },
+    {
+      "role": "contactShadow",
+      "type": "blob-shadow",
+      "note": "soft contact shadow under domed foot"
+    }
+  ],
+  "viewEvidence": [
+    {
+      "id": "full-object",
+      "view": "primary",
+      "imageRegion": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0,
+        "units": "normalized"
+      },
+      "observations": [
+        "centered candelabra, three lit tapers"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "id": "bottom-third",
+      "view": "primary",
+      "imageRegion": {
+        "x": 0.3,
+        "y": 0.6,
+        "width": 0.4,
+        "height": 0.4,
+        "units": "normalized"
+      },
+      "observations": [
+        "domed foot with embossed rings",
+        "baluster stem with knop"
+      ],
+      "confidence": 0.85
+    },
+    {
+      "id": "middle-third",
+      "view": "primary",
+      "imageRegion": {
+        "x": 0.15,
+        "y": 0.3,
+        "width": 0.7,
+        "height": 0.35,
+        "units": "normalized"
+      },
+      "observations": [
+        "two S-scroll arms",
+        "cups with bobeche pans"
+      ],
+      "confidence": 0.85
+    },
+    {
+      "id": "top-third",
+      "view": "primary",
+      "imageRegion": {
+        "x": 0.2,
+        "y": 0.0,
+        "width": 0.6,
+        "height": 0.35,
+        "units": "normalized"
+      },
+      "observations": [
+        "white tapers, center tallest",
+        "black wicks",
+        "teardrop flames"
+      ],
+      "confidence": 0.9
+    }
+  ],
+  "visualEvidence": [
+    {
+      "timestamp": "2026-07-20T15:07:27.700236+00:00",
+      "passId": "blockout",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.85,
+        "componentStructure": 0.9,
+        "formDetail": 0.4,
+        "materialSurface": 0.3,
+        "lightingCamera": 0.8
+      },
+      "featureReviews": [
+        {
+          "id": "overall-silhouette",
+          "score": 0.85,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v2.png",
+      "comparisonImage": "../out/sheet-blockout.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.095283+00:00",
+      "passId": "structural-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.172250+00:00",
+      "passId": "form-refinement",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.248314+00:00",
+      "passId": "material-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.323990+00:00",
+      "passId": "surface-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.401167+00:00",
+      "passId": "lighting-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.477220+00:00",
+      "passId": "interaction-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    },
+    {
+      "timestamp": "2026-07-20T15:22:51.553474+00:00",
+      "passId": "optimization-pass",
+      "estimatedFidelity": 0.85,
+      "aiVisionScore": 0.85,
+      "visualAcceptanceThreshold": 0.7,
+      "layerScores": {
+        "silhouetteProportion": 0.87,
+        "componentStructure": 0.9,
+        "formDetail": 0.82,
+        "materialSurface": 0.83,
+        "lightingCamera": 0.84
+      },
+      "featureReviews": [
+        {
+          "id": "bilateral-symmetry",
+          "score": 0.9,
+          "decision": "pass"
+        },
+        {
+          "id": "knop-and-rings",
+          "score": 0.8,
+          "decision": "pass"
+        },
+        {
+          "id": "bobeche-cups",
+          "score": 0.82,
+          "decision": "pass"
+        },
+        {
+          "id": "flame-teardrops",
+          "score": 0.8,
+          "decision": "pass"
+        }
+      ],
+      "referenceScreenshot": "../out/candelabra-ref.png",
+      "renderScreenshot": "../out/candelabra-v5.png",
+      "comparisonImage": "../out/sheet-final.png",
+      "cameraView": "",
+      "notes": "",
+      "aiVisionNotes": ""
+    }
+  ]
+}

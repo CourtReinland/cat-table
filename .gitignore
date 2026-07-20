@@ -4,3 +4,6 @@ dist
 *.local
 tools/out
 .playwright
+.DS_Store
+*.zip
+UltimateAnimatedAnimals/
