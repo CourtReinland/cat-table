@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ApartmentScene } from './ApartmentScene';
+import { CameraRig } from './CameraRig';
 import { LEVELS, getBoyfriend, SUKI, type LevelDef, type Boyfriend } from '../data/content';
 import { audio } from '../audio/AudioManager';
 import { UI } from '../ui/UI';
@@ -17,7 +18,7 @@ type Phase =
 export class Game {
   private canvas: HTMLCanvasElement;
   private renderer!: THREE.WebGLRenderer;
-  private camera!: THREE.PerspectiveCamera;
+  private rig!: CameraRig;
   private apartment = new ApartmentScene();
   private ui = new UI();
   private phase: Phase = 'loading';
@@ -25,16 +26,15 @@ export class Game {
   private level!: LevelDef;
   private boyfriend!: Boyfriend;
   private keys = new Set<string>();
-  private nudgePressed = false;
+  private swatPressed = false;
   private clock = new THREE.Clock();
   private levelStart = 0;
   private dialogueIndex = 0;
-  private camTarget = new THREE.Vector3();
-  private camPos = new THREE.Vector3(0, 3.2, 4.2);
   private usingWebGPU = false;
   private hintTimer = 0;
   private brokenThisLevel = 0;
   private touchInput = { x: 0, z: 0 };
+  private vignette!: HTMLDivElement;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -42,7 +42,6 @@ export class Game {
 
   async init() {
     this.ui.show('loading');
-
     await this.initRenderer();
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -54,17 +53,16 @@ export class Game {
     }
     if ('toneMapping' in this.renderer) {
       (this.renderer as THREE.WebGLRenderer).toneMapping = THREE.ACESFilmicToneMapping;
-      (this.renderer as THREE.WebGLRenderer).toneMappingExposure = 1.15;
+      (this.renderer as THREE.WebGLRenderer).toneMappingExposure = 0.92;
     }
 
-    this.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 80);
-    this.camera.position.copy(this.camPos);
+    this.rig = new CameraRig(window.innerWidth / window.innerHeight);
+    this.installVignette();
 
     this.bindInput();
     this.bindTouch();
     window.addEventListener('resize', () => this.onResize());
 
-    // Preload images
     const urls = [
       SUKI.portrait,
       ...LEVELS.flatMap((l) => {
@@ -91,7 +89,25 @@ export class Game {
     this.loop();
   }
 
-  /** WebGPU first; on failure swap canvas so WebGL can attach cleanly */
+  private installVignette() {
+    this.vignette = document.createElement('div');
+    this.vignette.id = 'fx-vignette';
+    this.vignette.style.cssText = `
+      position:absolute;inset:0;pointer-events:none;z-index:4;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(5,2,12,0.55) 100%);
+      mix-blend-mode: multiply; opacity: 0.85;
+    `;
+    document.getElementById('app')?.appendChild(this.vignette);
+
+    const grain = document.createElement('div');
+    grain.id = 'fx-grain';
+    grain.style.cssText = `
+      position:absolute;inset:0;pointer-events:none;z-index:4;opacity:0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    `;
+    document.getElementById('app')?.appendChild(grain);
+  }
+
   private async initRenderer() {
     const tryWebGPU = async () => {
       if (!('gpu' in navigator) || !(navigator as Navigator & { gpu?: unknown }).gpu) {
@@ -106,7 +122,6 @@ export class Game {
     };
 
     const tryWebGL = () => {
-      // If a previous attempt bound a GPU context, replace the canvas
       const parent = this.canvas.parentElement;
       if (parent) {
         const fresh = this.canvas.cloneNode(false) as HTMLCanvasElement;
@@ -137,7 +152,7 @@ export class Game {
       this.keys.add(e.code);
       if (e.code === 'Space') {
         e.preventDefault();
-        this.nudgePressed = true;
+        this.swatPressed = true;
       }
       if (e.code === 'Escape') {
         if (this.phase === 'playing') this.pause();
@@ -148,7 +163,7 @@ export class Game {
       this.keys.delete(e.code);
     });
     this.canvas.addEventListener('pointerdown', () => {
-      if (this.phase === 'playing') this.nudgePressed = true;
+      if (this.phase === 'playing') this.swatPressed = true;
     });
 
     this.ui.on('start', () => this.beginGame());
@@ -182,11 +197,8 @@ export class Game {
     if (this.boyfriend.sukiVoice) {
       setTimeout(() => audio.playVoice(this.boyfriend.sukiVoice), 400);
     }
-    // Load 3D while intro is up
     this.apartment.loadLevel(this.level);
     this.brokenThisLevel = 0;
-    this.camPos.set(0, 3.4, 4.5);
-    this.camTarget.set(0, this.apartment.counterY, 0);
   }
 
   private startPlaying() {
@@ -194,10 +206,11 @@ export class Game {
     audio.playMeow();
     this.phase = 'playing';
     this.levelStart = performance.now();
-    this.hintTimer = 5;
+    this.hintTimer = 6;
     this.ui.show('none');
     this.ui.showHud(this.level, this.boyfriend);
     this.ui.updateChaos(0, this.apartment.totalCount);
+    this.ui.flashHint('WASD move · Space swat · Heavy objects need multiple hits');
   }
 
   private pause() {
@@ -215,9 +228,10 @@ export class Game {
     audio.playShatter(kind as 'glass' | 'ceramic' | 'soft' | 'metal');
     this.ui.updateChaos(this.apartment.brokenCount, this.apartment.totalCount);
     this.ui.flashHint(this.pickHint());
+    this.rig.addPunch(0.7);
 
     if (this.apartment.allBroken) {
-      setTimeout(() => this.onLevelCleared(), 600);
+      setTimeout(() => this.onLevelCleared(), 700);
     }
   }
 
@@ -227,8 +241,9 @@ export class Game {
       'He almost looked over.',
       'ASMR: expensive regrets.',
       'Heather is going to notice… eventually.',
+      'Heavy things need a few swats.',
+      'Shoulder-check the light stuff.',
       'Gravity is your love language.',
-      'One more for the soundtrack.',
     ];
     return hints[Math.floor(Math.random() * hints.length)];
   }
@@ -260,7 +275,12 @@ export class Game {
   private showComplete() {
     this.phase = 'complete';
     const secs = Math.round((performance.now() - this.levelStart) / 1000);
-    this.ui.showComplete(this.boyfriend, this.brokenThisLevel, secs, this.levelIndex >= LEVELS.length - 1);
+    this.ui.showComplete(
+      this.boyfriend,
+      this.brokenThisLevel,
+      secs,
+      this.levelIndex >= LEVELS.length - 1,
+    );
   }
 
   private nextLevel() {
@@ -319,7 +339,7 @@ export class Game {
 
     nudgeBtn?.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      this.nudgePressed = true;
+      this.swatPressed = true;
     });
   }
 
@@ -339,42 +359,45 @@ export class Game {
 
     if (this.phase === 'playing') {
       const input = this.getInput();
-      const nudge = this.nudgePressed;
-      if (nudge) {
-        audio.playNudge();
-        this.nudgePressed = false;
-      }
-      const events = this.apartment.update(dt, input, nudge);
-      for (const ev of events) {
-        this.onObjectBroken(ev.kind);
+      const wantSwat = this.swatPressed;
+      this.swatPressed = false;
+
+      const { breaks, swatResult, didSwat } = this.apartment.update(dt, input, wantSwat);
+      if (didSwat) audio.playNudge();
+
+      if (swatResult === 'locked') {
+        this.ui.flashHint('Too heavy — swat again!');
+        this.rig.addPunch(0.25);
+      } else if (swatResult === 'unlocked') {
+        this.ui.flashHint('It\'s loose — finish it!');
+        this.rig.addPunch(0.45);
+      } else if (swatResult === 'pushed') {
+        this.rig.addPunch(0.55);
       }
 
-      // Camera follow cat with cinematic offset
-      const cat = this.apartment.cat.group.position;
-      this.camTarget.lerp(new THREE.Vector3(cat.x * 0.3, this.apartment.counterY + 0.1, cat.z * 0.2), 1 - Math.pow(0.001, dt));
-      const desired = new THREE.Vector3(cat.x * 0.35, 3.1, 4.0 + cat.z * 0.15);
-      this.camPos.lerp(desired, 1 - Math.pow(0.002, dt));
-      this.camera.position.copy(this.camPos);
-      this.camera.lookAt(this.camTarget);
+      for (const ev of breaks) this.onObjectBroken(ev.kind);
+
+      const cat = this.apartment.cat;
+      this.rig.follow(dt, cat.group.position, cat.facingYaw, cat.velocity);
 
       if (this.hintTimer > 0) {
         this.hintTimer -= dt;
         if (this.hintTimer <= 0) this.ui.hideHint();
       }
-    } else if (this.phase === 'intro' || this.phase === 'complete' || this.phase === 'cutscene') {
-      // Gentle orbit of empty/loaded scene
+    } else if (
+      this.phase === 'intro' ||
+      this.phase === 'complete' ||
+      this.phase === 'cutscene' ||
+      this.phase === 'pause'
+    ) {
       this.apartment.update(dt, { x: 0, z: 0 }, false);
-      const t = performance.now() * 0.0003;
-      this.camera.position.set(Math.sin(t) * 1.2, 3.3, 4.4);
-      this.camera.lookAt(0, this.apartment.counterY, 0);
-    } else if (this.phase === 'title') {
-      // Dark empty — render solid via CSS; still clear canvas
+      const c = new THREE.Vector3(0, this.apartment.counterY + 0.2, 0);
+      this.rig.orbit(c, performance.now() * 0.001, 3.6, 2.3);
     }
 
     if (this.phase !== 'title' && this.phase !== 'loading' && this.phase !== 'ending') {
-      this.renderer.render(this.apartment.scene, this.camera);
+      this.renderer.render(this.apartment.scene, this.rig.camera);
     } else {
-      // Clear
       const gl = this.renderer as THREE.WebGLRenderer;
       if (gl.setClearColor) gl.setClearColor(0x07040e, 1);
       this.renderer.clear?.();
@@ -384,8 +407,7 @@ export class Game {
   private onResize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.rig.setSize(w, h);
     this.renderer.setSize(w, h);
   }
 }

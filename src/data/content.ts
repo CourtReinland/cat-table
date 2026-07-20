@@ -20,12 +20,35 @@ export interface Boyfriend {
   noticeVoice?: string;
 }
 
+export type PropKind =
+  | 'mug'
+  | 'glass'
+  | 'plant'
+  | 'book'
+  | 'phone'
+  | 'candle'
+  | 'bottle'
+  | 'remote'
+  | 'frame'
+  | 'bowl'
+  | 'laptop'
+  | 'kettle'
+  | 'lamp'
+  | 'vase'
+  | 'stack';
+
+export type WeightClass = 'feather' | 'light' | 'medium' | 'heavy' | 'anchor';
+
 export interface PropDef {
-  kind: 'mug' | 'glass' | 'plant' | 'book' | 'phone' | 'candle' | 'bottle' | 'remote' | 'frame' | 'bowl';
+  kind: PropKind;
   color: number;
   scale: [number, number, number];
   mass: number;
   shatter: 'glass' | 'ceramic' | 'soft' | 'metal';
+  weight: WeightClass;
+  /** Swat hits needed before it will slide freely (anchors/heavies) */
+  toughness: number;
+  friction: number;
 }
 
 export interface LevelDef {
@@ -41,7 +64,9 @@ export interface LevelDef {
   fogColor: number;
   wallColor: number;
   counterColor: number;
-  props: PropDef['kind'][];
+  props: PropKind[];
+  /** Optional fixed blockers that must be toppled with sustained swats */
+  blockers?: PropKind[];
 }
 
 export const SUKI = {
@@ -93,7 +118,7 @@ export const BOYFRIENDS: Boyfriend[] = [
     name: 'Kai Voss',
     title: 'The Midnight Artist',
     description:
-      'Silver hair, tragic jacket, too many opinions about lighting. Heather thinks he\'s mysterious. Suki thinks he\'s furniture.',
+      "Silver hair, tragic jacket, too many opinions about lighting. Heather thinks he's mysterious. Suki thinks he's furniture.",
     sukiLine: '"Pretty boy. Sit. Pet. Obey."',
     sukiVoice: '/assets/audio/suki-jealous.mp3',
     portrait: '/assets/characters/boy-kai.jpg',
@@ -149,22 +174,147 @@ export const BOYFRIENDS: Boyfriend[] = [
         voice: '/assets/audio/jasper-notice.mp3',
       },
     ],
-    completeBody: 'Jasper scooped Suki skyward like a trophy. Heather\'s trinkets never stood a chance.',
+    completeBody: "Jasper scooped Suki skyward like a trophy. Heather's trinkets never stood a chance.",
     accent: 0xf0c675,
   },
 ];
 
-export const PROP_LIBRARY: Record<PropDef['kind'], Omit<PropDef, 'kind'>> = {
-  mug: { color: 0xe8d5c4, scale: [0.22, 0.26, 0.22], mass: 0.4, shatter: 'ceramic' },
-  glass: { color: 0xa8d8ea, scale: [0.14, 0.32, 0.14], mass: 0.25, shatter: 'glass' },
-  plant: { color: 0x6b9b6e, scale: [0.28, 0.35, 0.28], mass: 0.6, shatter: 'ceramic' },
-  book: { color: 0x8b5a4a, scale: [0.3, 0.08, 0.22], mass: 0.5, shatter: 'soft' },
-  phone: { color: 0x2a2a32, scale: [0.16, 0.02, 0.3], mass: 0.2, shatter: 'metal' },
-  candle: { color: 0xf5e6c8, scale: [0.12, 0.28, 0.12], mass: 0.3, shatter: 'soft' },
-  bottle: { color: 0xd4a5c9, scale: [0.12, 0.36, 0.12], mass: 0.35, shatter: 'glass' },
-  remote: { color: 0x3a3a44, scale: [0.12, 0.04, 0.28], mass: 0.22, shatter: 'metal' },
-  frame: { color: 0xd4c4a8, scale: [0.28, 0.32, 0.04], mass: 0.45, shatter: 'glass' },
-  bowl: { color: 0xc9b8a8, scale: [0.28, 0.1, 0.28], mass: 0.4, shatter: 'ceramic' },
+export const PROP_LIBRARY: Record<PropKind, Omit<PropDef, 'kind'>> = {
+  mug: {
+    color: 0xe8d5c4,
+    scale: [0.22, 0.26, 0.22],
+    mass: 0.45,
+    shatter: 'ceramic',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.35,
+  },
+  glass: {
+    color: 0xa8d8ea,
+    scale: [0.14, 0.32, 0.14],
+    mass: 0.22,
+    shatter: 'glass',
+    weight: 'feather',
+    toughness: 1,
+    friction: 0.2,
+  },
+  plant: {
+    color: 0x6b9b6e,
+    scale: [0.32, 0.4, 0.32],
+    mass: 1.8,
+    shatter: 'ceramic',
+    weight: 'heavy',
+    toughness: 3,
+    friction: 0.55,
+  },
+  book: {
+    color: 0x8b5a4a,
+    scale: [0.3, 0.08, 0.22],
+    mass: 0.55,
+    shatter: 'soft',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.4,
+  },
+  phone: {
+    color: 0x2a2a32,
+    scale: [0.16, 0.02, 0.3],
+    mass: 0.18,
+    shatter: 'metal',
+    weight: 'feather',
+    toughness: 1,
+    friction: 0.25,
+  },
+  candle: {
+    color: 0xf5e6c8,
+    scale: [0.12, 0.28, 0.12],
+    mass: 0.3,
+    shatter: 'soft',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.35,
+  },
+  bottle: {
+    color: 0xd4a5c9,
+    scale: [0.12, 0.36, 0.12],
+    mass: 0.4,
+    shatter: 'glass',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.28,
+  },
+  remote: {
+    color: 0x3a3a44,
+    scale: [0.12, 0.04, 0.28],
+    mass: 0.2,
+    shatter: 'metal',
+    weight: 'feather',
+    toughness: 1,
+    friction: 0.3,
+  },
+  frame: {
+    color: 0xd4c4a8,
+    scale: [0.28, 0.32, 0.04],
+    mass: 0.5,
+    shatter: 'glass',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.35,
+  },
+  bowl: {
+    color: 0xc9b8a8,
+    scale: [0.28, 0.1, 0.28],
+    mass: 0.5,
+    shatter: 'ceramic',
+    weight: 'light',
+    toughness: 1,
+    friction: 0.4,
+  },
+  laptop: {
+    color: 0x3a3a42,
+    scale: [0.45, 0.04, 0.32],
+    mass: 2.4,
+    shatter: 'metal',
+    weight: 'heavy',
+    toughness: 4,
+    friction: 0.6,
+  },
+  kettle: {
+    color: 0xc0c8d0,
+    scale: [0.28, 0.32, 0.22],
+    mass: 2.1,
+    shatter: 'metal',
+    weight: 'heavy',
+    toughness: 3,
+    friction: 0.5,
+  },
+  lamp: {
+    color: 0xf0e8d8,
+    scale: [0.22, 0.48, 0.22],
+    mass: 3.2,
+    shatter: 'ceramic',
+    weight: 'anchor',
+    toughness: 5,
+    friction: 0.7,
+  },
+  vase: {
+    color: 0x88aacc,
+    scale: [0.16, 0.42, 0.16],
+    mass: 1.1,
+    shatter: 'glass',
+    weight: 'medium',
+    toughness: 2,
+    friction: 0.4,
+  },
+  stack: {
+    color: 0x6a4a3a,
+    scale: [0.32, 0.28, 0.24],
+    mass: 2.6,
+    shatter: 'soft',
+    weight: 'heavy',
+    toughness: 4,
+    friction: 0.65,
+  },
 };
 
 export const LEVELS: LevelDef[] = [
@@ -173,45 +323,90 @@ export const LEVELS: LevelDef[] = [
     name: 'Kitchen Island',
     surface: 'kitchen',
     boyfriendId: 'eli',
-    counterSize: [5.2, 2.4],
-    propCount: 10,
+    counterSize: [5.4, 2.5],
+    propCount: 12,
     ambientColor: 0x1a1028,
     keyColor: 0xffd4a8,
     fillColor: 0x8b6cff,
     fogColor: 0x12081c,
     wallColor: 0x2a1f38,
-    counterColor: 0x3d2f28,
-    props: ['mug', 'glass', 'plant', 'book', 'phone', 'bowl', 'candle', 'remote', 'glass', 'mug'],
+    counterColor: 0x4a3830,
+    props: [
+      'mug',
+      'glass',
+      'phone',
+      'bowl',
+      'candle',
+      'remote',
+      'glass',
+      'mug',
+      'bottle',
+      'plant',
+      'kettle',
+      'vase',
+    ],
+    blockers: ['kettle'],
   },
   {
     id: 'desk',
-    name: 'Heather\'s Desk',
+    name: "Heather's Desk",
     surface: 'desk',
     boyfriendId: 'kai',
-    counterSize: [4.6, 2.1],
-    propCount: 12,
+    counterSize: [4.8, 2.2],
+    propCount: 14,
     ambientColor: 0x0c1420,
     keyColor: 0xa8e0ff,
     fillColor: 0xc48cff,
     fogColor: 0x080e18,
     wallColor: 0x1a2230,
     counterColor: 0x2a2420,
-    props: ['book', 'book', 'phone', 'mug', 'frame', 'bottle', 'candle', 'remote', 'glass', 'plant', 'bowl', 'phone'],
+    props: [
+      'book',
+      'book',
+      'phone',
+      'mug',
+      'frame',
+      'bottle',
+      'candle',
+      'remote',
+      'glass',
+      'plant',
+      'bowl',
+      'laptop',
+      'stack',
+      'vase',
+    ],
+    blockers: ['laptop', 'stack'],
   },
   {
     id: 'vanity',
     name: 'Bathroom Vanity',
     surface: 'vanity',
     boyfriendId: 'jasper',
-    counterSize: [4.0, 1.8],
-    propCount: 11,
+    counterSize: [4.2, 1.9],
+    propCount: 13,
     ambientColor: 0x201018,
     keyColor: 0xffc8d8,
     fillColor: 0xffe0a0,
     fogColor: 0x160c12,
     wallColor: 0x2e2230,
-    counterColor: 0x4a4540,
-    props: ['bottle', 'bottle', 'candle', 'bowl', 'glass', 'frame', 'mug', 'phone', 'plant', 'remote', 'glass'],
+    counterColor: 0x5a5550,
+    props: [
+      'bottle',
+      'bottle',
+      'candle',
+      'bowl',
+      'glass',
+      'frame',
+      'mug',
+      'phone',
+      'plant',
+      'remote',
+      'glass',
+      'lamp',
+      'vase',
+    ],
+    blockers: ['lamp'],
   },
 ];
 
@@ -219,4 +414,19 @@ export function getBoyfriend(id: string): Boyfriend {
   const b = BOYFRIENDS.find((x) => x.id === id);
   if (!b) throw new Error(`Unknown boyfriend: ${id}`);
   return b;
+}
+
+export function weightLabel(w: WeightClass): string {
+  switch (w) {
+    case 'feather':
+      return 'featherweight';
+    case 'light':
+      return 'light';
+    case 'medium':
+      return 'sturdy';
+    case 'heavy':
+      return 'heavy';
+    case 'anchor':
+      return 'immovable… almost';
+  }
 }
