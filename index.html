@@ -20,6 +20,10 @@
           }
         }
         window.__bootError = show;
+        window.__bootStage = function (msg) {
+          var el = document.querySelector('#screen-loading .loading-text');
+          if (el && !el.style.color) el.textContent = msg;
+        };
         window.addEventListener('error', function (e) {
           show('error: ' + (e.message || 'script load failed') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
         });

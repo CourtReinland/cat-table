@@ -35,15 +35,22 @@ export class Engine {
   }
 
   async init() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('gpu') === '1') this.safeMode = false; // debug override
+    const forceWebGL = this.safeMode || q.get('gl') === '1';
+
+    (window as any).__bootStage?.(`boot: creating renderer (${forceWebGL ? 'WebGL2' : 'auto'})…`);
     this.renderer = new THREE.WebGPURenderer({
       canvas: this.canvas,
       antialias: !this.safeMode,
+      forceWebGL,
       powerPreference: 'high-performance',
     });
     await this.renderer.init();
 
     this.usingWebGPU = (this.renderer.backend as any)?.isWebGPUBackend === true;
     console.info(`[CatTopSim] backend: ${this.usingWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}${this.safeMode ? ' · safeMode' : ''}`);
+    (window as any).__bootStage?.(`boot: backend ready (${this.usingWebGPU ? 'WebGPU' : 'WebGL2'})`);
 
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -57,14 +64,18 @@ export class Engine {
       80,
     );
 
-    this.scenePass = pass(this.scene, this.camera);
-    this.rebuildPipeline();
+    // the post chain is the risky part on mobile GPUs — skip it entirely in safeMode
+    if (!this.safeMode) {
+      this.scenePass = pass(this.scene, this.camera);
+      this.rebuildPipeline();
+    }
     this.applyQuality(this.safeMode ? 'low' : 'high');
 
     window.addEventListener('resize', () => this.onResize());
   }
 
   private rebuildPipeline() {
+    if (this.safeMode) return;
     this.pipeline = new THREE.RenderPipeline(this.renderer);
     const color = this.scenePass.getTextureNode();
     if (this.bloomOn) {

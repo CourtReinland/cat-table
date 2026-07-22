@@ -97,9 +97,15 @@ export class Game {
   }
 
   async init() {
+    const stage = (window as any).__bootStage ?? (() => {});
+    stage('boot: renderer…');
     await this.engine.init();
     this.fx.init(this.engine.scene);
-    await Promise.all([this.apartment.cat.wait(), preloadBoys(BOYFRIENDS.map((b) => b.id))]);
+    stage('boot: loading models…');
+    await Promise.race([
+      Promise.all([this.apartment.cat.wait(), preloadBoys(BOYFRIENDS.map((b) => b.id))]),
+      new Promise((r) => setTimeout(r, 15000)),
+    ]);
     this.ui.init(this.save);
     this.input.bindCanvas(this.canvas);
     this.bindUI();
@@ -119,6 +125,7 @@ export class Game {
     this.ui.show('title');
     this.ui.refreshTitleStartButton((this.save.data.unlocked ?? 0) > 0);
     this.loadLevel(lvl, false);
+    stage('boot: first frame…');
     this.clock.start();
     this.loop();
     if (this.autopilot) this.showIntro(lvl);
