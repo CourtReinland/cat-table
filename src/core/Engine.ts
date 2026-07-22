@@ -4,6 +4,15 @@ import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js';
 
 export type Quality = 'high' | 'medium' | 'low';
 
+/** iOS / old-Safari safe mode: skip post-processing, cap pixel ratio. */
+export const IS_MOBILE_SAFARI: boolean = (() => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const iOS = /iP(hone|ad|od)/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const oldSafari = /^((?!chrome|chromium|android|edg|firefox).)*safari/i.test(ua);
+  return iOS || oldSafari;
+})();
+
 /**
  * Renderer + post chain. Uses three's WebGPURenderer which transparently
  * falls back to the WebGL2 backend when WebGPU is unavailable.
@@ -15,6 +24,7 @@ export class Engine {
   camera!: THREE.PerspectiveCamera;
   usingWebGPU = false;
   quality: Quality = 'high';
+  safeMode = IS_MOBILE_SAFARI;
   private canvas: HTMLCanvasElement;
   private scenePass: any;
   private bloomOn = true;
@@ -27,13 +37,13 @@ export class Engine {
   async init() {
     this.renderer = new THREE.WebGPURenderer({
       canvas: this.canvas,
-      antialias: true,
+      antialias: !this.safeMode,
       powerPreference: 'high-performance',
     });
     await this.renderer.init();
 
     this.usingWebGPU = (this.renderer.backend as any)?.isWebGPUBackend === true;
-    console.info(`[CatTopSim] backend: ${this.usingWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}`);
+    console.info(`[CatTopSim] backend: ${this.usingWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}${this.safeMode ? ' · safeMode' : ''}`);
 
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -49,7 +59,7 @@ export class Engine {
 
     this.scenePass = pass(this.scene, this.camera);
     this.rebuildPipeline();
-    this.applyQuality('high');
+    this.applyQuality(this.safeMode ? 'low' : 'high');
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -66,9 +76,10 @@ export class Engine {
   }
 
   applyQuality(q: Quality) {
+    if (this.safeMode && q !== 'low') q = 'low';
     this.quality = q;
     const dpr = window.devicePixelRatio || 1;
-    const bloom = q !== 'low';
+    const bloom = q !== 'low' && !this.safeMode;
     if (bloom !== this.bloomOn) {
       this.bloomOn = bloom;
       this.rebuildPipeline();
@@ -90,7 +101,12 @@ export class Engine {
     if (this.rendering) return;
     this.rendering = true;
     try {
-      await this.pipeline.renderAsync();
+      if (this.safeMode) {
+        // plain forward pass — no render targets, safest possible iOS path
+        this.renderer.render(this.scene, this.camera);
+      } else {
+        await this.pipeline.renderAsync();
+      }
     } catch (err) {
       // a dropped frame must never kill the loop
       console.warn('[CatTopSim] frame dropped', err);

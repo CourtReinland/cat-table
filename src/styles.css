@@ -204,6 +204,7 @@ body {
   border-radius: 999px;
   padding: 12px 26px;
   cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   transition: all 0.22s ease;
 }
@@ -599,6 +600,7 @@ body {
   padding: 10px 16px;
   opacity: 0;
   transition: all 0.3s ease;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
@@ -654,6 +656,7 @@ body {
   border: 1px solid rgba(232, 200, 136, 0.35);
   border-radius: 18px;
   padding: 18px 22px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
   animation: dlgIn 0.35s ease;
@@ -803,6 +806,7 @@ body {
 #screen-pause,
 #screen-settings {
   background: rgba(7, 4, 16, 0.78);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 

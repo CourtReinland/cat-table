@@ -105,9 +105,14 @@ export class Game {
     this.bindUI();
     this.bindUnlock();
 
-    // URL test hooks: ?auto=1&level=2&instant=1
+    // URL test hooks: ?auto=1&level=2&instant=1&quality=low
     const q = new URLSearchParams(location.search);
     this.autopilot = q.get('auto') === '1';
+    const forcedQ = q.get('quality');
+    if (forcedQ === 'low' || forcedQ === 'medium' || forcedQ === 'high') {
+      this.save.data.settings.quality = forcedQ;
+      this.engine.applyQuality(forcedQ);
+    }
     const lvl = Math.min(parseInt(q.get('level') ?? '0', 10) || 0, LEVELS.length - 1);
 
     this.phase = 'title';

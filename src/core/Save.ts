@@ -23,16 +23,18 @@ const DEFAULTS: SaveData = {
   settings: { master: 0.9, music: 0.7, sfx: 0.9, voice: 1.0, quality: 'auto' },
 };
 
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
 export class Save {
   data: SaveData;
 
   constructor() {
-    this.data = structuredClone(DEFAULTS);
+    this.data = clone(DEFAULTS);
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        this.data = { ...structuredClone(DEFAULTS), ...parsed, settings: { ...DEFAULTS.settings, ...parsed.settings } };
+        this.data = { ...clone(DEFAULTS), ...parsed, settings: { ...DEFAULTS.settings, ...parsed.settings } };
       }
     } catch {
       /* corrupt or unavailable storage — run with defaults */
@@ -55,7 +57,7 @@ export class Save {
   }
 
   wipe() {
-    this.data = structuredClone(DEFAULTS);
+    this.data = clone(DEFAULTS);
     try {
       localStorage.removeItem(KEY);
     } catch {
