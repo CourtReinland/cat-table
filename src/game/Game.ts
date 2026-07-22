@@ -17,6 +17,7 @@ import {
   type LevelDef,
   type Line,
 } from '../data/content';
+import { preloadBoys } from './BoyGlb';
 import type { ShatterEvent } from './Physics';
 
 type Phase =
@@ -98,7 +99,7 @@ export class Game {
   async init() {
     await this.engine.init();
     this.fx.init(this.engine.scene);
-    await this.apartment.cat.wait();
+    await Promise.all([this.apartment.cat.wait(), preloadBoys(BOYFRIENDS.map((b) => b.id))]);
     this.ui.init(this.save);
     this.input.bindCanvas(this.canvas);
     this.bindUI();
@@ -530,7 +531,7 @@ export class Game {
       { t: 0, pos: this.cineFrom, look: this.cineLookFrom },
       { t: 1.2, pos: new THREE.Vector3(-2.6, 2.0, 3.3), look: new THREE.Vector3(-1.9, 1.0, -1.5) },
       { t: 2.8, pos: new THREE.Vector3(-1.6, 1.5, 3.0), look: new THREE.Vector3(0.1, 0.9, 1.2) },
-      { t: 4.0, pos: new THREE.Vector3(1.75, 1.45, 3.3), look: new THREE.Vector3(0.35, 0.7, 1.4) },
+      { t: 4.0, pos: new THREE.Vector3(1.95, 1.55, 3.7), look: new THREE.Vector3(0.4, 0.62, 1.45) },
     ];
     let a = camKeys[0];
     let b = camKeys[camKeys.length - 1];

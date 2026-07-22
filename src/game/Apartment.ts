@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { stdMat, buildProp } from './Props';
 import { Suki } from './Suki';
-import { Boyfriend } from './Boyfriend';
+import { Boyfriend } from './BoyGlb';
 import { Body, Physics, type SurfaceRect } from './Physics';
 import { PROP_LIBRARY, getBoyfriend, type LevelDef, type PropKind } from '../data/content';
 
@@ -468,7 +468,7 @@ export class Apartment {
     // boyfriend on the couch
     const def = getBoyfriend(level.boyfriendId);
     this.boyfriend = new Boyfriend(def);
-    this.boyfriend.group.position.set(this.couchPos.x + 0.35, 0.5, this.couchPos.z + 0.02);
+    this.boyfriend.group.position.set(this.couchPos.x + 0.35, 0, this.couchPos.z + 0.3);
     this.boyfriend.group.rotation.y = 0.35;
     this.scene.add(this.boyfriend.group);
 
