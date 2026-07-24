@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { toonify, outlineCharacter } from './Toon';
 import type { BoyDef } from '../data/content';
 
 type PoseName = 'sit' | 'stand' | 'walk' | 'kneel' | 'cuddle';
@@ -66,6 +67,8 @@ export class Boyfriend {
         if (m.isMesh) m.castShadow = true;
       });
       this.group.add(inner);
+      toonify(inner);
+      outlineCharacter(inner);
       this.mixer = new THREE.AnimationMixer(inner);
       for (const clip of src.animations) {
         // NLA track names come through clean: Idle_Sit, Walk, Cuddle…

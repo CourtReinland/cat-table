@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
+import { toonify, outlineCharacter } from './Toon';
 
 /**
  * Suki — Blender-restyled Quaternius Fox (cream cat, pink bow & collar)
@@ -43,6 +44,8 @@ export class Suki {
         }
       });
       this.group.add(this.inner);
+      toonify(this.inner);
+      outlineCharacter(this.inner);
       this.mixer = new THREE.AnimationMixer(this.inner);
       for (const clip of gltf.animations) {
         this.actions.set(clip.name, this.mixer.clipAction(clip));

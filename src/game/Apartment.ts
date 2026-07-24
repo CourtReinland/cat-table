@@ -4,6 +4,7 @@ import { Suki } from './Suki';
 import { Boyfriend } from './BoyGlb';
 import { Body, Physics, type SurfaceRect } from './Physics';
 import { PROP_LIBRARY, getBoyfriend, type LevelDef, type PropKind } from '../data/content';
+import { toonify } from './Toon';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -406,6 +407,7 @@ export class Apartment {
     g.add(this.fill);
 
     this.scene.add(g);
+    toonify(g);
     this.scene.fog = new THREE.FogExp2(0x0e0818, 0.045);
     this.scene.background = new THREE.Color(0x070410);
   }
@@ -475,6 +477,7 @@ export class Apartment {
     this.cuddleSpot.set(0.4, 0, cz + d / 2 + 0.55);
 
     this.scene.add(lg);
+    toonify(lg);
   }
 
   private buildFurniture(lg: THREE.Group, level: LevelDef, w: number, d: number, topY: number, cz: number) {
