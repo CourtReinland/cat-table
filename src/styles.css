@@ -947,7 +947,7 @@ body {
 }
 
 @media (pointer: coarse) {
-  #touch-ui {
+  #touch-ui.visible {
     display: block;
   }
 

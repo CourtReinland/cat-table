@@ -109,6 +109,9 @@ export class UI {
 
   showHud(visible = true) {
     $('hud').classList.toggle('visible', visible);
+    // the touch stick/buttons are only meaningful while prowling — otherwise
+    // they sit on top of the title and intro menus on any coarse-pointer device
+    document.getElementById('touch-ui')?.classList.toggle('visible', visible);
   }
 
   private setImg(img: HTMLImageElement, src: string, letter: string) {
