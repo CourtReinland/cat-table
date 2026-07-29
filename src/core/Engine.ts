@@ -55,7 +55,9 @@ export class Engine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.28;
+    // 1.28 clipped skin and Suki's cream coat to flat white under the counter
+    // key light; this keeps highlights inside the toon ramp.
+    this.renderer.toneMappingExposure = 1.0;
 
     this.camera = new THREE.PerspectiveCamera(
       40,
@@ -102,6 +104,8 @@ export class Engine {
   onResize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    // a hidden/collapsed pane reports 0 and would size the swapchain to nothing
+    if (w < 1 || h < 1) return;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
@@ -110,6 +114,9 @@ export class Engine {
   /** Async render; skips a frame if the previous one is still in flight. */
   async render() {
     if (this.rendering) return;
+    // Rendering into a zero-sized canvas throws a cascade of WebGPU validation
+    // errors ("swapchain texture of size 0") that spam the console until resize.
+    if (window.innerWidth < 1 || window.innerHeight < 1) return;
     this.rendering = true;
     try {
       if (this.safeMode) {

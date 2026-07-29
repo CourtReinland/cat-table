@@ -24,14 +24,25 @@ export class Body {
   halfH: number;
   radiusXZ: number;
   points: number;
+  mass: number;
+  immovable = false;
   bounces = 0;
 
-  constructor(group: THREE.Group, kind: ShatterKind, halfH: number, radiusXZ: number, points: number) {
+  constructor(
+    group: THREE.Group,
+    kind: ShatterKind,
+    halfH: number,
+    radiusXZ: number,
+    points: number,
+    opts: { mass?: number; immovable?: boolean } = {},
+  ) {
     this.group = group;
     this.kind = kind;
     this.halfH = halfH;
     this.radiusXZ = radiusXZ;
     this.points = points;
+    this.mass = opts.mass ?? 0.5;
+    this.immovable = opts.immovable ?? false;
   }
 
   get pos() {
@@ -197,17 +208,30 @@ export class Physics {
   }
 
   get remaining() {
-    return this.bodies.filter((b) => b.state !== 'gone').length;
+    return this.bodies.filter((b) => b.state !== 'gone' && !b.immovable).length;
   }
 
-  /** Kick a body with an impulse (called by the cat). */
-  kick(b: Body, dir: THREE.Vector3, power: number) {
-    if (b.state === 'gone') return;
-    const mass = 0.2 + b.radiusXZ * 2;
-    b.vel.addScaledVector(dir, power / mass);
-    b.vel.y += power * 0.12;
-    b.angVel.add(_v.set((Math.random() - 0.5) * power * 2.2, (Math.random() - 0.5) * power * 1.4, (Math.random() - 0.5) * power * 2.2));
+  get shatterableTotal() {
+    return this.bodies.filter((b) => !b.immovable).length;
+  }
+
+  /** Kick a body with an impulse (called by the cat). Returns false if blocked/immovable. */
+  kick(b: Body, dir: THREE.Vector3, power: number): boolean {
+    if (b.state === 'gone' || b.immovable) return false;
+    const mass = Math.max(0.25, b.mass);
+    // Mass-heavy props need several committed swipes; light glass still yields.
+    const scale = power / (mass * 1.35);
+    b.vel.addScaledVector(dir, scale);
+    b.vel.y += power * 0.05;
+    b.angVel.add(
+      _v.set(
+        (Math.random() - 0.5) * power * 1.1,
+        (Math.random() - 0.5) * power * 0.7,
+        (Math.random() - 0.5) * power * 1.1,
+      ),
+    );
     if (b.state === 'idle') b.state = 'sliding';
+    return true;
   }
 
   private shatter(b: Body, impactSpeed: number) {
@@ -221,9 +245,16 @@ export class Physics {
     for (const b of this.bodies) {
       if (b.state === 'gone') continue;
 
+      if (b.immovable) {
+        // stay planted; soft visual jiggle only when "kicked" (vel written but ignored)
+        b.vel.set(0, 0, 0);
+        b.pos.y = s.topY + b.halfH;
+        continue;
+      }
+
       if (b.state === 'sliding') {
-        // planar slide on the surface with friction + stylish tilt
-        const friction = Math.exp(-3.2 * dt);
+        // planar slide — sticky friction so props don't ice-skate off
+        const friction = Math.exp(-5.4 * dt);
         b.vel.x *= friction;
         b.vel.z *= friction;
         b.pos.x += b.vel.x * dt;
@@ -231,19 +262,23 @@ export class Physics {
         b.pos.y = s.topY + b.halfH;
 
         const speed = Math.hypot(b.vel.x, b.vel.z);
-        const tilt = Math.min(0.22, speed * 0.12);
+        const tilt = Math.min(0.18, speed * 0.1);
         const target = _e.set(b.vel.z * tilt, b.group.rotation.y, -b.vel.x * tilt);
         _q.setFromEuler(target);
         b.group.quaternion.slerp(_q, 1 - Math.exp(-8 * dt));
 
-        // tipped off the edge?
-        const outX = Math.abs(b.pos.x - s.cx) > s.halfW + b.radiusXZ * 0.35;
-        const outZ = Math.abs(b.pos.z - s.cz) > s.halfD + b.radiusXZ * 0.35;
-        if (outX || outZ) {
+        // need more overhang before tipping — edge is safer
+        const outX = Math.abs(b.pos.x - s.cx) > s.halfW + b.radiusXZ * 0.12;
+        const outZ = Math.abs(b.pos.z - s.cz) > s.halfD + b.radiusXZ * 0.12;
+        // require some outward speed so gentle bumps near the rim don't freefall
+        const outward =
+          (Math.abs(b.pos.x - s.cx) > s.halfW * 0.92 && Math.sign(b.vel.x) === Math.sign(b.pos.x - s.cx)) ||
+          (Math.abs(b.pos.z - s.cz) > s.halfD * 0.92 && Math.sign(b.vel.z) === Math.sign(b.pos.z - s.cz));
+        if ((outX || outZ) && (speed > 0.55 || outward)) {
           b.state = 'falling';
           b.angVel.x += b.vel.z * 2.5;
           b.angVel.z -= b.vel.x * 2.5;
-        } else if (speed < 0.05) {
+        } else if (speed < 0.08) {
           b.vel.set(0, 0, 0);
           b.state = 'idle';
           // settle back upright

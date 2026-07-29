@@ -518,6 +518,38 @@ body {
   height: 22px;
 }
 
+.hud-hazards {
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: #f0c8d8;
+  opacity: 0.9;
+}
+
+.hud-hazards.danger {
+  color: #ff6a8a;
+  animation: comboPop 0.4s ease;
+}
+
+.hud-timer {
+  margin-top: 2px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: #e8dcc8;
+  opacity: 0.85;
+}
+
+.hud-timer.danger {
+  color: #ff6a8a;
+  opacity: 1;
+  animation: comboPop 0.9s ease infinite;
+}
+
+.fail-card .complete-rank {
+  color: #ff8aa8;
+}
+
 .hud-combo.pop,
 .combo-pop.pop {
   animation: comboPop 0.45s ease;

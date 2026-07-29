@@ -94,9 +94,11 @@
           <div class="hud-score">
             <div id="hud-score">0</div>
             <div id="hud-combo" class="hud-combo"></div>
+            <div id="hud-hazards" class="hud-hazards">LIVES 6/6</div>
+            <div id="hud-timer" class="hud-timer">2:30</div>
           </div>
         </div>
-        <div class="hud-hint" id="hud-hint">WASD prowl · Space shove · E meow · Esc pause</div>
+        <div class="hud-hint" id="hud-hint">WASD prowl · Space swipe · E meow · dodge hand &amp; mouse</div>
         <div id="bark" class="bark">
           <img id="bark-img" alt="" />
           <div class="bark-text-wrap">
@@ -130,6 +132,20 @@
             <button id="btn-next-level" class="btn btn-primary">Next Suitor →</button>
             <button id="btn-replay-level" class="btn">Replay</button>
             <button id="btn-complete-title" class="btn btn-ghost">Title</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Level fail — scooped by Heather / mouse -->
+      <section id="screen-fail" class="screen">
+        <div class="complete-card fail-card">
+          <div class="complete-rank rank-B">✕</div>
+          <h2 class="complete-title" id="fail-title">Banished</h2>
+          <p class="complete-body" id="fail-body"></p>
+          <div class="complete-stats" id="fail-stats"></div>
+          <div class="complete-actions">
+            <button id="btn-fail-retry" class="btn btn-primary">Try the Table Again</button>
+            <button id="btn-fail-title" class="btn btn-ghost">Title</button>
           </div>
         </div>
       </section>

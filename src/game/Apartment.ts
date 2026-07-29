@@ -5,6 +5,14 @@ import { Boyfriend } from './BoyGlb';
 import { Body, Physics, type SurfaceRect } from './Physics';
 import { PROP_LIBRARY, getBoyfriend, type LevelDef, type PropKind } from '../data/content';
 import { toonify } from './Toon';
+import {
+  marbleSurface,
+  plasterSurface,
+  fabricSurface,
+  rugSurface,
+  panelSurface,
+  surfaceMat,
+} from './Textures';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -115,35 +123,6 @@ function posterTex(hue: number) {
   });
 }
 
-function counterTex(colorHex: number) {
-  const base = new THREE.Color(colorHex);
-  return canvasTex(256, 256, (ctx) => {
-    ctx.fillStyle = `#${base.getHexString()}`;
-    ctx.fillRect(0, 0, 256, 256);
-    // subtle stone veins
-    for (let i = 0; i < 14; i++) {
-      ctx.strokeStyle = `rgba(${base.r * 255 * (Math.random() < 0.5 ? 0.7 : 1.25)}, ${base.g * 255 * 0.85}, ${base.b * 255 * 0.9}, 0.16)`;
-      ctx.lineWidth = 0.6 + Math.random() * 1.6;
-      ctx.beginPath();
-      let x = Math.random() * 256;
-      let y = Math.random() * 256;
-      ctx.moveTo(x, y);
-      for (let s = 0; s < 5; s++) {
-        x += (Math.random() - 0.5) * 90;
-        y += (Math.random() - 0.5) * 90;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    // speckle
-    for (let i = 0; i < 500; i++) {
-      const l = Math.random();
-      ctx.fillStyle = `rgba(${l > 0.5 ? 255 : 0}, ${l > 0.5 ? 255 : 0}, ${l > 0.5 ? 255 : 0}, 0.03)`;
-      ctx.fillRect(Math.random() * 256, Math.random() * 256, 1.2, 1.2);
-    }
-  });
-}
-
 // ── apartment ───────────────────────────────────────────────────────────────
 
 export class Apartment {
@@ -194,8 +173,8 @@ export class Apartment {
     floor.receiveShadow = true;
     g.add(floor);
 
-    // walls
-    const wallMat = stdMat(0x241a30, { rough: 0.95 });
+    // walls — plaster with a mottled trowel finish
+    const wallMat = surfaceMat(plasterSurface(0x241a30), [5, 1.6]);
     const back = new THREE.Mesh(new THREE.PlaneGeometry(15, 4.4), wallMat);
     back.position.set(0, 2.2, -3.4);
     back.receiveShadow = true;
@@ -262,8 +241,8 @@ export class Apartment {
     // couch
     const couchG = new THREE.Group();
     couchG.position.copy(this.couchPos);
-    const couchMat = stdMat(0x5a3a52, { rough: 0.95 });
-    const seatMat = stdMat(0x6b4662, { roughness: 0.95 } as any);
+    const couchMat = surfaceMat(fabricSurface(0x5a3a52), [3, 1.2]);
+    const seatMat = surfaceMat(fabricSurface(0x6b4662), [2, 1.4]);
     const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.42, 0.95), couchMat);
     base.position.y = 0.24;
     const backRest = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.75, 0.28), couchMat);
@@ -276,7 +255,10 @@ export class Apartment {
     cushion1.position.set(-0.52, 0.5, 0.04);
     const cushion2 = cushion1.clone();
     cushion2.position.x = 0.52;
-    const throwPillow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, 0.1), stdMat(0xd8a878, { rough: 0.9 }));
+    const throwPillow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.28, 0.1),
+      surfaceMat(fabricSurface(0xd8a878, 41), [1, 1]),
+    );
     throwPillow.position.set(-0.82, 0.66, -0.14);
     throwPillow.rotation.z = 0.32;
     throwPillow.rotation.y = 0.4;
@@ -291,7 +273,10 @@ export class Apartment {
     g.add(couchG);
 
     // rug
-    const rug = new THREE.Mesh(new THREE.CircleGeometry(1.9, 28), stdMat(0x3a2438, { rough: 1 }));
+    const rug = new THREE.Mesh(
+      new THREE.CircleGeometry(1.9, 28),
+      surfaceMat(rugSurface(0x2e1c2e, 0x53384e)),
+    );
     rug.rotation.x = -Math.PI / 2;
     rug.position.set(-1.2, 0.005, -0.9);
     rug.receiveShadow = true;
@@ -443,7 +428,11 @@ export class Apartment {
     this.dressRoom(lg, level);
 
     // mood
-    (this.roomGroup.children[1] as THREE.Mesh).material = stdMat(level.wallColor, { rough: 0.95 });
+    // per-level wall colour, still plastered rather than a flat fill
+    (this.roomGroup.children[1] as THREE.Mesh).material = surfaceMat(
+      plasterSurface(level.wallColor, level.surface.length * 5),
+      [5, 1.6],
+    );
     this.scene.fog = new THREE.FogExp2(level.fogColor, 0.045);
     this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(0.55);
     this.hemi.color.setHex(level.fillColor).multiplyScalar(0.55);
@@ -481,8 +470,12 @@ export class Apartment {
   }
 
   private buildFurniture(lg: THREE.Group, level: LevelDef, w: number, d: number, topY: number, cz: number) {
-    const topMat = new THREE.MeshStandardNodeMaterial({ map: counterTex(level.counterColor), roughness: 0.5 });
-    const bodyMat = stdMat(new THREE.Color(level.counterColor).multiplyScalar(0.55).getHex(), { rough: 0.8 });
+    // Stone tops read as stone; the cabinet below gets wood grain and a panel
+    // groove so the two halves of the furniture no longer share one flat fill.
+    const veinHex = new THREE.Color(level.counterColor).multiplyScalar(1.55).getHex();
+    const topMat = surfaceMat(marbleSurface(level.counterColor, veinHex, level.surface.length * 13), [2.4, 1.2]);
+    const bodyHex = new THREE.Color(level.counterColor).multiplyScalar(0.55).getHex();
+    const bodyMat = surfaceMat(panelSurface(bodyHex, level.surface.length * 7), [2, 1]);
 
     const slab = (ww: number, dd: number) => {
       const top = new THREE.Mesh(new THREE.BoxGeometry(ww, 0.06, dd), topMat);
@@ -819,7 +812,21 @@ export class Apartment {
       visual.group.rotation.y = Math.random() * Math.PI * 2;
       lg.add(visual.group);
 
-      const body = new Body(visual.group, def.shatter, visual.halfHeight, visual.radiusXZ, def.points);
+      const body = new Body(visual.group, def.shatter, visual.halfHeight, visual.radiusXZ, def.points, {
+        mass: def.mass,
+        immovable: !!def.immovable,
+      });
+      // subtle tint so immovable anchors read as "won't budge"
+      if (def.immovable) {
+        visual.group.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh && m.material && 'emissive' in (m.material as object)) {
+            const mat = m.material as THREE.MeshStandardMaterial;
+            if (mat.emissive) mat.emissive.setHex(0x1a1028);
+            if ('emissiveIntensity' in mat) mat.emissiveIntensity = Math.max(mat.emissiveIntensity ?? 0, 0.08);
+          }
+        });
+      }
       this.physics.addBody(body);
       if (kind === 'candle' || kind === 'candelabra') {
         visual.group.traverse((o) => {

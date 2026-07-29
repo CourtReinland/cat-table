@@ -9,6 +9,8 @@ export interface Line {
   voice?: string; // audio file, optional (suki speaks in meows)
 }
 
+// narrator is used for fail banter / title interstitial
+
 export interface BoyDef {
   id: string;
   name: string;
@@ -59,6 +61,8 @@ export interface PropDef {
   mass: number;
   shatter: ShatterKind;
   points: number;
+  /** Anchors the table fantasy — won't slide or shatter from paw swipes. */
+  immovable?: boolean;
 }
 
 export type SurfaceKind = 'kitchen' | 'coffee' | 'desk' | 'dresser' | 'dining';
@@ -82,7 +86,37 @@ export interface LevelDef {
   counterColor: number;
   props: PropKind[];
   rankScores: [number, number, number]; // A, S, S+ thresholds
+  difficulty: Difficulty;
 }
+
+/**
+ * Per-level pressure. Every level used to run the same forgiving 9-life,
+ * lazy-hazard setup; these ramp the threat so the finale actually threatens.
+ */
+export interface Difficulty {
+  /** hazard hits before Heather evicts you */
+  lives: number;
+  /** seconds to clear the surface before the date moves to the sofa */
+  timeLimit: number;
+  /** seconds between hand sweeps (min, max) */
+  handGap: [number, number];
+  /** seconds the hand takes to cross the surface — lower is harder to dodge */
+  handSweep: number;
+  /** seconds between mouse visits (min, max) */
+  mouseGap: [number, number];
+  /** mouse top speed */
+  mouseSpeed: number;
+  /** how many hazards may be live at once */
+  maxConcurrent: number;
+}
+
+const DIFFICULTY: Record<number, Difficulty> = {
+  1: { lives: 6, timeLimit: 150, handGap: [7, 11], handSweep: 1.5, mouseGap: [7, 12], mouseSpeed: 1.5, maxConcurrent: 1 },
+  2: { lives: 6, timeLimit: 140, handGap: [6, 9.5], handSweep: 1.35, mouseGap: [6, 10], mouseSpeed: 1.8, maxConcurrent: 1 },
+  3: { lives: 5, timeLimit: 130, handGap: [5.5, 8.5], handSweep: 1.2, mouseGap: [5.5, 9], mouseSpeed: 2.0, maxConcurrent: 2 },
+  4: { lives: 5, timeLimit: 125, handGap: [4.5, 7], handSweep: 1.1, mouseGap: [4.5, 7.5], mouseSpeed: 2.2, maxConcurrent: 2 },
+  5: { lives: 4, timeLimit: 115, handGap: [4, 6], handSweep: 1.0, mouseGap: [4, 6.5], mouseSpeed: 2.5, maxConcurrent: 2 },
+};
 
 export const SUKI = {
   name: 'Suki',
@@ -359,25 +393,51 @@ export const BOYFRIENDS: BoyDef[] = [
 ];
 
 export const PROP_LIBRARY: Record<PropKind, PropDef> = {
-  mug: { color: 0xe8d5c4, size: [0.16, 0.18, 0.16], mass: 0.4, shatter: 'ceramic', points: 50 },
-  glass: { color: 0xa8d8ea, size: [0.1, 0.22, 0.1], mass: 0.25, shatter: 'glass', points: 60 },
-  wineglass: { color: 0xd8ecf4, size: [0.11, 0.26, 0.11], mass: 0.2, shatter: 'glass', points: 90 },
-  plate: { color: 0xf0ece2, size: [0.3, 0.04, 0.3], mass: 0.5, shatter: 'ceramic', points: 70 },
-  plant: { color: 0x6b9b6e, size: [0.22, 0.32, 0.22], mass: 0.7, shatter: 'ceramic', points: 60 },
-  book: { color: 0x8b5a4a, size: [0.26, 0.06, 0.2], mass: 0.5, shatter: 'soft', points: 40 },
-  phone: { color: 0x2a2a32, size: [0.1, 0.02, 0.2], mass: 0.2, shatter: 'metal', points: 80 },
-  candle: { color: 0xf5e6c8, size: [0.09, 0.2, 0.09], mass: 0.3, shatter: 'soft', points: 40 },
-  bottle: { color: 0x7a9a6a, size: [0.1, 0.32, 0.1], mass: 0.4, shatter: 'glass', points: 70 },
-  remote: { color: 0x3a3a44, size: [0.08, 0.03, 0.22], mass: 0.22, shatter: 'metal', points: 50 },
-  frame: { color: 0xd4c4a8, size: [0.24, 0.28, 0.03], mass: 0.45, shatter: 'glass', points: 70 },
-  bowl: { color: 0xc9b8a8, size: [0.24, 0.09, 0.24], mass: 0.4, shatter: 'ceramic', points: 60 },
-  jar: { color: 0xb8cfd8, size: [0.14, 0.24, 0.14], mass: 0.5, shatter: 'glass', points: 60 },
-  vase: { color: 0x9a7ab8, size: [0.14, 0.34, 0.14], mass: 0.5, shatter: 'ceramic', points: 80 },
-  perfume: { color: 0xe8a0c8, size: [0.08, 0.16, 0.08], mass: 0.15, shatter: 'glass', points: 90 },
-  jewelrybox: { color: 0x7a4a5a, size: [0.2, 0.1, 0.14], mass: 0.6, shatter: 'metal', points: 100 },
-  candelabra: { color: 0xd8b25a, size: [0.3, 0.36, 0.12], mass: 0.9, shatter: 'grand', points: 150 },
-  teapot: { color: 0xd86a5a, size: [0.22, 0.18, 0.16], mass: 0.6, shatter: 'ceramic', points: 80 },
-  laptop: { color: 0x4a4e58, size: [0.34, 0.03, 0.24], mass: 0.8, shatter: 'metal', points: 120 },
+  mug: { color: 0xe8d5c4, size: [0.16, 0.18, 0.16], mass: 0.55, shatter: 'ceramic', points: 50 },
+  glass: { color: 0xa8d8ea, size: [0.1, 0.22, 0.1], mass: 0.35, shatter: 'glass', points: 60 },
+  wineglass: { color: 0xd8ecf4, size: [0.11, 0.26, 0.11], mass: 0.28, shatter: 'glass', points: 90 },
+  plate: { color: 0xf0ece2, size: [0.3, 0.04, 0.3], mass: 0.7, shatter: 'ceramic', points: 70 },
+  plant: { color: 0x6b9b6e, size: [0.22, 0.32, 0.22], mass: 2.4, shatter: 'ceramic', points: 60, immovable: true },
+  book: { color: 0x8b5a4a, size: [0.26, 0.06, 0.2], mass: 0.65, shatter: 'soft', points: 40 },
+  phone: { color: 0x2a2a32, size: [0.1, 0.02, 0.2], mass: 0.28, shatter: 'metal', points: 80 },
+  candle: { color: 0xf5e6c8, size: [0.09, 0.2, 0.09], mass: 0.4, shatter: 'soft', points: 40 },
+  bottle: { color: 0x7a9a6a, size: [0.1, 0.32, 0.1], mass: 0.55, shatter: 'glass', points: 70 },
+  remote: { color: 0x3a3a44, size: [0.08, 0.03, 0.22], mass: 0.3, shatter: 'metal', points: 50 },
+  frame: { color: 0xd4c4a8, size: [0.24, 0.28, 0.03], mass: 0.55, shatter: 'glass', points: 70 },
+  bowl: { color: 0xc9b8a8, size: [0.24, 0.09, 0.24], mass: 0.55, shatter: 'ceramic', points: 60 },
+  jar: { color: 0xb8cfd8, size: [0.14, 0.24, 0.14], mass: 0.7, shatter: 'glass', points: 60 },
+  vase: { color: 0x9a7ab8, size: [0.14, 0.34, 0.14], mass: 0.75, shatter: 'ceramic', points: 80 },
+  perfume: { color: 0xe8a0c8, size: [0.08, 0.16, 0.08], mass: 0.22, shatter: 'glass', points: 90 },
+  jewelrybox: { color: 0x7a4a5a, size: [0.2, 0.1, 0.14], mass: 1.1, shatter: 'metal', points: 100 },
+  candelabra: { color: 0xd8b25a, size: [0.3, 0.36, 0.12], mass: 1.4, shatter: 'grand', points: 150 },
+  teapot: { color: 0xd86a5a, size: [0.22, 0.18, 0.16], mass: 0.9, shatter: 'ceramic', points: 80 },
+  laptop: { color: 0x4a4e58, size: [0.34, 0.03, 0.24], mass: 3.2, shatter: 'metal', points: 120, immovable: true },
+};
+
+/** Hits from Heather's hand or mouse bites before you get yeeted. */
+export const HAZARD_FAIL_HITS = 9;
+
+export const FAIL_LINES: Record<string, { reason: string; boy: string; suki: string }> = {
+  hand: {
+    reason: "Heather's hand collected you.",
+    boy: "Oh— hey, careful! I think your cat just got… relocated.",
+    suki: 'Mrrrp. (Temporary setback. The island will know my name again.)',
+  },
+  mouse: {
+    reason: 'A counter mouse bit you into retreat.',
+    boy: 'Is that… a mouse? And is she… losing a duel with it?',
+    suki: 'Hiss. (I will return. With better aim.)',
+  },
+  timeout: {
+    reason: 'The date moved to the sofa without you.',
+    boy: "Shall we sit down? The counter seems… busy tonight.",
+    suki: 'Mrow. (Too slow. Unacceptable. We go again.)',
+  },
+  default: {
+    reason: 'Banished from the surface.',
+    boy: 'Uh. Should we… help her?',
+    suki: 'Meow. (Dignity offline. Restart required.)',
+  },
 };
 
 export const LEVELS: LevelDef[] = [
@@ -396,8 +456,10 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x0e0818,
     wallColor: 0x241a30,
     counterColor: 0x4a3a30,
-    props: ['mug', 'plate', 'teapot', 'glass', 'bottle', 'jar', 'bowl', 'plant', 'mug', 'phone'],
+    // plant is an immovable anchor — clears are earned around it
+    props: ['mug', 'plate', 'teapot', 'glass', 'bottle', 'jar', 'bowl', 'plant', 'mug', 'phone', 'plant'],
     rankScores: [550, 750, 950],
+    difficulty: DIFFICULTY[1],
   },
   {
     id: 'coffee',
@@ -414,8 +476,9 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x080a16,
     wallColor: 0x1c1826,
     counterColor: 0x3a2c22,
-    props: ['remote', 'candle', 'book', 'mug', 'wineglass', 'wineglass', 'frame', 'bowl', 'bottle', 'book'],
+    props: ['remote', 'candle', 'book', 'mug', 'wineglass', 'wineglass', 'frame', 'bowl', 'bottle', 'book', 'plant'],
     rankScores: [560, 760, 980],
+    difficulty: DIFFICULTY[2],
   },
   {
     id: 'desk',
@@ -432,8 +495,10 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x060a12,
     wallColor: 0x141c28,
     counterColor: 0x2e2620,
+    // laptop is immovable (Heather's work stays put)
     props: ['laptop', 'book', 'phone', 'mug', 'frame', 'bottle', 'jar', 'plant', 'book', 'candle', 'glass'],
     rankScores: [620, 840, 1080],
+    difficulty: DIFFICULTY[3],
   },
   {
     id: 'dresser',
@@ -450,8 +515,9 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x120810,
     wallColor: 0x2a1c26,
     counterColor: 0x503a3a,
-    props: ['perfume', 'perfume', 'perfume', 'jewelrybox', 'frame', 'candle', 'vase', 'glass', 'book', 'jar'],
+    props: ['perfume', 'perfume', 'perfume', 'jewelrybox', 'frame', 'candle', 'vase', 'glass', 'book', 'jar', 'plant'],
     rankScores: [620, 850, 1100],
+    difficulty: DIFFICULTY[4],
   },
   {
     id: 'dining',
@@ -468,10 +534,16 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x0c0614,
     wallColor: 0x201426,
     counterColor: 0x3c2430,
-    props: ['wineglass', 'wineglass', 'wineglass', 'wineglass', 'plate', 'plate', 'candelabra', 'vase', 'bottle', 'bowl', 'candle'],
+    props: ['wineglass', 'wineglass', 'wineglass', 'wineglass', 'plate', 'plate', 'candelabra', 'vase', 'bottle', 'bowl', 'candle', 'plant'],
     rankScores: [760, 1020, 1300],
+    difficulty: DIFFICULTY[5],
   },
 ];
+
+/** How many props on a level can actually be shattered (for hearts / win). */
+export function shatterableCount(level: LevelDef): number {
+  return level.props.filter((k) => !PROP_LIBRARY[k].immovable).length;
+}
 
 export const ENDING = {
   art: 'assets/ui/ending.jpg',

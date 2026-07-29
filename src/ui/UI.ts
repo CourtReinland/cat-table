@@ -7,6 +7,7 @@ type UIEvent =
   | 'dialogueNext'
   | 'nextLevel'
   | 'replay'
+  | 'failRetry'
   | 'resume'
   | 'restart'
   | 'quitTitle'
@@ -16,7 +17,7 @@ type UIEvent =
   | 'openLevels'
   | 'openSettings';
 
-const SCREENS = ['loading', 'title', 'levels', 'intro', 'complete', 'pause', 'settings', 'ending'];
+const SCREENS = ['loading', 'title', 'levels', 'intro', 'complete', 'fail', 'pause', 'settings', 'ending'];
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const $img = (id: string) => document.getElementById(id) as HTMLImageElement;
@@ -57,6 +58,10 @@ export class UI {
     $('btn-next-level').onclick = () => this.emit('nextLevel');
     $('btn-replay-level').onclick = () => this.emit('replay');
     $('btn-complete-title').onclick = () => this.emit('quitTitle');
+    const failRetry = document.getElementById('btn-fail-retry');
+    if (failRetry) failRetry.onclick = () => this.emit('failRetry');
+    const failTitle = document.getElementById('btn-fail-title');
+    if (failTitle) failTitle.onclick = () => this.emit('quitTitle');
     $('btn-resume').onclick = () => this.emit('resume');
     $('btn-restart').onclick = () => this.emit('restart');
     $('btn-pause-settings').onclick = () => {
@@ -292,6 +297,46 @@ export class UI {
     const cgUrl = new URL(boy.cutsceneImg, document.baseURI).href;
     $('screen-complete').style.setProperty('--cg', `url('${cgUrl}')`);
     this.show('complete');
+  }
+
+  showFail(boy: BoyDef, level: LevelDef, reason: string, hits: number, broken: number, secs: number) {
+    const title = document.getElementById('fail-title');
+    const body = document.getElementById('fail-body');
+    const stats = document.getElementById('fail-stats');
+    if (title) title.textContent = `${level.name} — banished`;
+    if (body) {
+      body.textContent = `${reason} ${boy.name} watches with a mix of concern and poorly concealed amusement.`;
+    }
+    if (stats) {
+      stats.innerHTML = `
+        <span>${hits} hazard hits</span>
+        <span>${broken} props down before exile</span>
+        <span>${secs}s of ambition</span>
+      `;
+    }
+    const screen = document.getElementById('screen-fail');
+    if (screen) {
+      const cgUrl = new URL(boy.portrait, document.baseURI).href;
+      screen.style.setProperty('--cg', `url('${cgUrl}')`);
+    }
+    this.show('fail');
+  }
+
+  setHazardHits(hits: number, max: number) {
+    const el = document.getElementById('hud-hazards');
+    if (!el) return;
+    el.textContent = `LIVES ${Math.max(0, max - hits)}/${max}`;
+    el.classList.toggle('danger', hits >= max - 2);
+  }
+
+  setTimeLeft(secs: number, limit: number) {
+    const el = document.getElementById('hud-timer');
+    if (!el) return;
+    const s = Math.max(0, Math.ceil(secs));
+    const next = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    if (el.textContent !== next) el.textContent = next;
+    // last quarter of the clock, or under 20s, reads as urgent
+    el.classList.toggle('danger', secs < Math.min(20, limit * 0.25));
   }
 
   showEnding(lines: { speaker: string; text: string }[]) {

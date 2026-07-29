@@ -19,6 +19,7 @@ export class Cat {
   private eyeL!: THREE.Mesh;
   private eyeR!: THREE.Mesh;
   private pawR!: THREE.Mesh;
+  private pawL!: THREE.Mesh;
 
   // anim state
   private walkPhase = 0;
@@ -26,6 +27,7 @@ export class Cat {
   private blink = 0;
   private earTwitch = 4;
   private pushTimer = 0;
+  private pushDuration = 0.48;
   private idleTime = 0;
   private sitK = 0;
   yaw = 0;
@@ -150,6 +152,7 @@ export class Cat {
       this.group.add(leg);
     }
     this.pawR = this.legs[1];
+    this.pawL = this.legs[0];
 
     // tail — chained segments curving up
     const tailMat = fur;
@@ -172,9 +175,9 @@ export class Cat {
     });
   }
 
-  /** Paw-swipe animation trigger */
+  /** Multi-phase paw swipe: wind-up → commit → recover */
   push() {
-    this.pushTimer = 0.32;
+    this.pushTimer = this.pushDuration;
   }
 
   update(dt: number, t: number) {
@@ -197,15 +200,29 @@ export class Cat {
     this.legs[2].rotation.x = Math.sin(p + Math.PI) * amp * (1 - sit) + sitLeg * 0.9;
     this.legs[3].rotation.x = Math.sin(p) * amp * (1 - sit) + sitLeg * 0.9;
 
-    // push animation overrides right paw
+    // push: wind-up (raise both front paws) → lunge right paw → settle
     if (this.pushTimer > 0) {
       this.pushTimer -= dt;
-      const k = Math.sin((1 - this.pushTimer / 0.32) * Math.PI);
-      this.pawR.rotation.x = -1.6 * k;
-      this.pawR.position.z = 0.13 + 0.09 * k;
-      this.body.rotation.x = Math.PI / 2 + 0.12 * k;
+      const u = 1 - Math.max(0, this.pushTimer) / this.pushDuration; // 0→1
+      // 0–0.25 windup, 0.25–0.7 swipe, 0.7–1 recover
+      let k = 0;
+      if (u < 0.25) k = (u / 0.25) * 0.55;
+      else if (u < 0.7) k = 0.55 + ((u - 0.25) / 0.45) * 0.45;
+      else k = 1 - ((u - 0.7) / 0.3);
+      const swipe = Math.sin(Math.min(1, Math.max(0, (u - 0.2) / 0.5)) * Math.PI);
+      this.pawR.rotation.x = -2.1 * swipe - 0.4 * k;
+      this.pawR.position.z = 0.13 + 0.14 * swipe;
+      this.pawR.position.y = 0.07 + 0.04 * k;
+      this.pawL.rotation.x = -0.9 * k + Math.sin(p) * amp * 0.2;
+      this.pawL.position.z = 0.13 + 0.04 * k;
+      this.body.rotation.x = Math.PI / 2 + 0.22 * swipe;
+      this.body.rotation.z = -0.18 * swipe;
+      this.head.rotation.x = -0.15 * swipe;
     } else {
       this.pawR.position.z = 0.13;
+      this.pawR.position.y = 0.07;
+      this.pawL.position.z = 0.13;
+      this.body.rotation.z = 0;
       this.body.rotation.x = Math.PI / 2 + Math.sin(p * 2) * 0.02 * amp + sit * 0.38;
     }
 
@@ -215,10 +232,12 @@ export class Cat {
     this.head.position.y = 0.225 - sit * 0.012;
     this.head.position.z = 0.2 - sit * 0.03;
 
-    // head: look-around when idle, forward when moving
+    // head: look-around when idle, forward when moving (don't stomp swipe pose)
     const headTargetY = moving ? 0 : Math.sin(t * 0.6) * 0.35;
     this.head.rotation.y += (headTargetY - this.head.rotation.y) * Math.min(1, dt * 3);
-    this.head.rotation.x = moving ? 0.08 : Math.sin(t * 0.9) * 0.06;
+    if (this.pushTimer <= 0) {
+      this.head.rotation.x = moving ? 0.08 : Math.sin(t * 0.9) * 0.06;
+    }
 
     // tail: sine wave down the chain, wraps around when sitting
     const wag = moving ? 2.8 : 1.4;

@@ -39,6 +39,10 @@ npm run preview
 
 Score combos by chaining shatters, earn ranks (B → A → S → S+), and unlock each boy's cuddle CG.
 
+## Difficulty
+
+Each level carries its own pressure (`Difficulty` in `src/data/content.ts`): lives, a countdown before the date gives up on the counter, and how often Heather's hand sweeps and the mouse visits. Level 1 gives you six lives and a lazy hand; the finale gives you four, a 1:55 clock, and two hazards live at once. Each hazard can only land **one hit per appearance** — the mouse bites and bolts — so a life always means a missed dodge, never a hazard parked on top of you.
+
 ## Stack
 
 - **Three.js WebGPURenderer** (WebGPU with automatic WebGL2 fallback), TSL bloom post-processing, PCF soft shadows, ACES tone mapping
@@ -50,7 +54,7 @@ Score combos by chaining shatters, earn ranks (B → A → S → S+), and unlock
 
 ## Asset pipelines
 
-**Suki & the suitors (rigged characters):** Suki is the Quaternius Fox restyled in headless Blender (`tools/blender/restyle_cat.py`) — cat-ified proportions, cream palette, pink bow & collar. The five boyfriends are a from-scratch humanoid rig built and keyframed programmatically in Blender (`tools/blender/build_boyfriends.py`): one shared armature + clay body, five hair/outfit/accessory variants (sweep, spikes, long, curls, slick), and seven scripted clips (Idle_Sit, Idle_Stand, StandUp, Walk, Kneel, Cuddle, React) exported per-boy GLB. The game drives both with `AnimationMixer` state machines (`src/game/Suki.ts`, `src/game/BoyGlb.ts`), with procedural fallbacks if a GLB is missing. Re-run the scripts any time after editing.
+**Suki & the suitors (rigged characters):** Suki is sculpted from scratch in headless Blender (`tools/blender/sculpt_suki.py`) against the splash key art — a metaball skeleton fused into one organic volume, voxel-remeshed, then rigged and keyframed into eight clips (Idle, Idle_Look, Walk, Run, Swipe, Sit, Cuddle, Hit). Her coat is *painted analytically per vertex* — cream base, apricot mackerel tabby over the spine, pale bib and toe socks, banded tail — and shipped in `COLOR_0`, so there are no texture files to load. Face furniture (eyes, ears, nose) is seated by raycasting the finished mesh, so retuning her proportions can't bury the eyes inside the skull. The older fox restyle (`restyle_cat.py`) is kept for reference only. The five boyfriends are a from-scratch humanoid rig built and keyframed programmatically in Blender (`tools/blender/build_boyfriends.py`): one shared armature + clay body, five hair/outfit/accessory variants (sweep, spikes, long, curls, slick), and seven scripted clips (Idle_Sit, Idle_Stand, StandUp, Walk, Kneel, Cuddle, React) exported per-boy GLB. The game drives both with `AnimationMixer` state machines (`src/game/Suki.ts`, `src/game/BoyGlb.ts`), with procedural fallbacks if a GLB is missing. Re-run the scripts any time after editing.
 
 **img2threejs (image → procedural Three.js):** the hoainho/img2threejs skill lives in `tools/img2threejs/` (MIT). Grok Imagine makes a reference photo → `probe_image` → agent-authored `ObjectSculptSpec` (strict-quality gated) → generator emits a TypeScript factory with runtime hierarchy (pivots, sockets, colliders, destruction groups) → `refineCandelabra.ts` replaces fallback geometry with lathe/tube profiles → Playwright render + comparison sheet review. The shipped example is the finale's **candelabra** (`src/game/models/`); spec + evidence in `tools/img2threejs/work/`.
 
@@ -63,7 +67,8 @@ node tools/shot.mjs title play break cine complete ending   # screenshots → to
 LEVEL=3 node tools/shot.mjs autoplay                        # AI cat playthrough test
 node tools/model-shot.mjs mymodel                           # preview.html factory render
 node tools/gen-assets.mjs                                   # regenerate art/audio
-blender --background --python tools/blender/restyle_cat.py  # rebuild suki.glb
+blender --background --python tools/blender/sculpt_suki.py     # rebuild suki.glb
+blender --background --python tools/blender/build_boyfriends.py # rebuild boy-*.glb
 ```
 
 URL debug params: `?auto=1&level=2` (autopilot), `window.__cat.state` in console.

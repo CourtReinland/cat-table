@@ -13,12 +13,14 @@ OUT_DIR = 'public/assets/models'
 RENDER_DIR = 'tools/out/blender'
 
 # ── boyfriend variants ──────────────────────────────────────────────────────
+# Palettes read off the Grok portraits in public/assets/characters/.
+# All values are display sRGB — lin() converts on the way into Blender.
 BOYS = {
-    'eli':    {'hair': 'sweep',  'hairColor': (0.42, 0.29, 0.19, 1), 'outfit': (0.37, 0.42, 0.29, 1), 'pants': (0.19, 0.17, 0.24, 1), 'skin': (0.93, 0.76, 0.6, 1)},
-    'jasper': {'hair': 'spikes', 'hairColor': (0.85, 0.64, 0.36, 1), 'outfit': (0.29, 0.48, 0.65, 1), 'pants': (0.16, 0.15, 0.2, 1),  'skin': (0.96, 0.78, 0.62, 1)},
-    'kai':    {'hair': 'long',   'hairColor': (0.78, 0.8, 0.83, 1),  'outfit': (0.16, 0.16, 0.2, 1),  'pants': (0.13, 0.12, 0.16, 1), 'skin': (0.9, 0.74, 0.6, 1)},
-    'theo':   {'hair': 'curls',  'hairColor': (0.23, 0.16, 0.12, 1), 'outfit': (0.55, 0.42, 0.33, 1), 'pants': (0.24, 0.2, 0.18, 1),  'skin': (0.95, 0.77, 0.61, 1)},
-    'ren':    {'hair': 'slick',  'hairColor': (0.1, 0.1, 0.13, 1),   'outfit': (0.24, 0.16, 0.29, 1), 'pants': (0.15, 0.13, 0.2, 1),  'skin': (0.92, 0.75, 0.6, 1)},
+    'eli':    {'hair': 'sweep',  'hairColor': (0.42, 0.29, 0.19, 1), 'outfit': (0.90, 0.86, 0.76, 1), 'pants': (0.33, 0.31, 0.38, 1), 'skin': (0.95, 0.80, 0.68, 1), 'eyes': (0.42, 0.50, 0.52, 1)},
+    'jasper': {'hair': 'spikes', 'hairColor': (0.85, 0.64, 0.36, 1), 'outfit': (0.34, 0.55, 0.72, 1), 'pants': (0.28, 0.27, 0.33, 1), 'skin': (0.96, 0.79, 0.65, 1), 'eyes': (0.35, 0.55, 0.42, 1)},
+    'kai':    {'hair': 'long',   'hairColor': (0.80, 0.82, 0.86, 1), 'outfit': (0.26, 0.25, 0.32, 1), 'pants': (0.20, 0.19, 0.25, 1), 'skin': (0.92, 0.77, 0.65, 1), 'eyes': (0.52, 0.33, 0.58, 1)},
+    'theo':   {'hair': 'curls',  'hairColor': (0.28, 0.19, 0.13, 1), 'outfit': (0.72, 0.56, 0.44, 1), 'pants': (0.36, 0.30, 0.26, 1), 'skin': (0.96, 0.81, 0.68, 1), 'eyes': (0.45, 0.31, 0.20, 1)},
+    'ren':    {'hair': 'slick',  'hairColor': (0.14, 0.13, 0.17, 1), 'outfit': (0.36, 0.26, 0.42, 1), 'pants': (0.22, 0.19, 0.28, 1), 'skin': (0.93, 0.78, 0.66, 1), 'eyes': (0.30, 0.30, 0.36, 1)},
 }
 
 PINK = (0.94, 0.545, 0.69, 1)
@@ -30,15 +32,27 @@ def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
+def _srgb_to_linear(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def lin(rgba):
+    """Palette entries are authored as display sRGB; Principled Base Color is
+    scene-linear and the glTF exporter passes it through untouched. Without this
+    every outfit shipped washed-out grey instead of its actual colour."""
+    return (_srgb_to_linear(rgba[0]), _srgb_to_linear(rgba[1]),
+            _srgb_to_linear(rgba[2]), rgba[3] if len(rgba) > 3 else 1.0)
+
+
 def mat(name, color, rough=0.8):
     m = bpy.data.materials.get(name)
     if not m:
         m = bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = m.node_tree.nodes.get('Principled BSDF')
-    bsdf.inputs['Base Color'].default_value = color
+    bsdf.inputs['Base Color'].default_value = lin(color)
     bsdf.inputs['Roughness'].default_value = rough
-    m.diffuse_color = color
+    m.diffuse_color = lin(color)
     return m
 
 
@@ -166,56 +180,71 @@ def build_body(arm, boy_id):
     white = mat('white', WHITE, rough=0.3)
     parts = []
 
-    # pelvis + torso
-    parts.append(capsule('Pelvis', (0, 0, 0.95), 0.155, 0.14, pants))
-    chest = capsule('Torso', (0, 0, 1.2), 0.16, 0.3, outfit)
+    # pelvis + torso — deliberately overlapping so no seam shows at the waist
+    parts.append(capsule('Pelvis', (0, 0, 0.94), 0.150, 0.18, pants))
+    chest = capsule('Torso', (0, 0, 1.18), 0.158, 0.38, outfit)
     parts.append(chest)
     # shoulders pad
-    parts.append(capsule('Shoulders', (0, 0, 1.31), 0.075, 0.34, outfit, rot=(0, math.pi / 2, 0)))
+    parts.append(capsule('Shoulders', (0, 0, 1.30), 0.072, 0.36, outfit, rot=(0, math.pi / 2, 0)))
+    # collar so the shirt reads as clothing rather than paint
+    parts.append(torus('Collar', (0, -0.01, 1.345), 0.062, 0.018, outfit, rot=(math.pi / 2, 0, 0)))
     # neck + head
-    parts.append(capsule('NeckM', (0, 0, 1.38), 0.05, 0.08, skin))
+    parts.append(capsule('NeckM', (0, 0, 1.37), 0.048, 0.10, skin))
     head = sphere('HeadM', (0, 0, 1.53), (0.115, 0.105, 0.125), skin)
     parts.append(head)
     # jaw hint
     parts.append(sphere('Jaw', (0, -0.02, 1.47), (0.075, 0.08, 0.07), skin, 12, 8))
     # nose
     parts.append(sphere('Nose', (0, -0.105, 1.52), (0.014, 0.014, 0.02), skin, 8, 6))
-    # eyes (white + pupil), brows, smile
-    for s, sx in (('L', 0.045), ('R', -0.045)):
-        parts.append(sphere(f'EyeW.{s}', (sx, -0.085, 1.55), (0.022, 0.012, 0.026), white, 10, 8))
-        parts.append(sphere(f'Pupil.{s}', (sx, -0.095, 1.55), (0.011, 0.006, 0.013), dark, 8, 6))
-        parts.append(box(f'Brow.{s}', (sx, -0.085, 1.585), (0.032, 0.008, 0.007), hair_m, rot=(0, 0, -sx * 2.5), bevel_w=0))
-    parts.append(torus('Smile', (0, -0.098, 1.485), 0.02, 0.004, mat('lip', (0.72, 0.48, 0.35, 1)), rot=(math.pi / 2 + 0.35, 0, math.pi)))
+    # eyes — wide and short (anime read); the old tall ovals looked doll-like
+    eye_m = mat('iris', v.get('eyes', (0.29, 0.24, 0.2, 1)), rough=0.25)
+    for s, sx in (('L', 0.046), ('R', -0.046)):
+        parts.append(sphere(f'EyeW.{s}', (sx, -0.086, 1.548), (0.027, 0.011, 0.017), white, 12, 8))
+        parts.append(sphere(f'Iris.{s}', (sx, -0.094, 1.546), (0.013, 0.006, 0.013), eye_m, 10, 8))
+        parts.append(sphere(f'Pupil.{s}', (sx, -0.097, 1.546), (0.006, 0.004, 0.007), dark, 8, 6))
+        # upper lash line does most of the expression work at game scale
+        parts.append(box(f'Lash.{s}', (sx, -0.090, 1.559), (0.030, 0.010, 0.005), dark,
+                         rot=(0, 0, -sx * 1.6), bevel_w=0))
+        parts.append(box(f'Brow.{s}', (sx, -0.086, 1.582), (0.030, 0.008, 0.006), hair_m,
+                         rot=(0, 0, -sx * 2.2), bevel_w=0))
+    # a small closed mouth, not a clown grin
+    parts.append(box('Mouth', (0, -0.100, 1.492), (0.022, 0.008, 0.004),
+                     mat('lip', (0.72, 0.48, 0.35, 1)), bevel_w=0.002))
 
-    # arms
+    # arms & legs — segments deliberately overrun their joints so the limbs read
+    # as continuous instead of as a ball-joint doll
     for s, sx in (('L', 1), ('R', -1)):
-        parts.append(capsule(f'UpperArm.{s}', (sx * 0.25, 0, 1.15), 0.052, 0.24, outfit))
-        parts.append(capsule(f'Forearm.{s}', (sx * 0.295, 0, 0.91), 0.045, 0.2, skin))
-        parts.append(sphere(f'Hand.{s}', (sx * 0.32, 0, 0.74), (0.048, 0.04, 0.06), skin, 10, 8))
-        # legs
-        parts.append(capsule(f'UpperLeg.{s}', (sx * 0.095, 0, 0.68), 0.068, 0.36, pants))
-        parts.append(capsule(f'LowerLeg.{s}', (sx * 0.1, 0, 0.3), 0.055, 0.32, pants))
-        parts.append(box(f'Shoe.{s}', (sx * 0.1, -0.04, 0.05), (0.09, 0.16, 0.05), dark, bevel_w=0.02))
+        parts.append(capsule(f'UpperArm.{s}', (sx * 0.25, 0, 1.15), 0.053, 0.31, outfit))
+        parts.append(capsule(f'Forearm.{s}', (sx * 0.295, 0, 0.91), 0.046, 0.25, skin))
+        # sleeve cuff hides the sweater/skin transition at the wrist
+        parts.append(capsule(f'Cuff.{s}', (sx * 0.283, 0, 1.015), 0.052, 0.05, outfit))
+        parts.append(sphere(f'Hand.{s}', (sx * 0.32, 0, 0.745), (0.046, 0.038, 0.058), skin, 10, 8))
+        parts.append(capsule(f'UpperLeg.{s}', (sx * 0.095, 0, 0.68), 0.068, 0.44, pants))
+        parts.append(capsule(f'LowerLeg.{s}', (sx * 0.1, 0, 0.30), 0.056, 0.40, pants))
+        parts.append(box(f'Shoe.{s}', (sx * 0.1, -0.04, 0.045), (0.088, 0.17, 0.055), dark, bevel_w=0.022))
 
-    # joint masking spheres (hide segmentation at pivots)
+    # joint masking spheres, sized to match the limbs they bridge
     joint_balls = [
-        ((0.22, 0, 1.28), 'Shoulder.L', outfit, 0.062), ((-0.22, 0, 1.28), 'Shoulder.R', outfit, 0.062),
-        ((0.28, 0, 1.02), 'UpperArm.L', outfit, 0.052), ((-0.28, 0, 1.02), 'UpperArm.R', outfit, 0.052),
-        ((0.31, 0, 0.8), 'Forearm.L', skin, 0.045), ((-0.31, 0, 0.8), 'Forearm.R', skin, 0.045),
-        ((0.1, 0, 0.48), 'UpperLeg.L', pants, 0.06), ((-0.1, 0, 0.48), 'UpperLeg.R', pants, 0.06),
-        ((0.1, 0, 0.12), 'LowerLeg.L', pants, 0.05), ((-0.1, 0, 0.12), 'LowerLeg.R', pants, 0.05),
+        ((0.212, 0, 1.285), 'Shoulder.L', outfit, 0.066), ((-0.212, 0, 1.285), 'Shoulder.R', outfit, 0.066),
+        ((0.28, 0, 1.02), 'UpperArm.L', outfit, 0.050), ((-0.28, 0, 1.02), 'UpperArm.R', outfit, 0.050),
+        ((0.31, 0, 0.8), 'Forearm.L', skin, 0.044), ((-0.31, 0, 0.8), 'Forearm.R', skin, 0.044),
+        ((0.1, 0, 0.48), 'UpperLeg.L', pants, 0.058), ((-0.1, 0, 0.48), 'UpperLeg.R', pants, 0.058),
+        ((0.1, 0, 0.12), 'LowerLeg.L', pants, 0.050), ((-0.1, 0, 0.12), 'LowerLeg.R', pants, 0.050),
     ]
     for (loc, bone, m, r) in joint_balls:
         ob = sphere(f'Joint.{bone}', loc, (r, r, r), m, 10, 8)
         bone_parent(ob, arm, bone)
 
     parents = {
-        'Pelvis': 'Root', 'Torso': 'Chest', 'Shoulders': 'Chest', 'NeckM': 'Neck',
-        'HeadM': 'Head', 'Jaw': 'Head', 'Nose': 'Head', 'Smile': 'Head',
+        'Pelvis': 'Root', 'Torso': 'Chest', 'Shoulders': 'Chest', 'Collar': 'Chest',
+        'NeckM': 'Neck',
+        'HeadM': 'Head', 'Jaw': 'Head', 'Nose': 'Head', 'Mouth': 'Head',
         'EyeW.L': 'Head', 'EyeW.R': 'Head', 'Pupil.L': 'Head', 'Pupil.R': 'Head',
+        'Iris.L': 'Head', 'Iris.R': 'Head', 'Lash.L': 'Head', 'Lash.R': 'Head',
         'Brow.L': 'Head', 'Brow.R': 'Head',
         'UpperArm.L': 'UpperArm.L', 'Forearm.L': 'Forearm.L', 'Hand.L': 'Hand.L',
         'UpperArm.R': 'UpperArm.R', 'Forearm.R': 'Forearm.R', 'Hand.R': 'Hand.R',
+        'Cuff.L': 'UpperArm.L', 'Cuff.R': 'UpperArm.R',
         'UpperLeg.L': 'UpperLeg.L', 'LowerLeg.L': 'LowerLeg.L', 'Shoe.L': 'Foot.L',
         'UpperLeg.R': 'UpperLeg.R', 'LowerLeg.R': 'LowerLeg.R', 'Shoe.R': 'Foot.R',
     }
@@ -229,26 +258,42 @@ def build_hair(arm, boy_id):
     hair_m = mat('hair', v['hairColor'], rough=0.65)
     style = v['hair']
     parts = []
+    # Every style starts from a skull-cap that actually wraps the crown, sides and
+    # nape (the old versions perched a ball on top and read as a bald man in a hat).
+    def crown(z=1.556, s=(0.125, 0.120, 0.112), y=0.008):
+        return sphere('HairCrown', (0, y, z), s, hair_m, 16, 12)
+
     if style == 'sweep':
-        parts.append(sphere('HairTop', (0, 0.01, 1.6), (0.12, 0.11, 0.09), hair_m, 14, 10))
-        parts.append(sphere('HairFringe', (0.055, -0.06, 1.6), (0.07, 0.05, 0.035), hair_m, 10, 8))
+        parts.append(crown())
+        parts.append(sphere('HairSweep', (0.042, -0.062, 1.598), (0.098, 0.062, 0.048), hair_m, 12, 8))
+        parts.append(sphere('HairSide.L', (0.098, -0.010, 1.545), (0.038, 0.085, 0.070), hair_m, 10, 8))
+        parts.append(sphere('HairSide.R', (-0.098, -0.010, 1.545), (0.038, 0.085, 0.070), hair_m, 10, 8))
     elif style == 'spikes':
-        parts.append(sphere('HairTop', (0, 0.015, 1.61), (0.115, 0.105, 0.075), hair_m, 14, 10))
+        parts.append(crown(1.560, (0.122, 0.118, 0.108)))
         for i in range(5):
             a = (i - 2) * 0.32
-            parts.append(cone(f'Spike{i}', ((i - 2) * 0.045, -0.01 - abs(i - 2) * 0.012, 1.68), 0.032, 0.004, 0.09, hair_m, rot=(0, -a * 0.6, 0)))
+            parts.append(cone(f'Spike{i}', ((i - 2) * 0.044, -0.012 - abs(i - 2) * 0.010, 1.665),
+                              0.036, 0.004, 0.085, hair_m, rot=(0.25, -a * 0.6, 0)))
     elif style == 'long':
-        parts.append(sphere('HairTop', (0, 0.01, 1.6), (0.12, 0.115, 0.1), hair_m, 14, 10))
-        parts.append(box('HairBack', (0, 0.09, 1.48), (0.1, 0.05, 0.14), hair_m, bevel_w=0.02))
-        parts.append(box('HairFringe', (0.03, -0.08, 1.62), (0.07, 0.025, 0.03), hair_m, rot=(0, -0.2, 0), bevel_w=0))
+        parts.append(crown(1.556, (0.126, 0.122, 0.114)))
+        parts.append(box('HairBack', (0, 0.075, 1.455), (0.115, 0.075, 0.20), hair_m, bevel_w=0.035))
+        parts.append(sphere('HairFringe', (0.020, -0.078, 1.600), (0.095, 0.048, 0.045), hair_m, 12, 8))
+        parts.append(box('HairLock.L', (0.088, -0.048, 1.470), (0.030, 0.030, 0.14), hair_m, bevel_w=0.012))
+        parts.append(box('HairLock.R', (-0.088, -0.048, 1.470), (0.030, 0.030, 0.14), hair_m, bevel_w=0.012))
     elif style == 'curls':
-        parts.append(sphere('HairTop', (0, 0.015, 1.61), (0.115, 0.105, 0.08), hair_m, 14, 10))
-        for i in range(6):
-            a = (i / 6) * math.pi - math.pi / 2
-            parts.append(sphere(f'Curl{i}', (math.cos(a) * 0.085, -0.02 + math.sin(a) * 0.02, 1.62 + abs(math.cos(a)) * 0.01), (0.042, 0.04, 0.04), hair_m, 8, 6))
+        parts.append(crown(1.558, (0.120, 0.116, 0.108)))
+        for i in range(9):
+            a = (i / 9) * math.tau
+            parts.append(sphere(f'Curl{i}',
+                                (math.cos(a) * 0.098, 0.010 + math.sin(a) * 0.088,
+                                 1.600 + math.sin(a * 2) * 0.018),
+                                (0.044, 0.044, 0.040), hair_m, 8, 6))
     elif style == 'slick':
-        parts.append(sphere('HairTop', (0, 0.02, 1.61), (0.115, 0.11, 0.075), hair_m, 14, 10))
-        parts.append(sphere('HairBack', (0, 0.08, 1.56), (0.105, 0.09, 0.09), hair_m, 12, 8))
+        parts.append(crown(1.560, (0.122, 0.124, 0.104)))
+        parts.append(sphere('HairBack', (0, 0.072, 1.535), (0.108, 0.078, 0.098), hair_m, 12, 8))
+        # swept-back widow's peak
+        parts.append(box('HairPeak', (0, -0.070, 1.610), (0.090, 0.050, 0.030), hair_m,
+                         rot=(0.35, 0, 0), bevel_w=0.012))
     for ob in parts:
         bone_parent(ob, arm, 'Head')
     return parts
@@ -277,11 +322,13 @@ def build_accessories(arm, boy_id):
         parts.append(watch)
         bone_parent(watch, arm, 'Forearm.L')
     elif boy_id == 'eli':
-        # cardigan elbow patches
-        for s, sx in (('L', 0.3), ('R', -0.3)):
-            patch = sphere(f'Patch.{s}', (sx, -0.05, 0.93), (0.03, 0.02, 0.045), mat('patch', (0.3, 0.26, 0.2, 1)), 8, 6)
+        # cardigan elbow patches — on the *sleeve*, i.e. the upper arm at the
+        # elbow, not floating halfway down the bare forearm
+        for s, sx in (('L', 0.281), ('R', -0.281)):
+            patch = sphere(f'Patch.{s}', (sx, -0.030, 1.035), (0.030, 0.038, 0.030),
+                           mat('patch', (0.54, 0.44, 0.32, 1)), 10, 8)
             parts.append(patch)
-            bone_parent(patch, arm, f'Forearm.{s}')
+            bone_parent(patch, arm, f'UpperArm.{s}')
     return parts
 
 

@@ -9,15 +9,18 @@ import { UI } from '../ui/UI';
 import {
   BOYFRIENDS,
   ENDING,
+  FAIL_LINES,
   LEVELS,
   NARRATOR,
   PUSH_HINTS,
   getBoyfriend,
+  shatterableCount,
   type BoyDef,
   type LevelDef,
   type Line,
 } from '../data/content';
 import { preloadBoys } from './BoyGlb';
+import { Hazards } from './Hazards';
 import type { ShatterEvent } from './Physics';
 
 type Phase =
@@ -28,6 +31,7 @@ type Phase =
   | 'cinematic'
   | 'dialogue'
   | 'complete'
+  | 'fail'
   | 'ending'
   | 'pause';
 
@@ -72,6 +76,13 @@ export class Game {
   private timeScale = 1;
   private slowmoT = 0;
   private meowCooldown = 0;
+  private pushCooldown = 0;
+  private hazardHits = 0;
+  /** seconds left before the date gives up on the counter */
+  private timeLeft = 0;
+  private failReason: 'hand' | 'mouse' | 'timeout' | 'default' = 'default';
+  private hazards!: Hazards;
+  private targetBreak = 0;
   private catVel = new THREE.Vector3();
   private camMode: 'follow' | 'orbit' | 'cine' = 'orbit';
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
@@ -94,6 +105,7 @@ export class Game {
   constructor(private canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
     this.apartment = new Apartment(this.engine.scene);
+    this.hazards = new Hazards(this.engine.scene);
   }
 
   async init() {
@@ -189,6 +201,10 @@ export class Game {
       audio.sfx('ui-pop');
       this.showIntro(this.levelIndex);
     });
+    this.ui.on('failRetry', () => {
+      audio.sfx('ui-pop');
+      this.showIntro(this.levelIndex);
+    });
     this.ui.on('resume', () => this.resume());
     this.ui.on('restart', () => {
       audio.sfx('ui-pop');
@@ -238,9 +254,14 @@ export class Game {
     this.combo = 0;
     this.broken = 0;
     this.barkStage = 0;
+    this.hazardHits = 0;
+    this.pushCooldown = 0;
+    this.targetBreak = shatterableCount(this.level);
     this.catVel.set(0, 0, 0);
     this.timeScale = 1;
     this.slowmoT = 0;
+    this.hazards.reset(this.apartment.surface, this.level.difficulty);
+    this.timeLeft = this.level.difficulty.timeLimit;
     if (showIntro) this.showIntroCard();
   }
 
@@ -267,12 +288,13 @@ export class Game {
     this.ui.show('none');
     this.ui.showHud(true);
     this.ui.hudLevel(this.level.name);
-    this.ui.buildHearts(this.level.props.length);
+    this.ui.buildHearts(this.targetBreak);
     this.ui.updateAttention(0);
     this.ui.score(0);
     this.ui.combo(0);
-    this.ui.hint('WASD prowl · Space shove · E meow · Shift sprint');
-    setTimeout(() => this.ui.hideHint(), 5200);
+    this.ui.setHazardHits(0, this.level.difficulty.lives);
+    this.ui.hint('WASD prowl · Space swipe · E meow · dodge hand & mouse');
+    setTimeout(() => this.ui.hideHint(), 6200);
     audio.music('play');
     audio.meow('sassy');
     // snap camera behind cat
@@ -330,11 +352,11 @@ export class Game {
     this.ui.score(this.score);
     this.ui.combo(mult);
     this.ui.comboPop(pts, mult);
-    this.ui.updateAttention(this.broken / this.level.props.length);
+    this.ui.updateAttention(this.broken / Math.max(1, this.targetBreak));
     if (Math.random() < 0.3) this.ui.hint(PUSH_HINTS[Math.floor(Math.random() * PUSH_HINTS.length)]);
 
     // boyfriend notices
-    const pct = this.broken / this.level.props.length;
+    const pct = this.broken / Math.max(1, this.targetBreak);
     const stages = [0.22, 0.5, 0.78];
     if (this.barkStage < stages.length && pct >= stages[this.barkStage]) {
       const line = this.boy.lines.barks[this.barkStage];
@@ -348,9 +370,10 @@ export class Game {
       if (this.phase === 'playing') this.apartment.boyfriend?.lookAt(null);
     }, 2600);
 
-    // last object — dramatic slow-mo, then cutscene
-    if (this.broken >= this.level.props.length) {
+    // last shatterable object — dramatic slow-mo, then cutscene
+    if (this.broken >= this.targetBreak) {
       this.slowmoT = 1.1;
+      this.hazards.clear();
       audio.sfx('success');
       setTimeout(() => this.startCinematic(), 1000);
     }
@@ -359,19 +382,20 @@ export class Game {
   private updatePlaying(dt: number) {
     const cat = this.apartment.cat;
     const s = this.apartment.surface;
+    this.pushCooldown = Math.max(0, this.pushCooldown - dt);
 
     // movement
     let axes = this.input.moveAxes();
-    let push = this.input.pressed('Space') || this.input.pointerPressed();
+    let push = (this.input.pressed('Space') || this.input.pointerPressed()) && this.pushCooldown <= 0;
     let meow = this.input.pressed('KeyE');
 
     if (this.autopilot) {
       const auto = this.autoInput();
       axes = auto.axes;
-      push = auto.push;
+      push = auto.push && this.pushCooldown <= 0;
     }
 
-    const speed = this.input.sprint ? 2.5 : 1.5;
+    const speed = this.input.sprint ? 2.2 : 1.35;
     const targetVel = new THREE.Vector3(axes.x, 0, axes.z).multiplyScalar(speed);
     this.catVel.lerp(targetVel, 1 - Math.exp(-10 * dt));
     cat.group.position.addScaledVector(this.catVel, dt);
@@ -392,38 +416,85 @@ export class Game {
       cat.yaw += d * Math.min(1, dt * 10);
     }
 
-    // cat–prop contact (gentle body shove while walking)
+    // body bump — much gentler; can't clear the table by jogging
     const catPos = cat.group.position;
     for (const b of this.apartment.physics.bodies) {
-      if (b.state === 'gone' || b.state === 'falling') continue;
+      if (b.state === 'gone' || b.state === 'falling' || b.immovable) continue;
       const dx = b.pos.x - catPos.x;
       const dz = b.pos.z - catPos.z;
       const dist = Math.hypot(dx, dz);
-      const reach = b.radiusXZ + 0.16;
-      if (dist < reach && spd > 0.3) {
+      const reach = b.radiusXZ + 0.14;
+      if (dist < reach && spd > 0.45) {
         const dir = new THREE.Vector3(dx / (dist || 1), 0, dz / (dist || 1));
-        this.apartment.physics.kick(b, dir, 0.9 * spd);
-        audio.sfx('whoosh', { vol: 0.3 });
+        this.apartment.physics.kick(b, dir, 0.35 * spd);
       }
     }
 
-    // paw swipe
+    // committed paw swipe (cooldown so spam-swipe is weaker fantasy)
     if (push) {
+      this.pushCooldown = 0.42;
       cat.push();
       audio.sfx('whoosh');
       const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
       let hit = false;
-      for (const b of this.apartment.physics.bodies) {
-        if (b.state === 'gone' || b.state === 'falling') continue;
-        const to = new THREE.Vector3().subVectors(b.pos, catPos);
-        to.y = 0;
-        const dist = to.length();
-        if (dist < 0.55 + b.radiusXZ && to.normalize().dot(facing) > 0.35) {
-          this.apartment.physics.kick(b, facing.clone().add(to.multiplyScalar(0.4)).normalize(), 3.4);
-          hit = true;
+      let blocked = false;
+      // impact lands mid-swipe (~0.18s) for animation sync feel
+      const applyKick = () => {
+        if (this.phase !== 'playing') return;
+        for (const b of this.apartment.physics.bodies) {
+          if (b.state === 'gone' || b.state === 'falling') continue;
+          const to = new THREE.Vector3().subVectors(b.pos, cat.group.position);
+          to.y = 0;
+          const dist = to.length();
+          if (dist < 0.5 + b.radiusXZ && to.clone().normalize().dot(facing) > 0.28) {
+            if (b.immovable) {
+              blocked = true;
+              continue;
+            }
+            const ok = this.apartment.physics.kick(
+              b,
+              facing.clone().add(to.normalize().multiplyScalar(0.35)).normalize(),
+              1.35,
+            );
+            if (ok) hit = true;
+          }
         }
+        if (blocked && !hit) {
+          audio.sfx('thud-soft', { vol: 0.45 });
+          this.ui.hint('Solid. Try something lighter.');
+        } else if (!hit && Math.random() < 0.4) {
+          audio.meow('cute');
+        }
+      };
+      setTimeout(applyKick, 160);
+    }
+
+    // date clock: clear the surface before he loses interest in the counter
+    this.timeLeft = Math.max(0, this.timeLeft - dt);
+    this.ui.setTimeLeft(this.timeLeft, this.level.difficulty.timeLimit);
+    if (this.timeLeft <= 0) {
+      this.failReason = 'timeout';
+      this.startFail();
+      return;
+    }
+
+    // hazards: Heather's hand + mouse
+    const hazardHit = this.hazards.update(dt, catPos, true);
+    if (hazardHit) {
+      this.hazardHits++;
+      this.ui.setHazardHits(this.hazardHits, this.level.difficulty.lives);
+      cat.hitReact?.();
+      audio.meow('sassy');
+      audio.sfx('thud-soft', { vol: 0.55 });
+      this.fx.heartBurst(catPos.clone().add(new THREE.Vector3(0, 0.35, 0)), 2, 0.15);
+      this.shakeRot.z = (Math.random() - 0.5) * 0.08;
+      if (hazardHit === 'hand') this.ui.hint("Heather's hand!");
+      else this.ui.hint('Mouse bite!');
+      if (this.hazardHits >= this.level.difficulty.lives) {
+        this.failReason = hazardHit;
+        this.startFail();
+        return;
       }
-      if (!hit && Math.random() < 0.5) audio.meow('cute');
     }
 
     // meow
@@ -463,9 +534,11 @@ export class Game {
   /** dumb-but-effective AI cat for headless testing */
   private autoInput(): { axes: { x: number; z: number }; push: boolean } {
     const catPos = this.apartment.cat.group.position;
+    // dodge hand/mouse when close
+    // (simple flee: if many hazard hits already, still play but slower)
     let best: { d: number; x: number; z: number } | null = null;
     for (const b of this.apartment.physics.bodies) {
-      if (b.state === 'gone' || b.state === 'falling') continue;
+      if (b.state === 'gone' || b.state === 'falling' || b.immovable) continue;
       const d = Math.hypot(b.pos.x - catPos.x, b.pos.z - catPos.z);
       if (!best || d < best.d) best = { d, x: b.pos.x, z: b.pos.z };
     }
@@ -485,9 +558,37 @@ export class Game {
 
   // ── cutscene ─────────────────────────────────────────────────────────────
 
+  private failPending = false;
+
+  private startFail() {
+    if (this.phase !== 'playing') return;
+    this.hazards.clear();
+    this.ui.showHud(false);
+    this.ui.hideHint();
+    const lines = FAIL_LINES[this.failReason] ?? FAIL_LINES.default;
+    this.dlgLines = [
+      { speaker: 'boy', text: lines.boy },
+      { speaker: 'suki', text: lines.suki },
+      {
+        speaker: 'narrator',
+        text: `${lines.reason} ${this.boy.name} scoops you off the surface like a tiny scandal.`,
+      },
+    ];
+    this.dlgIndex = 0;
+    this.failPending = true;
+    this.apartment.boyfriend?.react();
+    this.apartment.boyfriend?.lookAt(this.apartment.cat.group.position.clone());
+    audio.music('cuddle');
+    audio.meow('sassy');
+    // short "punish" dialogue then fail card
+    this.phase = 'dialogue';
+    this.showDialogueLine();
+  }
+
   private startCinematic() {
     if (this.phase !== 'playing') return;
     this.phase = 'cinematic';
+    this.hazards.clear();
     this.camMode = 'cine';
     this.cineT = 0;
     this.cineFrom.copy(this.camPos);
@@ -603,10 +704,23 @@ export class Game {
     this.dlgIndex++;
     if (this.dlgIndex >= this.dlgLines.length) {
       this.ui.hideDialogue();
-      this.showComplete();
+      if (this.failPending) {
+        this.failPending = false;
+        this.showFail();
+      } else {
+        this.showComplete();
+      }
     } else {
       this.showDialogueLine();
     }
+  }
+
+  private showFail() {
+    this.phase = 'fail';
+    const secs = Math.round((performance.now() - this.levelStart) / 1000);
+    const lines = FAIL_LINES[this.failReason] ?? FAIL_LINES.default;
+    this.ui.showFail(this.boy, this.level, lines.reason, this.hazardHits, this.broken, secs);
+    audio.meow('sassy');
   }
 
   private showComplete() {
@@ -668,15 +782,41 @@ export class Game {
     void this.engine.render();
   };
 
-  // test hooks
+  // test hooks — used by tools/playthrough.mjs + indie-sprint play gate
   get state() {
+    const cat = this.apartment?.cat?.group?.position;
+    const bodies = this.apartment?.physics?.bodies ?? [];
+    const bodySummary = bodies.map((b) => ({
+      state: b.state,
+      x: +b.pos.x.toFixed(3),
+      y: +b.pos.y.toFixed(3),
+      z: +b.pos.z.toFixed(3),
+      speed: +Math.hypot(b.vel.x, b.vel.y, b.vel.z).toFixed(3),
+    }));
+    const elapsedMs =
+      this.phase === 'playing' || this.phase === 'cinematic' || this.phase === 'dialogue' || this.phase === 'complete'
+        ? Math.round(performance.now() - this.levelStart)
+        : 0;
     return {
       phase: this.phase,
       level: this.levelIndex,
+      levelId: this.level?.id ?? null,
+      boyfriendId: this.boy?.id ?? null,
       score: this.score,
       broken: this.broken,
       total: this.level?.props.length ?? 0,
+      remaining: bodies.filter((b) => b.state !== 'gone' && !b.immovable).length,
+      targetBreak: this.targetBreak,
+      hazardHits: this.hazardHits,
+      hazardMax: this.level?.difficulty.lives ?? 0,
+      timeLeft: +this.timeLeft.toFixed(1),
+      elapsedMs,
+      cat: cat
+        ? { x: +cat.x.toFixed(3), y: +cat.y.toFixed(3), z: +cat.z.toFixed(3) }
+        : null,
+      bodies: bodySummary,
       webgpu: this.engine.usingWebGPU,
+      autopilot: this.autopilot,
     };
   }
 
