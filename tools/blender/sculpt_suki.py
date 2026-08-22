@@ -682,9 +682,9 @@ def coat_colour(p):
         cheek = _smoothstep(0.030, 0.055, abs(x)) * _smoothstep(0.260, 0.220, z)
         c = _mix(c, APRICOT, cheek * 0.45)
 
-    # --- fur mottle: fine per-vertex variation so the coat isn't a flat fill ---
-    n = _hash_noise(x * 90, y * 90, z * 90) - 0.5
-    c = _mix(c, APRICOT_DP if n > 0 else CREAM_LIT, abs(n) * 0.14)
+    # --- tiny fur break-up; keep it quiet so the coat stays anime-flat ---
+    n = _hash_noise(x * 70, y * 70, z * 70) - 0.5
+    c = _mix(c, APRICOT_DP if n > 0 else CREAM_LIT, abs(n) * 0.05)
 
     # --- gentle depth: darken deep creases under the body ---
     c = _mix(c, APRICOT_DP, _smoothstep(0.09, 0.02, z) * 0.12)

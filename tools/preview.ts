@@ -54,12 +54,13 @@ function lookdevLights() {
 type View = { pos: THREE.Vector3; target: THREE.Vector3; fov: number };
 
 const SUKI_VIEWS: Record<string, View> = {
-  beauty: { pos: new THREE.Vector3(0.48, 0.28, 0.52), target: new THREE.Vector3(0, 0.15, 0.02), fov: 34 },
-  threeq: { pos: new THREE.Vector3(0.52, 0.26, 0.50), target: new THREE.Vector3(0, 0.15, 0.02), fov: 34 },
-  side:   { pos: new THREE.Vector3(0.78, 0.18, 0.04), target: new THREE.Vector3(0, 0.15, 0.00), fov: 32 },
-  front:  { pos: new THREE.Vector3(0.02, 0.20, 0.72), target: new THREE.Vector3(0, 0.16, 0.00), fov: 32 },
-  face:   { pos: new THREE.Vector3(0.10, 0.26, 0.34), target: new THREE.Vector3(0, 0.23, -0.18), fov: 28 },
-  paw:    { pos: new THREE.Vector3(0.16, 0.07, 0.24), target: new THREE.Vector3(0.05, 0.015, 0.10), fov: 28 },
+  // glTF Y-up: muzzle ~+Z, height +Y. Pull back so the whole cat fits.
+  beauty: { pos: new THREE.Vector3(0.58, 0.30, 0.64), target: new THREE.Vector3(0, 0.15, 0.02), fov: 32 },
+  threeq: { pos: new THREE.Vector3(0.62, 0.28, 0.60), target: new THREE.Vector3(0, 0.15, 0.02), fov: 32 },
+  side:   { pos: new THREE.Vector3(1.05, 0.20, 0.04), target: new THREE.Vector3(0, 0.15, 0.04), fov: 28 },
+  front:  { pos: new THREE.Vector3(0.00, 0.20, 0.90), target: new THREE.Vector3(0, 0.16, 0.04), fov: 28 },
+  face:   { pos: new THREE.Vector3(0.10, 0.26, 0.44), target: new THREE.Vector3(0, 0.23, 0.20), fov: 26 },
+  paw:    { pos: new THREE.Vector3(0.18, 0.07, 0.28), target: new THREE.Vector3(0.05, 0.018, 0.12), fov: 26 },
 };
 
 const CANDLE_VIEW: View = {
@@ -111,7 +112,7 @@ if (modelName === 'candelabra') {
       }
     });
     toonify(model);
-    outlineCharacter(model, 0x2a1c24, 0.0035);
+    outlineCharacter(model, 0x3a241c, 0.0026);
     scene.add(model);
     if (gltf.animations.length) {
       mixer = new THREE.AnimationMixer(model);
