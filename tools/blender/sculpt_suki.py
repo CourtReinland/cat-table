@@ -40,8 +40,8 @@ GOLD        = (0.965, 0.792, 0.353, 1.0)
 WHITE       = (1.0, 1.0, 1.0, 1.0)
 
 # proportions (metres — real-cat scale, game rescales)
-BODY_LEN   = 0.44
-SHOULDER_H = 0.235
+BODY_LEN   = 0.46
+SHOULDER_H = 0.230
 
 # name of the per-vertex coat colour attribute (exported as COLOR_0)
 COAT_ATTR = 'Col'
@@ -185,91 +185,115 @@ def join(objs, name):
 # Strokes: polylines of (x, y, z, radius) resampled into dense metaball chains,
 # so limbs come out as continuous tapered tubes instead of strings of beads.
 STROKES = {
-    # ── barrel: cats are narrow; the fluff does the rest ──
+    # ── barrel: deep chest, tucked waist, bulky haunches (cat, not sausage) ──
     'spine': [
-        (0.000, -0.096, 0.172, 0.054),   # chest / shoulders
-        (0.000, -0.040, 0.174, 0.053),
-        (0.000,  0.020, 0.170, 0.049),   # waist (tucks in)
-        (0.000,  0.072, 0.172, 0.053),   # hip
-        (0.000,  0.118, 0.162, 0.055),   # haunch mass
+        (0.000, -0.100, 0.176, 0.048),   # chest / shoulders
+        (0.000, -0.048, 0.174, 0.044),
+        (0.000,  0.012, 0.168, 0.038),   # waist tuck
+        (0.000,  0.072, 0.170, 0.046),   # hip
+        (0.000,  0.118, 0.160, 0.050),   # haunch mass
     ],
-    # ── chest ruff drop (key art has a deep fluffy bib) ──
+    # extra chest keel so the ribcage reads deeper than the waist
+    'keel': [
+        (0.000, -0.098, 0.142, 0.038),
+        (0.000, -0.112, 0.118, 0.030),
+    ],
+    # shoulder blades (mirrored) — break the capsule into a cat thorax
+    'shoulder': [
+        (0.038, -0.092, 0.178, 0.030),
+        (0.034, -0.070, 0.174, 0.024),
+    ],
+    # ── chest ruff drop (key art + portrait: deep fluffy bib) ──
     'ruff': [
-        (0.000, -0.104, 0.168, 0.046),
-        (0.000, -0.122, 0.138, 0.042),
-        (0.000, -0.126, 0.108, 0.031),
+        (0.000, -0.108, 0.168, 0.050),
+        (0.000, -0.128, 0.136, 0.046),
+        (0.000, -0.134, 0.104, 0.036),
+        (0.000, -0.128, 0.078, 0.024),
     ],
     # ── neck into skull — thin, so the head reads as a head ──
     'neck': [
-        (0.000, -0.116, 0.180, 0.040),
-        (0.000, -0.146, 0.198, 0.034),
-        (0.000, -0.172, 0.220, 0.035),
+        (0.000, -0.118, 0.184, 0.034),
+        (0.000, -0.148, 0.204, 0.030),
+        (0.000, -0.176, 0.228, 0.036),
     ],
     # big round skull — she is a round-faced longhair, not a snouty tabby
     'skull': [
-        (0.000, -0.188, 0.242, 0.052),
-        (0.000, -0.212, 0.246, 0.055),
-        (0.000, -0.234, 0.240, 0.046),
+        (0.000, -0.192, 0.250, 0.058),
+        (0.000, -0.220, 0.256, 0.062),
+        (0.000, -0.246, 0.248, 0.050),
     ],
     # very short muzzle: the nose sits close under the eyes
     'muzzle': [
-        (0.000, -0.246, 0.230, 0.026),
-        (0.000, -0.258, 0.228, 0.021),
-        (0.000, -0.266, 0.226, 0.016),
+        (0.000, -0.258, 0.236, 0.028),
+        (0.000, -0.274, 0.232, 0.022),
+        (0.000, -0.286, 0.228, 0.016),
     ],
     'chin': [
-        (0.000, -0.244, 0.212, 0.018),
-        (0.000, -0.254, 0.214, 0.014),
+        (0.000, -0.252, 0.216, 0.020),
+        (0.000, -0.266, 0.216, 0.016),
     ],
     # rounded whisker pads either side of the nose
     'pad': [
-        (0.014, -0.260, 0.226, 0.014),
-        (0.018, -0.252, 0.224, 0.016),
+        (0.016, -0.272, 0.230, 0.016),
+        (0.022, -0.260, 0.226, 0.018),
     ],
     # longhair cheek pads — round the face without turning it into jowls
     'cheek': [
-        (0.042, -0.202, 0.240, 0.027),
-        (0.046, -0.220, 0.232, 0.029),
-        (0.038, -0.238, 0.224, 0.021),
+        (0.048, -0.206, 0.246, 0.032),
+        (0.054, -0.230, 0.236, 0.034),
+        (0.044, -0.250, 0.226, 0.024),
     ],
     # ── front leg: shoulder -> elbow -> wrist -> paw (mirrored) ──
     'foreleg': [
-        (0.042, -0.086, 0.162, 0.034),
-        (0.043, -0.082, 0.124, 0.024),
-        (0.043, -0.074, 0.082, 0.018),
-        (0.044, -0.076, 0.044, 0.016),
-        (0.045, -0.082, 0.020, 0.016),
-        (0.045, -0.090, 0.013, 0.018),   # paw, slightly forward
+        (0.044, -0.090, 0.164, 0.030),
+        (0.045, -0.086, 0.122, 0.020),
+        (0.045, -0.082, 0.078, 0.016),
+        (0.046, -0.090, 0.038, 0.014),
+        (0.046, -0.108, 0.016, 0.015),
+        (0.046, -0.120, 0.010, 0.018),   # paw, planted forward
+    ],
+    # four toes so the paw is a paw, not a capsule cap
+    'foretoe': [
+        (0.036, -0.130, 0.008, 0.0075),
+        (0.043, -0.134, 0.008, 0.0080),
+        (0.050, -0.134, 0.008, 0.0080),
+        (0.056, -0.128, 0.008, 0.0075),
     ],
     # ── hind leg: thigh -> knee -> hock -> paw (mirrored) ──
     'hindleg': [
-        (0.048,  0.108, 0.160, 0.046),
-        (0.050,  0.132, 0.122, 0.034),
-        (0.050,  0.128, 0.082, 0.022),
-        (0.050,  0.106, 0.048, 0.017),
-        (0.050,  0.098, 0.022, 0.016),
-        (0.050,  0.096, 0.013, 0.018),
+        (0.050,  0.112, 0.160, 0.042),
+        (0.052,  0.142, 0.118, 0.030),
+        (0.052,  0.138, 0.074, 0.018),
+        (0.052,  0.118, 0.040, 0.015),
+        (0.052,  0.108, 0.018, 0.014),
+        (0.052,  0.100, 0.010, 0.018),
     ],
-    # ── tail: thick fluffy base, curls up and forward over the back ──
+    'hindtoe': [
+        (0.042,  0.088, 0.008, 0.0075),
+        (0.049,  0.084, 0.008, 0.0080),
+        (0.056,  0.084, 0.008, 0.0080),
+        (0.062,  0.090, 0.008, 0.0075),
+    ],
+    # ── tail: thick fluffy plume, curls up and forward over the back ──
     'tail': [
-        (0.000,  0.146, 0.172, 0.030),
-        (0.000,  0.190, 0.180, 0.027),
-        (0.000,  0.226, 0.200, 0.026),
-        (0.000,  0.248, 0.232, 0.025),
-        (0.000,  0.250, 0.266, 0.024),
-        (0.000,  0.232, 0.294, 0.023),
-        (0.000,  0.202, 0.310, 0.021),
-        (0.000,  0.172, 0.312, 0.018),
-        (0.000,  0.150, 0.304, 0.014),
+        (0.000,  0.142, 0.168, 0.034),
+        (0.000,  0.190, 0.178, 0.032),
+        (0.000,  0.230, 0.204, 0.030),
+        (0.000,  0.258, 0.242, 0.028),
+        (0.000,  0.262, 0.284, 0.026),
+        (0.000,  0.240, 0.318, 0.024),
+        (0.000,  0.198, 0.336, 0.021),
+        (0.000,  0.154, 0.338, 0.017),
+        (0.000,  0.122, 0.322, 0.013),
     ],
 }
-MIRRORED = {'cheek', 'foreleg', 'hindleg', 'pad'}
+MIRRORED = {'cheek', 'foreleg', 'hindleg', 'pad', 'shoulder', 'foretoe', 'hindtoe'}
 
 # The head is authored at a comfortable working size then scaled down about the
 # neck joint, so head/body balance is one number instead of 14 hand-edits.
 HEAD_STROKES = {'skull', 'muzzle', 'chin', 'pad', 'cheek'}
 HEAD_PIVOT = Vector((0.0, -0.176, 0.226))
-HEAD_SCALE = 0.80
+HEAD_SCALE = 0.88
 
 
 def _scale_head(p):
@@ -315,20 +339,35 @@ def body_balls():
     return balls
 
 
+def _add_meta(mb, x, y, z, r, typ='BALL', size=None):
+    el = mb.elements.new()
+    el.type = typ
+    el.co = Vector((x, y, z))
+    el.radius = r * MB_R
+    el.stiffness = MB_STIFF
+    if size:
+        el.size_x, el.size_y, el.size_z = size
+    return el
+
+
 def build_volume():
     mb = bpy.data.metaballs.new('SukiMeta')
-    mb.resolution = 0.006
-    mb.render_resolution = 0.006
+    mb.resolution = 0.0054
+    mb.render_resolution = 0.0054
     mb.threshold = 0.6
     ob = bpy.data.objects.new('SukiMeta', mb)
     bpy.context.collection.objects.link(ob)
 
     for (x, y, z, r) in body_balls():
-        el = mb.elements.new()
-        el.type = 'BALL'
-        el.co = Vector((x, y, z))
-        el.radius = r * MB_R        # metaball radius is the influence radius
-        el.stiffness = MB_STIFF
+        _add_meta(mb, x, y, z, r)
+
+    # flattened ellipsoids break the "stack of beads" read on paws / skull / hips
+    skull = head_point((0.0, -0.220, 0.256))
+    _add_meta(mb, skull.x, skull.y, skull.z, 0.048, 'ELLIPSOID', (1.18, 1.05, 1.02))
+    for side in (1, -1):
+        _add_meta(mb, side * 0.050, 0.118, 0.152, 0.036, 'ELLIPSOID', (1.20, 1.08, 1.12))
+        _add_meta(mb, side * 0.046, -0.118, 0.011, 0.015, 'ELLIPSOID', (1.20, 1.55, 0.50))
+        _add_meta(mb, side * 0.052, 0.100, 0.011, 0.015, 'ELLIPSOID', (1.20, 1.50, 0.50))
 
     for o in bpy.context.selected_objects:
         o.select_set(False)
@@ -348,7 +387,7 @@ def apply_mod(ob, m):
     op(bpy.ops.object.modifier_apply, modifier=m.name)
 
 
-def cleanup_volume(body, voxel=0.0048, smooth_iters=4, ratio=0.22):
+def cleanup_volume(body, voxel=0.0042, smooth_iters=3, ratio=0.28):
     """Voxel remesh for even topology, then relax + decimate to a game budget."""
     rm = body.modifiers.new('Remesh', 'REMESH')
     rm.mode = 'VOXEL'
@@ -376,10 +415,11 @@ def cleanup_volume(body, voxel=0.0048, smooth_iters=4, ratio=0.22):
 
 # Face furniture is *seated by raycast* against the finished volume rather than
 # guessed — retuning the metaball strokes can no longer bury the eyes.
-HEAD_C = head_point((0.0, -0.212, 0.246))
-EYE_DIR = Vector((0.62, -0.78, 0.06))       # out and forward, mirrored
-NOSE_DIR = Vector((0.0, -1.0, -0.22))
-EAR_DIR = Vector((0.40, -0.10, 0.91))
+HEAD_C = head_point((0.0, -0.220, 0.256))
+EYE_DIR = Vector((0.58, -0.80, 0.02))       # out and forward, slightly low
+NOSE_DIR = Vector((0.0, -1.0, -0.28))
+EAR_DIR = Vector((0.38, -0.08, 0.92))
+MOUTH_DIR = Vector((0.0, -1.0, -0.55))
 
 
 def cast_out(body, origin, direction, max_d=0.30):
@@ -414,15 +454,15 @@ def build_ears(body):
                     (side * 0.043, -0.208, 0.288))
         # taller than wide, or it reads as a fin lying flat on the head
         outer = prim('cone', f'Ear{tag}', base,
-                     (0.026, 0.015, 0.034), (0.26, 0, -side * 0.24),
-                     material=fur, seg=16, r2=0.14)
+                     (0.030, 0.016, 0.042), (0.22, 0, -side * 0.28),
+                     material=fur, seg=18, r2=0.10)
         apply_transforms(outer)
         parts.append(outer)
         # inner sits slightly forward and *shorter*, so it never pokes through
         inner = prim('cone', f'EarIn{tag}',
-                     (base.x - side * 0.002, base.y - 0.009, base.z - 0.003),
-                     (0.016, 0.008, 0.024), (0.26, 0, -side * 0.24),
-                     material=pink, seg=12, r2=0.16)
+                     (base.x - side * 0.002, base.y - 0.010, base.z - 0.002),
+                     (0.018, 0.009, 0.028), (0.22, 0, -side * 0.28),
+                     material=pink, seg=14, r2=0.12)
         apply_transforms(inner)
         parts.append(inner)
     return parts
@@ -438,35 +478,35 @@ def build_face(body):
     nose = mat('SukiNose', NOSE_PINK, rough=0.55)
     lid = mat('SukiLid', WHITE, rough=0.92, vcol=True)
 
-    ER = 0.0155                            # big key-art eyes
+    ER = 0.0178                            # big key-art / portrait eyes
     for side in (1, -1):
         tag = 'L' if side > 0 else 'R'
         d = Vector((EYE_DIR.x * side, EYE_DIR.y, EYE_DIR.z)).normalized()
-        base = seat(body, HEAD_C, d, ER * 0.60, (side * 0.031, -0.250, 0.254))
-        # eyes sit mostly in the skull — only the front cap shows
-        e = prim('sphere', f'Eye{tag}', base, (ER * 0.80, ER, ER),
-                 material=iris, seg=20, ring=14)
-        e.rotation_euler = Euler((0, 0, side * 0.30), 'XYZ')
+        base = seat(body, HEAD_C, d, ER * 0.55, (side * 0.034, -0.262, 0.252))
+        # wide oval iris, slightly flattened so it reads anime-flat not a marble
+        e = prim('sphere', f'Eye{tag}', base, (ER * 0.92, ER * 0.78, ER),
+                 material=iris, seg=22, ring=14)
+        e.rotation_euler = Euler((0.08, 0, side * 0.22), 'XYZ')
         apply_transforms(e)
         parts.append(e)
-        pu = prim('sphere', f'Pupil{tag}', base + d * (ER * 0.74),
-                  (0.0050, 0.0050, 0.0090), material=pupil, seg=14, ring=10)
+        pu = prim('sphere', f'Pupil{tag}', base + d * (ER * 0.70),
+                  (0.0054, 0.0054, 0.0100), material=pupil, seg=14, ring=10)
         apply_transforms(pu)
         parts.append(pu)
         gl = prim('sphere', f'Glint{tag}',
-                  base + d * (ER * 0.86) + Vector((side * 0.0038, 0, 0.0046)),
-                  (0.0028, 0.0028, 0.0028), material=glint, seg=10, ring=8)
+                  base + d * (ER * 0.84) + Vector((side * 0.0042, 0, 0.0050)),
+                  (0.0032, 0.0032, 0.0032), material=glint, seg=10, ring=8)
         apply_transforms(gl)
         parts.append(gl)
         # a shallow fur lid so the eye reads as set into the face, not stuck on
-        br = prim('sphere', f'Brow{tag}', base + Vector((0, 0.0016, 0.0100)),
-                  (ER * 0.95, ER * 0.70, 0.0040),
-                  (0.34, 0, side * 0.26), material=lid, seg=16, ring=10)
+        br = prim('sphere', f'Brow{tag}', base + Vector((0, 0.0020, 0.0110)),
+                  (ER * 1.02, ER * 0.72, 0.0042),
+                  (0.32, 0, side * 0.22), material=lid, seg=16, ring=10)
         apply_transforms(br)
         parts.append(br)
 
-    npos = seat(body, HEAD_C, NOSE_DIR, 0.0032, (0, -0.278, 0.232))
-    n = prim('cone', 'Nose', npos, (0.0078, 0.0062, 0.0066),
+    npos = seat(body, HEAD_C, NOSE_DIR, 0.0028, (0, -0.288, 0.228))
+    n = prim('cone', 'Nose', npos, (0.0084, 0.0066, 0.0070),
              (math.pi / 2, 0, 0), material=nose, seg=10)
     apply_transforms(n)
     parts.append(n)
@@ -474,44 +514,88 @@ def build_face(body):
 
 
 def build_ribbon():
-    """Pink collar band + the signature bow, sitting on the neck."""
+    """Pink collar band + the signature bow at the *front* of the neck."""
     parts = []
-    band_m = mat('SukiRibbon', RIBBON, rough=0.42)
-    knot_m = mat('SukiRibbonDk', RIBBON_DK, rough=0.42)
-    bell_m = mat('SukiBell', GOLD, rough=0.22, metal=0.85)
+    band_m = mat('SukiRibbon', RIBBON, rough=0.55)
+    knot_m = mat('SukiRibbonDk', RIBBON_DK, rough=0.55)
+    bell_m = mat('SukiBell', GOLD, rough=0.28, metal=0.55)
 
     # ribbon band wrapping the neck, tilted to follow the neck's forward rake
-    band = prim('torus', 'Collar', (0, -0.150, 0.200), (0.046, 0.046, 0.046),
-                (1.06, 0, 0), material=band_m, mseg=28, nseg=10, minor=0.075)
+    band = prim('torus', 'Collar', (0, -0.152, 0.198), (0.042, 0.042, 0.042),
+                (1.10, 0, 0), material=band_m, mseg=28, nseg=10, minor=0.085)
     apply_transforms(band)
     parts.append(band)
 
-    # bow sits on her left where the collar ring crosses the side of the neck
-    # (ring point at ~35 deg round the band — see COLLAR_C / COLLAR_R below)
-    bx, by, bz = 0.037, -0.138, 0.222
+    # portrait bow sits dead-centre on the ruff, proud of the fur
+    bx, by, bz = 0.000, -0.198, 0.148
     for side in (1, -1):
         tag = 'L' if side > 0 else 'R'
         loop = prim('sphere', f'BowLoop{tag}',
-                    (bx + side * 0.012, by - 0.005, bz + side * 0.006),
-                    (0.012, 0.005, 0.009),
-                    (0, side * 0.45, side * 0.38), material=band_m, seg=16, ring=10)
+                    (bx + side * 0.020, by - 0.006, bz + 0.006),
+                    (0.020, 0.009, 0.015),
+                    (0.18, side * 0.50, side * 0.08), material=band_m, seg=16, ring=10)
         apply_transforms(loop)
         parts.append(loop)
         tl = prim('cone', f'BowTail{tag}',
-                  (bx + side * 0.008, by - 0.008, bz - 0.015),
-                  (0.005, 0.003, 0.015),
-                  (-0.20, side * 0.30, side * 0.22), material=band_m, seg=8, r2=0.5)
+                  (bx + side * 0.012, by - 0.002, bz - 0.018),
+                  (0.007, 0.0040, 0.018),
+                  (0.90, side * 0.16, 0), material=band_m, seg=8, r2=0.45)
         apply_transforms(tl)
         parts.append(tl)
-    knot = prim('sphere', 'BowKnot', (bx, by - 0.005, bz),
-                (0.0060, 0.0050, 0.0060), material=knot_m, seg=14, ring=10)
+    knot = prim('sphere', 'BowKnot', (bx, by - 0.008, bz + 0.002),
+                (0.0090, 0.0070, 0.0090), material=knot_m, seg=14, ring=10)
     apply_transforms(knot)
     parts.append(knot)
 
-    bell = prim('sphere', 'Bell', (0, -0.173, 0.161), (0.0095, 0.0095, 0.0095),
+    bell = prim('sphere', 'Bell', (0, -0.208, 0.128), (0.0080, 0.0080, 0.0080),
                 material=bell_m, seg=14, ring=10)
     apply_transforms(bell)
     parts.append(bell)
+    return parts
+
+
+def build_mouth(npos):
+    """W-smile under the nose — the portrait's lovable read."""
+    lips = mat('SukiLips', (0.55, 0.28, 0.30, 1.0), rough=0.45)
+    parts = []
+    # three short arcs: \ / \  forming a cat W
+    segs = [
+        ((-0.010, npos.y + 0.006, npos.z - 0.010), (-0.004, npos.y + 0.002, npos.z - 0.014)),
+        ((-0.004, npos.y + 0.002, npos.z - 0.014), (0.004, npos.y + 0.002, npos.z - 0.014)),
+        ((0.004, npos.y + 0.002, npos.z - 0.014), (0.010, npos.y + 0.006, npos.z - 0.010)),
+    ]
+    for i, (a, b) in enumerate(segs):
+        mid = tuple((a[j] + b[j]) * 0.5 for j in range(3))
+        d = Vector(b) - Vector(a)
+        cyl = prim('cyl', f'Mouth{i}', mid, (0.0016, 0.0016, d.length * 0.58),
+                   material=lips, seg=6)
+        cyl.rotation_euler = d.to_track_quat('Z', 'Y').to_euler()
+        apply_transforms(cyl)
+        parts.append(cyl)
+    return parts
+
+
+def build_pads():
+    """Pink toe beans on every paw — sells 'pettable cat' on the close shot."""
+    pad_m = mat('SukiPad', (0.90, 0.55, 0.58, 1.0), rough=0.7)
+    parts = []
+    # (name, centre, yaw-ish forward)
+    paws = [
+        ('PawFL', (0.046, -0.120, 0.004), -1),
+        ('PawFR', (-0.046, -0.120, 0.004), -1),
+        ('PawHL', (0.052, 0.100, 0.004), 1),
+        ('PawHR', (-0.052, 0.100, 0.004), 1),
+    ]
+    for name, (x, y, z), fwd in paws:
+        main = prim('sphere', f'{name}Main', (x, y + fwd * 0.002, z),
+                    (0.010, 0.012, 0.004), material=pad_m, seg=12, ring=8)
+        apply_transforms(main)
+        parts.append(main)
+        for i, dx in enumerate((-0.008, -0.0025, 0.0025, 0.008)):
+            toe = prim('sphere', f'{name}Toe{i}', (x + dx, y + fwd * 0.012, z + 0.001),
+                       (0.0036, 0.0042, 0.0024), material=pad_m, seg=8, ring=6)
+            apply_transforms(toe)
+            parts.append(toe)
     return parts
 
 
@@ -552,7 +636,7 @@ def _hash_noise(x, y, z):
 
 
 # geometry landmarks the paint keys off (see STROKES)
-BELLY_Z, BACK_Z = 0.118, 0.223
+BELLY_Z, BACK_Z = 0.112, 0.220
 
 
 def coat_colour(p):
@@ -561,38 +645,42 @@ def coat_colour(p):
     x, y, z = p.x, p.y, p.z
     c = CREAM
 
-    # --- pale underside: belly, chest ruff, chin, toe socks ---
-    belly = _smoothstep(0.158, BELLY_Z, z) * _smoothstep(0.175, 0.140, y)
-    bib = _smoothstep(-0.090, -0.130, y) * _smoothstep(0.200, 0.130, z)
-    toes = _smoothstep(0.060, 0.020, z)
-    chin = _smoothstep(-0.240, -0.275, y) * _smoothstep(0.240, 0.205, z)
-    pale = max(belly * 0.80, bib * 0.95, toes * 0.95, chin)
+    # --- pale underside: belly, chest ruff, chin, muzzle, toe socks ---
+    belly = _smoothstep(0.152, BELLY_Z, z) * _smoothstep(0.175, 0.130, y)
+    bib = _smoothstep(-0.085, -0.140, y) * _smoothstep(0.200, 0.120, z)
+    toes = _smoothstep(0.055, 0.016, z)
+    chin = _smoothstep(-0.245, -0.290, y) * _smoothstep(0.245, 0.205, z)
+    muzzle = _smoothstep(-0.255, -0.290, y) * _smoothstep(0.250, 0.215, z)
+    pale = max(belly * 0.85, bib * 0.98, toes * 0.98, chin, muzzle * 0.90)
     c = _mix(c, CREAM_LIT, pale)
 
     # --- mackerel stripes: vertical bands round the barrel, fading down the flank
-    on_back = _smoothstep(0.150, BACK_Z, z)
-    in_barrel = _smoothstep(-0.150, -0.105, y) * _smoothstep(0.175, 0.130, y)
-    band = 0.5 + 0.5 * math.sin(y * 46.0 + 0.6)
+    on_back = _smoothstep(0.145, BACK_Z, z)
+    in_barrel = _smoothstep(-0.155, -0.100, y) * _smoothstep(0.185, 0.125, y)
+    band = 0.5 + 0.5 * math.sin(y * 42.0 + 0.6)
     stripe = (band ** 2) * on_back * in_barrel
     # a solid dorsal saddle along the spine
-    saddle = _smoothstep(0.190, 0.220, z) * _smoothstep(0.055, 0.015, abs(x)) * in_barrel
-    c = _mix(c, APRICOT, min(1.0, stripe * 0.80 + saddle * 0.40))
-    c = _mix(c, APRICOT_DP, stripe * saddle * 0.55)
+    saddle = _smoothstep(0.185, 0.218, z) * _smoothstep(0.058, 0.014, abs(x)) * in_barrel
+    c = _mix(c, APRICOT, min(1.0, stripe * 0.88 + saddle * 0.48))
+    c = _mix(c, APRICOT_DP, stripe * saddle * 0.60)
 
     # --- tail rings: band along the tail's arc, ignore the body ---
-    if y > 0.140 and z > 0.150:
-        arc = math.atan2(z - 0.190, y - 0.205)
+    if y > 0.135 and z > 0.150:
+        arc = math.atan2(z - 0.200, y - 0.210)
         ring = 0.5 + 0.5 * math.sin(arc * 7.0 + 1.2)
-        near_tail = _smoothstep(0.140, 0.180, y) + _smoothstep(0.240, 0.270, z)
+        near_tail = _smoothstep(0.135, 0.185, y) + _smoothstep(0.250, 0.290, z)
         near_tail = min(1.0, near_tail)
-        c = _mix(c, APRICOT, (ring ** 2) * near_tail * 0.85)
-        tip = _smoothstep(0.285, 0.310, z) * _smoothstep(0.240, 0.180, y)
-        c = _mix(c, APRICOT_DP, tip * 0.75)
+        c = _mix(c, APRICOT, (ring ** 2) * near_tail * 0.90)
+        tip = _smoothstep(0.300, 0.335, z) * _smoothstep(0.250, 0.170, y)
+        c = _mix(c, APRICOT_DP, tip * 0.80)
 
     # --- forehead 'M' stripes between the ears ---
-    if y < -0.180 and z > 0.250:
-        m = (0.5 + 0.5 * math.sin(abs(x) * 105.0 + 0.4)) * _smoothstep(0.250, 0.285, z)
-        c = _mix(c, APRICOT, m * 0.60)
+    if y < -0.185 and z > 0.248:
+        m = (0.5 + 0.5 * math.sin(abs(x) * 95.0 + 0.4)) * _smoothstep(0.248, 0.300, z)
+        c = _mix(c, APRICOT, m * 0.72)
+        # cheek patches like the portrait
+        cheek = _smoothstep(0.030, 0.055, abs(x)) * _smoothstep(0.260, 0.220, z)
+        c = _mix(c, APRICOT, cheek * 0.45)
 
     # --- fur mottle: fine per-vertex variation so the coat isn't a flat fill ---
     n = _hash_noise(x * 90, y * 90, z * 90) - 0.5
@@ -631,31 +719,31 @@ def paint_flat(ob, rgba):
 # (name, head, tail, parent)  — head/tail in world space, -Y forward
 BONES = [
     ('Root',      (0, 0.000, 0.000), (0, -0.060, 0.000), None),
-    ('Hips',      (0, 0.130, 0.166), (0, 0.030, 0.170), 'Root'),
-    ('Spine',     (0, 0.030, 0.170), (0, -0.060, 0.172), 'Hips'),
-    ('Chest',     (0, -0.060, 0.172), (0, -0.130, 0.192), 'Spine'),
-    ('Neck',      (0, -0.130, 0.192), (0, -0.180, 0.232), 'Chest'),
-    ('Head',      (0, -0.180, 0.232), (0, -0.268, 0.238), 'Neck'),
-    ('Ear.L',     (0.045, -0.215, 0.272), (0.058, -0.212, 0.324), 'Head'),
-    ('Ear.R',     (-0.045, -0.215, 0.272), (-0.058, -0.212, 0.324), 'Head'),
-    ('Tail1',     (0, 0.160, 0.166), (0, 0.205, 0.180), 'Hips'),
-    ('Tail2',     (0, 0.205, 0.180), (0, 0.242, 0.206), 'Tail1'),
-    ('Tail3',     (0, 0.242, 0.206), (0, 0.259, 0.245), 'Tail2'),
-    ('Tail4',     (0, 0.259, 0.245), (0, 0.243, 0.288), 'Tail3'),
-    ('Tail5',     (0, 0.243, 0.288), (0, 0.205, 0.314), 'Tail4'),
-    ('Tail6',     (0, 0.205, 0.314), (0, 0.164, 0.312), 'Tail5'),
-    ('Arm.L',     (0.048, -0.078, 0.142), (0.048, -0.080, 0.082), 'Chest'),
-    ('Forearm.L', (0.048, -0.080, 0.082), (0.048, -0.084, 0.030), 'Arm.L'),
-    ('Paw.L',     (0.048, -0.084, 0.030), (0.048, -0.100, 0.010), 'Forearm.L'),
-    ('Arm.R',     (-0.048, -0.078, 0.142), (-0.048, -0.080, 0.082), 'Chest'),
-    ('Forearm.R', (-0.048, -0.080, 0.082), (-0.048, -0.084, 0.030), 'Arm.R'),
-    ('Paw.R',     (-0.048, -0.084, 0.030), (-0.048, -0.100, 0.010), 'Forearm.R'),
-    ('Thigh.L',   (0.050, 0.132, 0.140), (0.052, 0.150, 0.088), 'Hips'),
-    ('Shin.L',    (0.052, 0.150, 0.088), (0.052, 0.120, 0.034), 'Thigh.L'),
-    ('Foot.L',    (0.052, 0.120, 0.034), (0.052, 0.098, 0.010), 'Shin.L'),
-    ('Thigh.R',   (-0.050, 0.132, 0.140), (-0.052, 0.150, 0.088), 'Hips'),
-    ('Shin.R',    (-0.052, 0.150, 0.088), (-0.052, 0.120, 0.034), 'Thigh.R'),
-    ('Foot.R',    (-0.052, 0.120, 0.034), (-0.052, 0.098, 0.010), 'Shin.R'),
+    ('Hips',      (0, 0.118, 0.162), (0, 0.025, 0.168), 'Root'),
+    ('Spine',     (0, 0.025, 0.168), (0, -0.055, 0.170), 'Hips'),
+    ('Chest',     (0, -0.055, 0.170), (0, -0.122, 0.188), 'Spine'),
+    ('Neck',      (0, -0.122, 0.188), (0, -0.176, 0.232), 'Chest'),
+    ('Head',      (0, -0.176, 0.232), (0, -0.280, 0.248), 'Neck'),
+    ('Ear.L',     (0.048, -0.220, 0.286), (0.062, -0.214, 0.348), 'Head'),
+    ('Ear.R',     (-0.048, -0.220, 0.286), (-0.062, -0.214, 0.348), 'Head'),
+    ('Tail1',     (0, 0.148, 0.166), (0, 0.200, 0.180), 'Hips'),
+    ('Tail2',     (0, 0.200, 0.180), (0, 0.242, 0.210), 'Tail1'),
+    ('Tail3',     (0, 0.242, 0.210), (0, 0.262, 0.252), 'Tail2'),
+    ('Tail4',     (0, 0.262, 0.252), (0, 0.252, 0.298), 'Tail3'),
+    ('Tail5',     (0, 0.252, 0.298), (0, 0.210, 0.328), 'Tail4'),
+    ('Tail6',     (0, 0.210, 0.328), (0, 0.150, 0.334), 'Tail5'),
+    ('Arm.L',     (0.046, -0.088, 0.142), (0.046, -0.084, 0.078), 'Chest'),
+    ('Forearm.L', (0.046, -0.084, 0.078), (0.046, -0.100, 0.028), 'Arm.L'),
+    ('Paw.L',     (0.046, -0.100, 0.028), (0.046, -0.126, 0.008), 'Forearm.L'),
+    ('Arm.R',     (-0.046, -0.088, 0.142), (-0.046, -0.084, 0.078), 'Chest'),
+    ('Forearm.R', (-0.046, -0.084, 0.078), (-0.046, -0.100, 0.028), 'Arm.R'),
+    ('Paw.R',     (-0.046, -0.100, 0.028), (-0.046, -0.126, 0.008), 'Forearm.R'),
+    ('Thigh.L',   (0.050, 0.128, 0.140), (0.052, 0.150, 0.086), 'Hips'),
+    ('Shin.L',    (0.052, 0.150, 0.086), (0.052, 0.124, 0.032), 'Thigh.L'),
+    ('Foot.L',    (0.052, 0.124, 0.032), (0.052, 0.096, 0.008), 'Shin.L'),
+    ('Thigh.R',   (-0.050, 0.128, 0.140), (-0.052, 0.150, 0.086), 'Hips'),
+    ('Shin.R',    (-0.052, 0.150, 0.086), (-0.052, 0.124, 0.032), 'Thigh.R'),
+    ('Foot.R',    (-0.052, 0.124, 0.032), (-0.052, 0.096, 0.008), 'Shin.R'),
 ]
 
 
@@ -998,20 +1086,28 @@ def aim_cam(cam, loc, target=(0, 0, 0.175)):
 def render_views(out_dir, tag='suki'):
     os.makedirs(out_dir, exist_ok=True)
     sc = bpy.context.scene
+    # Headless cloud boxes often lack EGL; Cycles CPU is the reliable path.
     try:
         sc.render.engine = 'BLENDER_EEVEE_NEXT'
-        sc.eevee.taa_render_samples = 32
+        sc.eevee.taa_render_samples = 24
+        # probe: if GPU context is missing this still "succeeds" until render
     except Exception:
-        sc.render.engine = 'CYCLES'
-        sc.cycles.samples = 40
+        pass
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'CPU'
+    sc.cycles.samples = 24
+    sc.cycles.use_denoising = False
     cam = sc.camera
-    C = (0, 0, 0.175)
-    HEAD = (0, -0.225, 0.250)
+    C = (0, 0, 0.168)
+    HEAD = (0, -0.230, 0.250)
+    PAW = (0.048, -0.100, 0.012)
     views = {
+        'beauty': ((0.55, -0.58, 0.34), C),
         'side':   ((0.95, -0.02, 0.21), C),    # profile — the key-art angle
         'threeq': ((0.62, -0.62, 0.36), C),
         'front':  ((0.06, -0.88, 0.30), C),
-        'head':   ((0.26, -0.52, 0.32), HEAD),  # close on the face
+        'head':   ((0.22, -0.48, 0.30), HEAD),  # close on the face
+        'paw':    ((0.22, -0.28, 0.10), PAW),
         'top':    ((0.30, -0.30, 0.86), C),
     }
     shots = []
@@ -1041,10 +1137,12 @@ def build_suki(render=True):
     face, npos = build_face(body)
     ribbon = build_ribbon()
     whisk = build_whiskers(npos)
+    mouth = build_mouth(npos)
+    pads = build_pads()
 
     # every shell keeps its own flat material; white COLOR_0 so the vertex-colour
     # attribute is uniform across the file and three.js can multiply safely
-    for ob in ears + face + ribbon + whisk:
+    for ob in ears + face + ribbon + whisk + mouth + pads:
         paint_flat(ob, WHITE)
     for ob in ears + [o for o in face if o.name.startswith('Brow')]:
         if 'EarIn' not in ob.name:
@@ -1058,10 +1156,19 @@ def build_suki(render=True):
     # rigid shells ride their nearest bone
     for ob in ears:
         bone_parent(ob, arm, 'Ear.L' if ob.name.endswith('L') else 'Ear.R')
-    for ob in face + whisk:
+    for ob in face + whisk + mouth:
         bone_parent(ob, arm, 'Head')
     for ob in ribbon:
         bone_parent(ob, arm, 'Neck')
+    for ob in pads:
+        if 'PawFL' in ob.name:
+            bone_parent(ob, arm, 'Paw.L')
+        elif 'PawFR' in ob.name:
+            bone_parent(ob, arm, 'Paw.R')
+        elif 'PawHL' in ob.name:
+            bone_parent(ob, arm, 'Foot.L')
+        else:
+            bone_parent(ob, arm, 'Foot.R')
 
     for fn in ACTIONS:
         fn(arm)

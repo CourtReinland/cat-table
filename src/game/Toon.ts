@@ -93,8 +93,10 @@ export function toonify(root: THREE.Object3D) {
         m.color ?? new THREE.Color(0xcccccc),
         m.map ?? null,
         m.side ?? THREE.FrontSide,
-        // Suki's coat is baked into COLOR_0 — dropping it would flatten her to white
-        !!m.vertexColors,
+        // Suki's coat is baked into COLOR_0 — dropping it would flatten her to white.
+        // Prefer the geometry attribute over the material flag: some glTF paths
+        // ship the colour but leave vertexColors unset.
+        !!(m.vertexColors || mesh.geometry?.attributes?.color),
         m.normalMap ?? null,
         m.normalScale ?? null,
       );
