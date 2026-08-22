@@ -325,4 +325,26 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const released = resolvePlantLock({ x: 0, z: 0 }, facing(0), 0, held.lock);
     assert.equal(released.lock, null);
   });
+
+  it('locked analog A/D/S keeps heading but scales magnitude so ease-off scrapes', () => {
+    const cam = { x: 0, z: 1 };
+    const full = resolvePlantLock({ x: -1, z: 0 }, cam, 0, null);
+    assert.ok(full.lock);
+    almost(Math.hypot(full.move.x, full.move.z), 1);
+    almost(Math.hypot(full.lock.world.x, full.lock.world.z), 1);
+
+    const analog = resolvePlantLock({ x: -0.3, z: 0 }, cam, 0, full.lock);
+    assert.ok(analog.lock, 'eased stick should keep the lock until |axis| < 0.05');
+    almost(Math.hypot(analog.move.x, analog.move.z), 0.3);
+    const fullDir = Math.atan2(full.lock.world.x, full.lock.world.z);
+    const analogDir = Math.atan2(analog.move.x, analog.move.z);
+    almost(shortestAngle(fullDir, analogDir), 0, 1e-6);
+
+    const desired = { x: analog.move.x * WALK, z: analog.move.z * WALK };
+    const coasting = { x: full.move.x * WALK, z: full.move.z * WALK };
+    const eased = stepProwl(DT, coasting, Math.atan2(full.lock.world.x, full.lock.world.z), desired);
+    const a = 1 - Math.exp(-decelForSpeed(WALK) * DT);
+    const expect = WALK + (0.3 * WALK - WALK) * a;
+    almost(Math.hypot(eased.x, eased.z), expect, 1e-3);
+  });
 });

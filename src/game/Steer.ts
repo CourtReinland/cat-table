@@ -157,11 +157,18 @@ function unitXZ(v: XZ): XZ {
   return { x: v.x / len, z: v.z / len };
 }
 
+/** Locked unit heading × current analog/key magnitude (ease-off can scrape). */
+function scaleLockedHeading(heading: XZ, axes: XZ): XZ {
+  const mag = Math.hypot(axes.x, axes.z);
+  return { x: heading.x * mag, z: heading.z * mag };
+}
+
 /**
  * Body-locked camera (first-person: the lens is Suki). Live-remapping A/D/S
  * every frame keeps desired ~90°/180° off yaw, so plantCommit never clears
  * and she tank-spins in place. Snapshot those keys to a world heading while
  * planted; keep it until they are released so she turns into it and walks.
+ * Scale by hypot(axes) each frame so analog ease still scrapes.
  * W-only stays live. In-gait cuts (already moving) stay live. Third-person
  * follow should not call this.
  */
@@ -175,13 +182,16 @@ export function resolvePlantLock(
   if (!isPlantStrafe(axes)) return { move: live, lock: null };
 
   if (lock && samePlantAxes(lock.axes, axes)) {
-    return { move: lock.world, lock };
+    return { move: scaleLockedHeading(lock.world, axes), lock };
   }
 
   if (spd >= STEER.plantSpeed) return { move: live, lock: null };
 
-  const world = unitXZ(live);
-  return { move: world, lock: { axes: { x: axes.x, z: axes.z }, world } };
+  const heading = unitXZ(live);
+  return {
+    move: scaleLockedHeading(heading, axes),
+    lock: { axes: { x: axes.x, z: axes.z }, world: heading },
+  };
 }
 
 /**
