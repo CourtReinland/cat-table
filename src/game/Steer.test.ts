@@ -11,6 +11,9 @@ import {
   shortestAngle,
   stepProwl,
   yawRateForSpeed,
+  isPlantStrafe,
+  resolvePlantLock,
+  type PlantLock,
   type XZ,
 } from './Steer.ts';
 import { combineMoveAxes } from '../core/Input.ts';
@@ -254,5 +257,72 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const dropped = Math.hypot(drop.x, drop.z);
     assert.ok(dropped > sprint - 0.12, `sprint→walk should scrape, not accel-brake (${dropped})`);
     assert.ok(dropped < sprint);
+  });
+
+  it('body-locked FP A/D/S world-locks a heading so she does not tank-spin forever', () => {
+    // Lens is Suki: camDir = current yaw every frame (updateFirstPersonCam).
+    const facing = (yaw: number): XZ => ({ x: Math.sin(yaw), z: Math.cos(yaw) });
+
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    let lock: PlantLock | null = null;
+    const pos = { x: 0, z: 0 };
+    for (let i = 0; i < 90; i++) {
+      const r = resolvePlantLock(AXES_A, facing(yaw), Math.hypot(vel.x, vel.z), lock);
+      lock = r.lock;
+      const desired = { x: r.move.x * WALK, z: r.move.z * WALK };
+      const s = stepProwl(DT, vel, yaw, desired);
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+      pos.x += vel.x * DT;
+      pos.z += vel.z * DT;
+    }
+    assert.ok(lock, 'planted A should snapshot a world heading');
+    // yaw=0 FP looking +Z → camera-left A is +X
+    assert.ok(Math.abs(shortestAngle(yaw, Math.PI / 2)) < 0.25, `locked A should finish facing original camera-left (yaw ${yaw})`);
+    const along = Math.sin(yaw) * vel.x + Math.cos(yaw) * vel.z;
+    assert.ok(along > 0.5, `after the pivot she should walk the locked heading (${along})`);
+    assert.ok(pos.x > 0.15, `should have committed world +X travel (${pos.x}), not spun in place`);
+
+    // Without the lock, live remap keeps A at 90° and plantCommit never clears.
+    yaw = 0;
+    vel = { x: 0, z: 0 };
+    for (let i = 0; i < 90; i++) {
+      const live = cameraRelativeMove(AXES_A, facing(yaw));
+      const s = stepProwl(DT, vel, yaw, { x: live.x * WALK, z: live.z * WALK });
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+    }
+    assert.ok(Math.hypot(vel.x, vel.z) < 0.08, 'live body-locked A must not gain walk speed');
+    assert.ok(Math.abs(yaw) > 3, `should have tank-spun well past 90° (yaw ${yaw})`);
+  });
+
+  it('body-locked W stays live and commits; in-gait A does not start a lock', () => {
+    const facing = (yaw: number): XZ => ({ x: Math.sin(yaw), z: Math.cos(yaw) });
+    const w = resolvePlantLock(AXES_W, facing(0), 0, null);
+    assert.equal(w.lock, null);
+    almost(w.move.x, 0);
+    almost(w.move.z, 1);
+
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    for (let i = 0; i < 20; i++) {
+      const r = resolvePlantLock(AXES_W, facing(yaw), Math.hypot(vel.x, vel.z), null);
+      const s = stepProwl(DT, vel, yaw, { x: r.move.x * WALK, z: r.move.z * WALK });
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+    }
+    assert.ok(Math.hypot(vel.x, vel.z) > 0.4, 'W from rest should walk into the lens');
+    assert.ok(Math.abs(yaw) < 0.05, 'W should not yaw');
+
+    const movingA = resolvePlantLock(AXES_A, facing(0), WALK, null);
+    assert.equal(movingA.lock, null, 'in-gait A/D is a cut, not a new plant lock');
+    assert.ok(isPlantStrafe(AXES_A) && isPlantStrafe(AXES_S));
+    assert.equal(isPlantStrafe(AXES_W), false);
+
+    const held = resolvePlantLock(AXES_A, facing(0), 0, null);
+    assert.ok(held.lock);
+    const released = resolvePlantLock({ x: 0, z: 0 }, facing(0), 0, held.lock);
+    assert.equal(released.lock, null);
   });
 });

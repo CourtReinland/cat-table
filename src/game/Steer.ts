@@ -127,6 +127,63 @@ export function isSteerActive(speed: number, yawRate: number, speedFloor = 0.08)
   return speed > speedFloor || Math.abs(yawRate) > STEER.yawBusy;
 }
 
+/** Snapshotted world intent for body-locked (first-person) planted A/D/S. */
+export type PlantLock = { axes: XZ; world: XZ };
+
+const PLANT_AXIS_DEAD = 0.05;
+
+/** Quantize stick/WASD so analog wobble does not resnapshot the lock. */
+export function quantizePlantAxes(axes: XZ): XZ {
+  return {
+    x: Math.abs(axes.x) <= PLANT_AXIS_DEAD ? 0 : Math.sign(axes.x),
+    z: axes.z > PLANT_AXIS_DEAD ? 1 : axes.z < -PLANT_AXIS_DEAD ? -1 : 0,
+  };
+}
+
+/** A/D or S (back). W-only is not a plant-strafe — it already faces the lens. */
+export function isPlantStrafe(axes: XZ): boolean {
+  const q = quantizePlantAxes(axes);
+  return q.x !== 0 || q.z === 1;
+}
+
+function samePlantAxes(a: XZ, b: XZ): boolean {
+  const qa = quantizePlantAxes(a);
+  const qb = quantizePlantAxes(b);
+  return qa.x === qb.x && qa.z === qb.z;
+}
+
+function unitXZ(v: XZ): XZ {
+  const len = Math.hypot(v.x, v.z) || 1;
+  return { x: v.x / len, z: v.z / len };
+}
+
+/**
+ * Body-locked camera (first-person: the lens is Suki). Live-remapping A/D/S
+ * every frame keeps desired ~90°/180° off yaw, so plantCommit never clears
+ * and she tank-spins in place. Snapshot those keys to a world heading while
+ * planted; keep it until they are released so she turns into it and walks.
+ * W-only stays live. In-gait cuts (already moving) stay live. Third-person
+ * follow should not call this.
+ */
+export function resolvePlantLock(
+  axes: XZ,
+  camDir: XZ,
+  spd: number,
+  lock: PlantLock | null,
+): { move: XZ; lock: PlantLock | null } {
+  const live = cameraRelativeMove(axes, camDir);
+  if (!isPlantStrafe(axes)) return { move: live, lock: null };
+
+  if (lock && samePlantAxes(lock.axes, axes)) {
+    return { move: lock.world, lock };
+  }
+
+  if (spd >= STEER.plantSpeed) return { move: live, lock: null };
+
+  const world = unitXZ(live);
+  return { move: world, lock: { axes: { x: axes.x, z: axes.z }, world } };
+}
+
 /**
  * Integrate a cat body: accelerate toward the desired world move, yaw into
  * that heading at a capped body rate, and bleed off lateral slip.
@@ -162,6 +219,8 @@ export function stepProwl(
 
   // Planted: do not walk until the body faces the intent (feet stay).
   // Moving: keep committing along heading while the body yaws (a curve, not a crab).
+  // Body-locked FP must snapshot A/D/S (resolvePlantLock) or facingDot never
+  // clears plantAlign and she yaws in place forever.
   let commit = 1;
   if (desiredSpd > 1e-8) {
     const facingDot = (fx * desired.x + fz * desired.z) / desiredSpd;

@@ -23,7 +23,7 @@ import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
-import { cameraRelativeMove, lookToCamDir, stepProwl } from './Steer';
+import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, type PlantLock } from './Steer';
 
 type Phase =
   | 'loading'
@@ -87,6 +87,8 @@ export class Game {
   private targetBreak = 0;
   private catVel = new THREE.Vector3();
   private lookDir = new THREE.Vector3();
+  /** First-person planted A/D/S world heading; cleared on release / halt / 3P. */
+  private fpPlantLock: PlantLock | null = null;
   private camMode: 'follow' | 'orbit' | 'cine' = 'orbit';
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
@@ -292,6 +294,7 @@ export class Game {
   /** Drop residual prowl so idle/sit can own title/intro/fail/cinematic. */
   private haltProwl() {
     this.catVel.set(0, 0, 0);
+    this.fpPlantLock = null;
     const cat = this.apartment.cat;
     cat.yawRate = 0;
     cat.speed = 0;
@@ -721,13 +724,25 @@ export class Game {
    * Map camera-local WASD / stick axes onto the live camera look.
    * W / stick-forward (`axes.z < 0`) walks along getWorldDirection flattened
    * to XZ — into the lens, which in first-person is also Suki's facing.
+   * In FP while planted, A/D/S snapshot a world heading so the body-locked
+   * lens cannot tank-spin plantCommit forever.
    */
   private playerWorldAxes(axes: { x: number; z: number }): { x: number; z: number } {
-    if (axes.x === 0 && axes.z === 0) return axes;
+    if (axes.x === 0 && axes.z === 0) {
+      this.fpPlantLock = null;
+      return axes;
+    }
     const cam = this.engine.camera;
     cam.updateMatrixWorld();
     cam.getWorldDirection(this.lookDir);
-    return cameraRelativeMove(axes, lookToCamDir(this.lookDir, this.apartment.cat.yaw));
+    const camDir = lookToCamDir(this.lookDir, this.apartment.cat.yaw);
+    if (!this.fpCam) {
+      this.fpPlantLock = null;
+      return cameraRelativeMove(axes, camDir);
+    }
+    const resolved = resolvePlantLock(axes, camDir, this.catVel.length(), this.fpPlantLock);
+    this.fpPlantLock = resolved.lock;
+    return resolved.move;
   }
 
   /** dumb-but-effective AI cat for headless testing */
