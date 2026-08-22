@@ -23,7 +23,7 @@ import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
-import { cameraRelativeMove, lookToCamDir, stepProwl } from './Steer';
+import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, type PlantLock } from './Steer';
 
 type Phase =
   | 'loading'
@@ -87,6 +87,8 @@ export class Game {
   private targetBreak = 0;
   private catVel = new THREE.Vector3();
   private lookDir = new THREE.Vector3();
+  /** First-person planted A/D/S world heading; cleared on release / halt / 3P. */
+  private fpPlantLock: PlantLock | null = null;
   private camMode: 'follow' | 'orbit' | 'cine' = 'orbit';
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
@@ -231,6 +233,7 @@ export class Game {
     });
     this.ui.on('quitTitle', () => {
       audio.sfx('ui-pop');
+      this.haltProwl();
       this.phase = 'title';
       this.camMode = 'orbit';
       this.ui.showHud(false);
@@ -280,12 +283,21 @@ export class Game {
     this.hazardHits = 0;
     this.pushCooldown = 0;
     this.targetBreak = shatterableCount(this.level);
-    this.catVel.set(0, 0, 0);
+    this.haltProwl();
     this.timeScale = 1;
     this.slowmoT = 0;
     this.hazards.reset(this.apartment.surface, this.level.difficulty);
     this.timeLeft = this.level.difficulty.timeLimit;
     if (showIntro) this.showIntroCard();
+  }
+
+  /** Drop residual prowl so idle/sit can own title/intro/fail/cinematic. */
+  private haltProwl() {
+    this.catVel.set(0, 0, 0);
+    this.fpPlantLock = null;
+    const cat = this.apartment.cat;
+    cat.yawRate = 0;
+    cat.speed = 0;
   }
 
   private showIntro(index: number) {
@@ -437,6 +449,7 @@ export class Game {
     const stepped = stepProwl(dt, this.catVel, cat.yaw, desired);
     this.catVel.set(stepped.x, 0, stepped.z);
     cat.yaw = stepped.yaw;
+    cat.yawRate = stepped.yawRate;
     cat.group.position.addScaledVector(this.catVel, dt);
 
     // clamp to counter top
@@ -711,13 +724,25 @@ export class Game {
    * Map camera-local WASD / stick axes onto the live camera look.
    * W / stick-forward (`axes.z < 0`) walks along getWorldDirection flattened
    * to XZ — into the lens, which in first-person is also Suki's facing.
+   * In FP while planted, A/D/S snapshot a world heading so the body-locked
+   * lens cannot tank-spin plantCommit forever.
    */
   private playerWorldAxes(axes: { x: number; z: number }): { x: number; z: number } {
-    if (axes.x === 0 && axes.z === 0) return axes;
+    if (axes.x === 0 && axes.z === 0) {
+      this.fpPlantLock = null;
+      return axes;
+    }
     const cam = this.engine.camera;
     cam.updateMatrixWorld();
     cam.getWorldDirection(this.lookDir);
-    return cameraRelativeMove(axes, lookToCamDir(this.lookDir, this.apartment.cat.yaw));
+    const camDir = lookToCamDir(this.lookDir, this.apartment.cat.yaw);
+    if (!this.fpCam) {
+      this.fpPlantLock = null;
+      return cameraRelativeMove(axes, camDir);
+    }
+    const resolved = resolvePlantLock(axes, camDir, this.catVel.length(), this.fpPlantLock);
+    this.fpPlantLock = resolved.lock;
+    return resolved.move;
   }
 
   /** dumb-but-effective AI cat for headless testing */
@@ -751,6 +776,7 @@ export class Game {
 
   private startFail() {
     if (this.phase !== 'playing') return;
+    this.haltProwl();
     this.hazards.clear();
     this.ui.showHud(false);
     this.ui.hideHint();
@@ -776,6 +802,7 @@ export class Game {
 
   private startCinematic() {
     if (this.phase !== 'playing') return;
+    this.haltProwl();
     this.phase = 'cinematic';
     this.hazards.clear();
     this.camMode = 'cine';
@@ -825,6 +852,7 @@ export class Game {
       cat.group.position.lerpVectors(this.catFrom, edge, k);
       const d = new THREE.Vector3().subVectors(bf.group.position, cat.group.position);
       cat.yaw = Math.atan2(d.x, d.z);
+      cat.yawRate = 0;
       cat.speed = 0;
     }
 

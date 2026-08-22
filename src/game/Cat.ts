@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { stdMat } from './Props';
+import { isSteerActive, leanFromYawRate } from './Steer';
 
 const CREAM = 0xecd2ac;
 const APRICOT = 0xdca878;
@@ -31,6 +32,8 @@ export class Cat {
   private idleTime = 0;
   private sitK = 0;
   yaw = 0;
+  /** rad/s from stepProwl — banks the body into the turn. */
+  yawRate = 0;
   speed = 0;
 
   constructor() {
@@ -185,9 +188,10 @@ export class Cat {
     this.walkPhase += dt * (4 + sp * 9);
     const p = this.walkPhase;
     const moving = sp > 0.05;
-    this.idleTime = moving ? 0 : this.idleTime + dt;
+    const active = isSteerActive(sp, this.yawRate, 0.05);
+    this.idleTime = active ? 0 : this.idleTime + dt;
 
-    // settle into a sit when idle for a while
+    // settle into a sit when idle for a while — not during a planted A/D pivot
     const wantSit = this.idleTime > 3.5 && this.pushTimer <= 0 ? 1 : 0;
     this.sitK += (wantSit - this.sitK) * Math.min(1, dt * 3.2);
     const sit = this.sitK;
@@ -222,7 +226,8 @@ export class Cat {
       this.pawR.position.z = 0.13;
       this.pawR.position.y = 0.07;
       this.pawL.position.z = 0.13;
-      this.body.rotation.z = 0;
+      const lean = leanFromYawRate(this.yawRate);
+      this.body.rotation.z = lean;
       this.body.rotation.x = Math.PI / 2 + Math.sin(p * 2) * 0.02 * amp + sit * 0.38;
     }
 
@@ -232,8 +237,13 @@ export class Cat {
     this.head.position.y = 0.225 - sit * 0.012;
     this.head.position.z = 0.2 - sit * 0.03;
 
-    // head: look-around when idle, forward when moving (don't stomp swipe pose)
-    const headTargetY = moving ? 0 : Math.sin(t * 0.6) * 0.35;
+    // head: look-around when idle, into the turn / forward when moving
+    const turning = Math.abs(this.yawRate) > 0.25;
+    const headTargetY = turning
+      ? Math.max(-0.28, Math.min(0.28, this.yawRate * 0.07))
+      : moving
+        ? 0
+        : Math.sin(t * 0.6) * 0.35;
     this.head.rotation.y += (headTargetY - this.head.rotation.y) * Math.min(1, dt * 3);
     if (this.pushTimer <= 0) {
       this.head.rotation.x = moving ? 0.08 : Math.sin(t * 0.9) * 0.06;

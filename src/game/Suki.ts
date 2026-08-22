@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonify, outlineCharacter } from './Toon';
+import { isSteerActive, leanFromYawRate } from './Steer';
 
 /**
  * Suki — playable heroine.
@@ -34,6 +35,8 @@ const _euler = new THREE.Euler();
 export class Suki {
   group = new THREE.Group();
   yaw = 0;
+  /** rad/s from stepProwl — drives a light bank so yaw is not a rigid spin. */
+  yawRate = 0;
   speed = 0;
   /** external velocity applied by shoves/hits; decays, drives tumble */
   knockVel = new THREE.Vector3();
@@ -207,6 +210,7 @@ export class Suki {
   update(dt: number, t: number) {
     if (!this.useGlb) {
       this.cat.yaw = this.yaw;
+      this.cat.yawRate = this.yawRate;
       this.cat.speed = this.speed;
       this.cat.update(dt, t);
       this.group.rotation.y = this.yaw;
@@ -215,7 +219,8 @@ export class Suki {
     if (!this.mixer) return;
 
     const moving = this.speed > 0.08;
-    this.idleTime = moving ? 0 : this.idleTime + dt;
+    const active = isSteerActive(this.speed, this.yawRate);
+    this.idleTime = active ? 0 : this.idleTime + dt;
 
     if (this.oneShotUntil > 0) {
       this.oneShotUntil -= dt;
@@ -225,6 +230,10 @@ export class Suki {
     } else if (moving) {
       this.play(CLIP.walk);
       this.current!.timeScale = THREE.MathUtils.clamp(this.speed / 0.75, 0.6, 2.0);
+    } else if (active) {
+      // Planted A/D holds speed at 0; stand-idle yaws. Do not look/sit.
+      this.play(CLIP.idle, 0.2);
+      this.current!.timeScale = 1;
     } else if (this.idleTime > 5.5) {
       this.play(CLIP.sit, 0.5, true);
       this.current!.timeScale = 1;
@@ -238,5 +247,11 @@ export class Suki {
 
     this.mixer.update(dt);
     this.group.rotation.y = this.yaw;
+    // Light bank on the sculpt — group yaw stays the gameplay heading so
+    // first-person / camera math stay upright. Skip while a tumble owns inner.
+    if (this.tumbleT <= 0 && this.inner) {
+      const lean = leanFromYawRate(this.yawRate);
+      this.inner.rotation.z += (lean - this.inner.rotation.z) * Math.min(1, dt * 10);
+    }
   }
 }
