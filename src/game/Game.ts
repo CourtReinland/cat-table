@@ -231,6 +231,7 @@ export class Game {
     });
     this.ui.on('quitTitle', () => {
       audio.sfx('ui-pop');
+      this.haltProwl();
       this.phase = 'title';
       this.camMode = 'orbit';
       this.ui.showHud(false);
@@ -280,12 +281,20 @@ export class Game {
     this.hazardHits = 0;
     this.pushCooldown = 0;
     this.targetBreak = shatterableCount(this.level);
-    this.catVel.set(0, 0, 0);
+    this.haltProwl();
     this.timeScale = 1;
     this.slowmoT = 0;
     this.hazards.reset(this.apartment.surface, this.level.difficulty);
     this.timeLeft = this.level.difficulty.timeLimit;
     if (showIntro) this.showIntroCard();
+  }
+
+  /** Drop residual prowl so idle/sit can own title/intro/fail/cinematic. */
+  private haltProwl() {
+    this.catVel.set(0, 0, 0);
+    const cat = this.apartment.cat;
+    cat.yawRate = 0;
+    cat.speed = 0;
   }
 
   private showIntro(index: number) {
@@ -752,6 +761,7 @@ export class Game {
 
   private startFail() {
     if (this.phase !== 'playing') return;
+    this.haltProwl();
     this.hazards.clear();
     this.ui.showHud(false);
     this.ui.hideHint();
@@ -777,6 +787,7 @@ export class Game {
 
   private startCinematic() {
     if (this.phase !== 'playing') return;
+    this.haltProwl();
     this.phase = 'cinematic';
     this.hazards.clear();
     this.camMode = 'cine';
