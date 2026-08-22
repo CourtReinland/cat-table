@@ -48,6 +48,11 @@ export const STEER = {
   plantAlign: 0.55,
   /** Start turning as soon as the gait has a direction. */
   yawDeadzone: 0.06,
+  /**
+   * |yawRate| above this is a commanded pivot. Idle/sit must not own
+   * the body while planted A/D is turning in place (speed stays ~0).
+   */
+  yawBusy: 0.3,
   /** Bleed crab-walk; leave a little smear so a slide can scrape. */
   lateralCatch: 16,
   /** Visual bank (rad per rad/s of yaw). */
@@ -112,6 +117,14 @@ export function decelForSpeed(spd: number): number {
 /** Bank into the turn so yaw is not a rigid-body spin. Negative z = lean left. */
 export function leanFromYawRate(yawRate: number): number {
   return clamp(-yawRate * STEER.leanPerYawRate, -STEER.leanMax, STEER.leanMax);
+}
+
+/**
+ * Walking or a commanded planted pivot. Clip / sitK use this so look/sit
+ * do not play while A/D is yawing with the feet still.
+ */
+export function isSteerActive(speed: number, yawRate: number, speedFloor = 0.08): boolean {
+  return speed > speedFloor || Math.abs(yawRate) > STEER.yawBusy;
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   cameraRelativeMove,
   cameraRight,
   decelForSpeed,
+  isSteerActive,
   leanFromYawRate,
   lookToCamDir,
   shortestAngle,
@@ -147,6 +148,11 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     // 0.2s * 2.6 rad/s ≈ 0.52 rad — started, nowhere near 90°
     assert.ok(Math.abs(early.yaw) < 0.7, `0.2s yaw ${early.yaw} must not be a turret snap`);
     assert.ok(Math.abs(shortestAngle(early.yaw, -Math.PI / 2)) > 0.7);
+    const earlySpd = Math.hypot(early.vel.x, early.vel.z);
+    assert.ok(earlySpd < 0.08, `planted speed ${earlySpd} stays below the walk clip gate`);
+    assert.ok(Math.abs(early.last.yawRate) > STEER.yawBusy, 'yawRate must count as active during the pivot');
+    assert.ok(isSteerActive(earlySpd, early.last.yawRate));
+    assert.equal(isSteerActive(0, 0), false);
   });
 
   it('a 180° turn from rest takes about a second, not a frame', () => {

@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { stdMat } from './Props';
-import { leanFromYawRate } from './Steer';
+import { isSteerActive, leanFromYawRate } from './Steer';
 
 const CREAM = 0xecd2ac;
 const APRICOT = 0xdca878;
@@ -188,9 +188,10 @@ export class Cat {
     this.walkPhase += dt * (4 + sp * 9);
     const p = this.walkPhase;
     const moving = sp > 0.05;
-    this.idleTime = moving ? 0 : this.idleTime + dt;
+    const active = isSteerActive(sp, this.yawRate, 0.05);
+    this.idleTime = active ? 0 : this.idleTime + dt;
 
-    // settle into a sit when idle for a while
+    // settle into a sit when idle for a while — not during a planted A/D pivot
     const wantSit = this.idleTime > 3.5 && this.pushTimer <= 0 ? 1 : 0;
     this.sitK += (wantSit - this.sitK) * Math.min(1, dt * 3.2);
     const sit = this.sitK;
