@@ -1,17 +1,19 @@
 """
-Suki, sculpted from scratch — not a restyled fox.
+Suki, sculpted from scratch — CANON lock (Court, 2026-08-22).
 
-Reference: public/assets/ui/title-keyart.jpg + characters/suki-portrait.jpg
-  cream-apricot longhair, round skull, short muzzle, wide amber eyes,
-  fluffy banded tail, pink ribbon collar + bow, white toe socks.
+Refs: docs/suki-model/canon/
+  rooftop-toast / sit-front / play-bow / loaf-sleep / prance
+  fluffy white / pale-pink longhair kitten, cloud silhouette,
+  big sapphire eyes + lashes, hero pink bow, sassy face.
 
 Pipeline:
   1. metaball skeleton -> one seamless organic volume (body, haunches, legs, neck, tail)
   2. remesh + shrink-smooth -> clean quad-ish mesh ~6k tris
   3. head furniture (ears, muzzle, eyes, nose) joined / parented
-  4. per-vertex tabby paint computed analytically (no UVs, no bake)
+  4. per-vertex coat paint computed analytically (no UVs, no bake)
   5. armature + automatic weights
-  6. scripted actions: Idle, Walk, Gallop, Sit, Swipe, Cuddle, Hit
+  6. scripted actions: Idle, Idle_Look, Walk, Run, Swipe, Sit, Cuddle, Hit
+     + PlayBow, Loaf, Wink
   7. export public/assets/models/suki.glb
 
 Headless:  blender --background --python tools/blender/sculpt_suki.py
@@ -25,18 +27,22 @@ import os
 from mathutils import Vector, Matrix, Euler
 
 # ─────────────────────────────────────────────────────────────── palette ────
-CREAM       = (0.925, 0.818, 0.678, 1.0)   # main coat, key-art body
-CREAM_LIT   = (0.980, 0.940, 0.880, 1.0)   # chest ruff / muzzle / toes
-APRICOT     = (0.850, 0.640, 0.448, 1.0)   # tabby banding
-APRICOT_DP  = (0.735, 0.505, 0.330, 1.0)   # deepest stripe cores
-EAR_PINK    = (0.914, 0.639, 0.612, 1.0)
-NOSE_PINK   = (0.902, 0.549, 0.549, 1.0)
-AMBER       = (0.839, 0.588, 0.161, 1.0)
-AMBER_DEEP  = (0.616, 0.361, 0.086, 1.0)
-PUPIL       = (0.090, 0.055, 0.040, 1.0)
-RIBBON      = (0.945, 0.647, 0.749, 1.0)
-RIBBON_DK   = (0.878, 0.494, 0.639, 1.0)
-GOLD        = (0.965, 0.792, 0.353, 1.0)
+# CANON: fluffy white / pale-pink. Cream-apricot and amber are dead.
+FUR         = (0.985, 0.955, 0.962, 1.0)   # white with a pink breath
+FUR_LIT     = (1.000, 0.990, 0.994, 1.0)
+FUR_SHADE   = (0.930, 0.845, 0.868, 1.0)   # recess / under-fluff
+M_MARK      = (0.780, 0.735, 0.755, 1.0)   # faint forehead M
+EAR_PINK    = (0.965, 0.620, 0.680, 1.0)
+NOSE_PINK   = (0.955, 0.520, 0.575, 1.0)
+BLUSH       = (0.970, 0.560, 0.650, 1.0)
+BEAN        = (0.960, 0.430, 0.560, 1.0)
+BLUE        = (0.180, 0.460, 0.920, 1.0)   # sapphire iris
+BLUE_DEEP   = (0.080, 0.250, 0.700, 1.0)
+PUPIL       = (0.050, 0.040, 0.070, 1.0)
+LASH        = (0.070, 0.045, 0.055, 1.0)
+TONGUE      = (0.960, 0.420, 0.520, 1.0)
+RIBBON      = (0.980, 0.340, 0.580, 1.0)   # hero bow — identity
+RIBBON_DK   = (0.900, 0.220, 0.460, 1.0)
 WHITE       = (1.0, 1.0, 1.0, 1.0)
 
 # proportions (metres — real-cat scale, game rescales)
@@ -205,11 +211,12 @@ STROKES = {
         (0.036, -0.068, 0.228, 0.028),
         (0.032, -0.048, 0.222, 0.022),
     ],
-    # ── chest ruff: bib under the neck, not a hanging barrel ──
+    # ── chest ruff: cloud bib — the canon longhair mane ──
     'ruff': [
-        (0.000, -0.078, 0.210, 0.042),
-        (0.000, -0.096, 0.186, 0.036),
-        (0.000, -0.104, 0.158, 0.026),
+        (0.000, -0.078, 0.214, 0.058),
+        (0.000, -0.108, 0.186, 0.056),
+        (0.000, -0.126, 0.154, 0.048),
+        (0.000, -0.118, 0.122, 0.034),
     ],
     # ── neck into skull — visible cat neck above the withers ──
     'neck': [
@@ -238,11 +245,12 @@ STROKES = {
         (0.016, -0.248, 0.272, 0.015),
         (0.022, -0.236, 0.268, 0.017),
     ],
-    # longhair cheek pads — round the face without turning it into jowls
+    # longhair cheek tufts — cloud-wide face, the chibi read
     'cheek': [
-        (0.046, -0.182, 0.288, 0.030),
-        (0.052, -0.206, 0.278, 0.032),
-        (0.042, -0.226, 0.268, 0.022),
+        (0.062, -0.176, 0.294, 0.042),
+        (0.076, -0.200, 0.282, 0.048),
+        (0.066, -0.226, 0.268, 0.036),
+        (0.046, -0.242, 0.256, 0.024),
     ],
     # ── front leg: long column, shoulder -> elbow -> wrist -> paw ──
     'foreleg': [
@@ -275,17 +283,17 @@ STROKES = {
         (0.054,  0.040, 0.008, 0.0075),
         (0.060,  0.046, 0.008, 0.0070),
     ],
-    # ── tail: plume from the compact hip, curls up over the short back ──
+    # ── tail: fat plume, C-curl over the short back ──
     'tail': [
-        (0.000,  0.098, 0.210, 0.030),
-        (0.000,  0.140, 0.228, 0.028),
-        (0.000,  0.172, 0.258, 0.026),
-        (0.000,  0.188, 0.296, 0.024),
-        (0.000,  0.182, 0.334, 0.022),
-        (0.000,  0.152, 0.360, 0.020),
-        (0.000,  0.114, 0.368, 0.017),
-        (0.000,  0.078, 0.358, 0.014),
-        (0.000,  0.054, 0.338, 0.011),
+        (0.000,  0.098, 0.210, 0.048),
+        (0.000,  0.148, 0.234, 0.046),
+        (0.000,  0.184, 0.272, 0.044),
+        (0.000,  0.200, 0.316, 0.042),
+        (0.000,  0.184, 0.358, 0.038),
+        (0.000,  0.144, 0.386, 0.034),
+        (0.000,  0.096, 0.392, 0.028),
+        (0.000,  0.056, 0.374, 0.022),
+        (0.000,  0.032, 0.348, 0.016),
     ],
 }
 MIRRORED = {'cheek', 'foreleg', 'hindleg', 'pad', 'shoulder', 'foretoe', 'hindtoe'}
@@ -294,7 +302,7 @@ MIRRORED = {'cheek', 'foreleg', 'hindleg', 'pad', 'shoulder', 'foretoe', 'hindto
 # neck joint, so head/body balance is one number instead of 14 hand-edits.
 HEAD_STROKES = {'skull', 'muzzle', 'chin', 'pad', 'cheek'}
 HEAD_PIVOT = Vector((0.0, -0.150, 0.268))
-HEAD_SCALE = 0.90
+HEAD_SCALE = 1.16
 
 
 def _scale_head(p):
@@ -364,8 +372,13 @@ def build_volume():
 
     # flattened ellipsoids break the "stack of beads" read on paws / skull / hips
     skull = head_point((0.0, -0.196, 0.298))
-    _add_meta(mb, skull.x, skull.y, skull.z, 0.046, 'ELLIPSOID', (1.16, 1.04, 1.02))
+    _add_meta(mb, skull.x, skull.y, skull.z, 0.052, 'ELLIPSOID', (1.22, 1.08, 1.06))
+    # extra puff so the silhouette reads cloud, not sleek
+    _add_meta(mb, 0.0, -0.108, 0.168, 0.044, 'ELLIPSOID', (1.28, 1.16, 1.08))
+    _add_meta(mb, 0.0, -0.128, 0.142, 0.032, 'ELLIPSOID', (1.18, 1.08, 1.04))
     for side in (1, -1):
+        cheek = head_point((side * 0.076, -0.200, 0.282))
+        _add_meta(mb, cheek.x, cheek.y, cheek.z, 0.034, 'ELLIPSOID', (1.42, 1.14, 1.08))
         _add_meta(mb, side * 0.048, 0.076, 0.198, 0.032, 'ELLIPSOID', (1.16, 1.04, 1.08))
         _add_meta(mb, side * 0.044, -0.090, 0.011, 0.014, 'ELLIPSOID', (1.18, 1.45, 0.50))
         _add_meta(mb, side * 0.050, 0.056, 0.011, 0.014, 'ELLIPSOID', (1.18, 1.40, 0.50))
@@ -470,44 +483,62 @@ def build_ears(body):
 
 
 def build_face(body):
-    """Wide amber eyes with pupil + glint, and a small pink nose triangle.
-    Every piece is seated on the real surface by raycast."""
+    """Canon face: big sapphire eyes, lashes, blush, tiny nose.
+    Personality lives here — not a generic white cat."""
     parts = []
-    iris = mat('SukiIris', AMBER, rough=0.22)
-    pupil = mat('SukiPupil', PUPIL, rough=0.30)
-    glint = mat('SukiGlint', WHITE, rough=0.1, emit=WHITE, emit_str=1.6)
-    nose = mat('SukiNose', NOSE_PINK, rough=0.55)
-    lid = mat('SukiLid', WHITE, rough=0.92, vcol=True)
+    iris = mat('SukiIris', BLUE, rough=0.18)
+    pupil = mat('SukiPupil', PUPIL, rough=0.28)
+    glint = mat('SukiGlint', WHITE, rough=0.08, emit=WHITE, emit_str=2.0)
+    nose = mat('SukiNose', NOSE_PINK, rough=0.50)
+    lid = mat('SukiLid', FUR, rough=0.92, vcol=True)
+    lash_m = mat('SukiLash', LASH, rough=0.45)
+    blush_m = mat('SukiBlush', BLUSH, rough=0.75)
 
-    ER = 0.0178                            # big key-art / portrait eyes
+    ER = 0.0215                            # chibi sapphire disks
     for side in (1, -1):
         tag = 'L' if side > 0 else 'R'
         d = Vector((EYE_DIR.x * side, EYE_DIR.y, EYE_DIR.z)).normalized()
-        base = seat(body, HEAD_C, d, ER * 0.55, (side * 0.034, -0.262, 0.252))
-        # wide oval iris, slightly flattened so it reads anime-flat not a marble
-        e = prim('sphere', f'Eye{tag}', base, (ER * 0.92, ER * 0.78, ER),
-                 material=iris, seg=22, ring=14)
-        e.rotation_euler = Euler((0.08, 0, side * 0.22), 'XYZ')
+        base = seat(body, HEAD_C, d, ER * 0.50, (side * 0.036, -0.255, 0.268))
+        e = prim('sphere', f'Eye{tag}', base, (ER * 1.02, ER * 0.88, ER),
+                 material=iris, seg=24, ring=14)
+        e.rotation_euler = Euler((0.06, 0, side * 0.16), 'XYZ')
         apply_transforms(e)
         parts.append(e)
-        pu = prim('sphere', f'Pupil{tag}', base + d * (ER * 0.70),
-                  (0.0054, 0.0054, 0.0100), material=pupil, seg=14, ring=10)
+        pu = prim('sphere', f'Pupil{tag}', base + d * (ER * 0.68),
+                  (0.0064, 0.0064, 0.0115), material=pupil, seg=14, ring=10)
         apply_transforms(pu)
         parts.append(pu)
         gl = prim('sphere', f'Glint{tag}',
-                  base + d * (ER * 0.84) + Vector((side * 0.0042, 0, 0.0050)),
-                  (0.0032, 0.0032, 0.0032), material=glint, seg=10, ring=8)
+                  base + d * (ER * 0.86) + Vector((side * 0.0050, 0, 0.0056)),
+                  (0.0038, 0.0038, 0.0038), material=glint, seg=10, ring=8)
         apply_transforms(gl)
         parts.append(gl)
-        # a shallow fur lid so the eye reads as set into the face, not stuck on
-        br = prim('sphere', f'Brow{tag}', base + Vector((0, 0.0020, 0.0110)),
-                  (ER * 1.02, ER * 0.72, 0.0042),
-                  (0.32, 0, side * 0.22), material=lid, seg=16, ring=10)
+        gl2 = prim('sphere', f'Glint2{tag}',
+                   base + d * (ER * 0.80) + Vector((-side * 0.0040, 0, -0.0020)),
+                   (0.0018, 0.0018, 0.0018), material=glint, seg=8, ring=6)
+        apply_transforms(gl2)
+        parts.append(gl2)
+        br = prim('sphere', f'Brow{tag}', base + Vector((0, 0.0022, 0.0125)),
+                  (ER * 1.08, ER * 0.70, 0.0044),
+                  (0.30, 0, side * 0.18), material=lid, seg=16, ring=10)
         apply_transforms(br)
         parts.append(br)
+        # three outward lashes — the personality lock
+        for i, (lift, flare) in enumerate(((0.014, 0.18), (0.010, 0.34), (0.006, 0.50))):
+            la = prim('cone', f'Lash{tag}{i}',
+                      base + Vector((side * (0.014 + i * 0.004), -0.002, lift)),
+                      (0.0012, 0.0012, 0.0075),
+                      (0.55, side * flare, 0), material=lash_m, seg=5, r2=0.15)
+            apply_transforms(la)
+            parts.append(la)
+        bl = prim('sphere', f'Blush{tag}',
+                  base + Vector((side * 0.012, 0.004, -0.016)),
+                  (0.012, 0.006, 0.004), material=blush_m, seg=12, ring=8)
+        apply_transforms(bl)
+        parts.append(bl)
 
-    npos = seat(body, HEAD_C, NOSE_DIR, 0.0028, (0, -0.288, 0.228))
-    n = prim('cone', 'Nose', npos, (0.0084, 0.0066, 0.0070),
+    npos = seat(body, HEAD_C, NOSE_DIR, 0.0026, (0, -0.275, 0.255))
+    n = prim('cone', 'Nose', npos, (0.0072, 0.0058, 0.0060),
              (math.pi / 2, 0, 0), material=nose, seg=10)
     apply_transforms(n)
     parts.append(n)
@@ -515,70 +546,77 @@ def build_face(body):
 
 
 def build_ribbon():
-    """Pink collar band + the signature bow at the *front* of the neck."""
+    """Hero pink bow on the throat — the identity piece. Thin collar only."""
     parts = []
-    band_m = mat('SukiRibbon', RIBBON, rough=0.55)
-    knot_m = mat('SukiRibbonDk', RIBBON_DK, rough=0.55)
-    bell_m = mat('SukiBell', GOLD, rough=0.28, metal=0.55)
+    band_m = mat('SukiRibbon', RIBBON, rough=0.52)
+    knot_m = mat('SukiRibbonDk', RIBBON_DK, rough=0.52)
 
-    # ribbon band wrapping the neck, tilted to follow the neck's forward rake
-    band = prim('torus', 'Collar', (0, -0.118, 0.248), (0.038, 0.038, 0.038),
-                (1.05, 0, 0), material=band_m, mseg=28, nseg=10, minor=0.085)
+    band = prim('torus', 'Collar', (0, -0.112, 0.236), (0.040, 0.040, 0.040),
+                (1.08, 0, 0), material=band_m, mseg=28, nseg=8, minor=0.055)
     apply_transforms(band)
     parts.append(band)
 
-    # portrait bow sits dead-centre on the ruff, proud of the fur
-    bx, by, bz = 0.000, -0.118, 0.188
+    # big front bow, proud of the ruff
+    bx, by, bz = 0.000, -0.132, 0.198
     for side in (1, -1):
         tag = 'L' if side > 0 else 'R'
         loop = prim('sphere', f'BowLoop{tag}',
-                    (bx + side * 0.020, by - 0.006, bz + 0.006),
-                    (0.020, 0.009, 0.015),
-                    (0.18, side * 0.50, side * 0.08), material=band_m, seg=16, ring=10)
+                    (bx + side * 0.028, by - 0.008, bz + 0.008),
+                    (0.028, 0.012, 0.020),
+                    (0.12, side * 0.42, side * 0.06), material=band_m, seg=18, ring=12)
         apply_transforms(loop)
         parts.append(loop)
         tl = prim('cone', f'BowTail{tag}',
-                  (bx + side * 0.012, by - 0.002, bz - 0.018),
-                  (0.007, 0.0040, 0.018),
-                  (0.90, side * 0.16, 0), material=band_m, seg=8, r2=0.45)
+                  (bx + side * 0.016, by - 0.002, bz - 0.024),
+                  (0.010, 0.0055, 0.024),
+                  (0.95, side * 0.14, 0), material=band_m, seg=8, r2=0.40)
         apply_transforms(tl)
         parts.append(tl)
-    knot = prim('sphere', 'BowKnot', (bx, by - 0.008, bz + 0.002),
-                (0.0090, 0.0070, 0.0090), material=knot_m, seg=14, ring=10)
+    knot = prim('sphere', 'BowKnot', (bx, by - 0.010, bz + 0.004),
+                (0.012, 0.0090, 0.012), material=knot_m, seg=14, ring=10)
     apply_transforms(knot)
     parts.append(knot)
-
-    bell = prim('sphere', 'Bell', (0, -0.128, 0.168), (0.0075, 0.0075, 0.0075),
-                material=bell_m, seg=14, ring=10)
-    apply_transforms(bell)
-    parts.append(bell)
     return parts
 
 
 def build_mouth(npos):
-    """W-smile under the nose — the portrait's lovable read."""
-    lips = mat('SukiLips', (0.55, 0.28, 0.30, 1.0), rough=0.45)
+    """Open happy smile + tiny fangs + tongue — rooftop-toast / prance face."""
+    lips = mat('SukiLips', (0.55, 0.26, 0.32, 1.0), rough=0.42)
+    fang_m = mat('SukiFang', WHITE, rough=0.25)
+    tongue_m = mat('SukiTongue', TONGUE, rough=0.55)
     parts = []
-    # three short arcs: \ / \  forming a cat W
+    # wide upturned smile
     segs = [
-        ((-0.010, npos.y + 0.006, npos.z - 0.010), (-0.004, npos.y + 0.002, npos.z - 0.014)),
-        ((-0.004, npos.y + 0.002, npos.z - 0.014), (0.004, npos.y + 0.002, npos.z - 0.014)),
-        ((0.004, npos.y + 0.002, npos.z - 0.014), (0.010, npos.y + 0.006, npos.z - 0.010)),
+        ((-0.014, npos.y + 0.004, npos.z - 0.010), (-0.006, npos.y - 0.002, npos.z - 0.018)),
+        ((-0.006, npos.y - 0.002, npos.z - 0.018), (0.006, npos.y - 0.002, npos.z - 0.018)),
+        ((0.006, npos.y - 0.002, npos.z - 0.018), (0.014, npos.y + 0.004, npos.z - 0.010)),
     ]
     for i, (a, b) in enumerate(segs):
         mid = tuple((a[j] + b[j]) * 0.5 for j in range(3))
         d = Vector(b) - Vector(a)
-        cyl = prim('cyl', f'Mouth{i}', mid, (0.0016, 0.0016, d.length * 0.58),
+        cyl = prim('cyl', f'Mouth{i}', mid, (0.0018, 0.0018, d.length * 0.58),
                    material=lips, seg=6)
         cyl.rotation_euler = d.to_track_quat('Z', 'Y').to_euler()
         apply_transforms(cyl)
         parts.append(cyl)
+    for side in (1, -1):
+        fang = prim('cone', f'Fang{"L" if side > 0 else "R"}',
+                    (side * 0.005, npos.y - 0.001, npos.z - 0.012),
+                    (0.0022, 0.0022, 0.0055),
+                    (2.4, 0, 0), material=fang_m, seg=6, r2=0.2)
+        apply_transforms(fang)
+        parts.append(fang)
+    tongue = prim('sphere', 'Tongue',
+                  (0.0, npos.y - 0.004, npos.z - 0.020),
+                  (0.0055, 0.0035, 0.0030), material=tongue_m, seg=10, ring=8)
+    apply_transforms(tongue)
+    parts.append(tongue)
     return parts
 
 
 def build_pads():
     """Pink toe beans on every paw — sells 'pettable cat' on the close shot."""
-    pad_m = mat('SukiPad', (0.90, 0.55, 0.58, 1.0), rough=0.7)
+    pad_m = mat('SukiPad', BEAN, rough=0.55)
     parts = []
     # (name, centre, yaw-ish forward)
     paws = [
@@ -617,7 +655,7 @@ def build_whiskers(npos):
     return parts
 
 
-# ─────────────────────────────────────────── 3. analytic tabby vertex paint ─
+# ─────────────────────────────────────────── 3. analytic white/pale-pink coat ─
 def _mix(a, b, t):
     t = max(0.0, min(1.0, t))
     return tuple(a[i] + (b[i] - a[i]) * t for i in range(4))
@@ -631,64 +669,41 @@ def _smoothstep(e0, e1, x):
 
 
 def _hash_noise(x, y, z):
-    """Cheap deterministic value noise — breaks the coat into fur-like mottle."""
+    """Cheap deterministic value noise — quiet fur-like mottle, not tabby."""
     n = math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453
     return n - math.floor(n)          # 0..1
 
 
-# geometry landmarks the paint keys off (see STROKES)
-BELLY_Z, BACK_Z = 0.155, 0.255
-
-
 def coat_colour(p):
-    """Suki's coat as a function of position — cream base, apricot mackerel
-    tabby over the spine, pale bib/belly/toes, banded tail."""
+    """Canon coat: fluffy white with a pale-pink breath.
+    Recess shade + faint forehead M only. Cream / apricot / tabby are dead."""
     x, y, z = p.x, p.y, p.z
-    c = CREAM
+    c = FUR
 
-    # --- pale underside: belly, chest ruff, chin, muzzle, toe socks ---
-    belly = _smoothstep(0.195, BELLY_Z, z) * _smoothstep(0.110, 0.070, y)
-    bib = _smoothstep(-0.055, -0.110, y) * _smoothstep(0.240, 0.160, z)
-    toes = _smoothstep(0.055, 0.016, z)
-    chin = _smoothstep(-0.215, -0.260, y) * _smoothstep(0.285, 0.245, z)
-    muzzle = _smoothstep(-0.225, -0.265, y) * _smoothstep(0.290, 0.255, z)
-    pale = max(belly * 0.85, bib * 0.98, toes * 0.98, chin, muzzle * 0.90)
-    c = _mix(c, CREAM_LIT, pale)
+    # lit crown / muzzle / outer fluff
+    crown = _smoothstep(0.250, 0.310, z) * _smoothstep(-0.120, -0.180, y)
+    c = _mix(c, FUR_LIT, crown * 0.55)
 
-    # --- mackerel stripes: vertical bands round the barrel, fading down the flank
-    on_back = _smoothstep(0.190, BACK_Z, z)
-    in_barrel = _smoothstep(-0.110, -0.065, y) * _smoothstep(0.120, 0.075, y)
-    band = 0.5 + 0.5 * math.sin(y * 55.0 + 0.6)
-    stripe = (band ** 2) * on_back * in_barrel
-    # a solid dorsal saddle along the spine
-    saddle = _smoothstep(0.230, 0.255, z) * _smoothstep(0.055, 0.014, abs(x)) * in_barrel
-    c = _mix(c, APRICOT, min(1.0, stripe * 0.88 + saddle * 0.48))
-    c = _mix(c, APRICOT_DP, stripe * saddle * 0.60)
+    # pale-pink shade in recesses: under-ruff, belly, inner cheeks, paw wells
+    under = _smoothstep(0.210, 0.140, z)
+    ruff_hollow = _smoothstep(-0.070, -0.130, y) * _smoothstep(0.230, 0.140, z)
+    cheek_well = _smoothstep(0.040, 0.070, abs(x)) * _smoothstep(0.320, 0.250, z)
+    c = _mix(c, FUR_SHADE, max(under * 0.22, ruff_hollow * 0.28, cheek_well * 0.18))
 
-    # --- tail rings: band along the tail's arc, ignore the body ---
-    if y > 0.085 and z > 0.200:
-        arc = math.atan2(z - 0.250, y - 0.140)
-        ring = 0.5 + 0.5 * math.sin(arc * 7.0 + 1.2)
-        near_tail = _smoothstep(0.085, 0.130, y) + _smoothstep(0.280, 0.330, z)
-        near_tail = min(1.0, near_tail)
-        c = _mix(c, APRICOT, (ring ** 2) * near_tail * 0.90)
-        tip = _smoothstep(0.330, 0.365, z) * _smoothstep(0.180, 0.100, y)
-        c = _mix(c, APRICOT_DP, tip * 0.80)
+    # faint forehead M — two brows + a short center stroke
+    if y < -0.155 and z > 0.300:
+        brow = _smoothstep(0.016, 0.028, abs(x)) * _smoothstep(0.048, 0.036, abs(x))
+        brow *= _smoothstep(0.305, 0.345, z)
+        center = _smoothstep(0.012, 0.000, abs(x)) * _smoothstep(0.300, 0.330, z)
+        c = _mix(c, M_MARK, max(brow * 0.42, center * 0.28))
 
-    # --- forehead 'M' stripes between the ears ---
-    if y < -0.160 and z > 0.285:
-        m = (0.5 + 0.5 * math.sin(abs(x) * 95.0 + 0.4)) * _smoothstep(0.285, 0.340, z)
-        c = _mix(c, APRICOT, m * 0.72)
-        # cheek patches like the portrait
-        cheek = _smoothstep(0.028, 0.052, abs(x)) * _smoothstep(0.300, 0.260, z)
-        c = _mix(c, APRICOT, cheek * 0.45)
+    # tail plume slightly warmer in the core, never banded apricot
+    if y > 0.090 and z > 0.200:
+        c = _mix(c, FUR_SHADE, 0.10)
 
-    # --- tiny fur break-up; keep it quiet so the coat stays anime-flat ---
-    n = _hash_noise(x * 70, y * 70, z * 70) - 0.5
-    c = _mix(c, APRICOT_DP if n > 0 else CREAM_LIT, abs(n) * 0.05)
-
-    # --- gentle depth: darken deep creases under the body ---
-    c = _mix(c, APRICOT_DP, _smoothstep(0.09, 0.02, z) * 0.12)
+    n = _hash_noise(x * 55, y * 55, z * 55) - 0.5
+    c = _mix(c, FUR_SHADE if n > 0 else FUR_LIT, abs(n) * 0.04)
+    c = _mix(c, FUR_SHADE, _smoothstep(0.08, 0.018, z) * 0.10)
     return c
 
 
@@ -727,6 +742,9 @@ BONES = [
     ('Head',      (0, -0.150, 0.276), (0, -0.250, 0.290), 'Neck'),
     ('Ear.L',     (0.046, -0.196, 0.328), (0.060, -0.190, 0.388), 'Head'),
     ('Ear.R',     (-0.046, -0.196, 0.328), (-0.060, -0.190, 0.388), 'Head'),
+    # tiny eye bones — wink / happy-squint without a facial-rig project
+    ('Eye.L',     (0.036, -0.228, 0.292), (0.036, -0.246, 0.292), 'Head'),
+    ('Eye.R',     (-0.036, -0.228, 0.292), (-0.036, -0.246, 0.292), 'Head'),
     ('Tail1',     (0, 0.096, 0.210), (0, 0.142, 0.230), 'Hips'),
     ('Tail2',     (0, 0.142, 0.230), (0, 0.174, 0.262), 'Tail1'),
     ('Tail3',     (0, 0.174, 0.262), (0, 0.188, 0.300), 'Tail2'),
@@ -799,7 +817,7 @@ def start_action(arm, name):
     return act
 
 
-def key(arm, bone, frame, rot=None, loc=None):
+def key(arm, bone, frame, rot=None, loc=None, scale=None):
     pb = arm.pose.bones.get(bone)
     if pb is None:
         return
@@ -810,6 +828,9 @@ def key(arm, bone, frame, rot=None, loc=None):
     if loc is not None:
         pb.location = Vector(loc)
         pb.keyframe_insert('location', frame=frame)
+    if scale is not None:
+        pb.scale = Vector(scale)
+        pb.keyframe_insert('scale', frame=frame)
 
 
 def rest_pose(arm):
@@ -817,6 +838,7 @@ def rest_pose(arm):
         pb.rotation_mode = 'XYZ'
         pb.rotation_euler = Euler((0, 0, 0), 'XYZ')
         pb.location = Vector((0, 0, 0))
+        pb.scale = Vector((1, 1, 1))
 
 
 FRONT_LEGS = ['Arm.L', 'Forearm.L', 'Paw.L', 'Arm.R', 'Forearm.R', 'Paw.R']
@@ -863,34 +885,36 @@ def anim_idle_look(arm):
 
 
 def anim_walk(arm):
-    """Diagonal-pair prowl. 32f loop."""
+    """Prance, not a dog trot — high front lift, bounce, head up, tail plume high."""
     rest_pose(arm)
     start_action(arm, 'Walk')
-    N = 32
+    N = 28
     for i in range(9):
         f = 1 + i * (N / 8)
         ph = (i / 8) * math.tau
         sw = math.sin(ph)
         sw2 = math.sin(ph + math.pi)
-        key(arm, 'Arm.L', f, rot=(sw * 0.52, 0, 0))
-        key(arm, 'Forearm.L', f, rot=(max(0, -sw) * 0.60, 0, 0))
-        key(arm, 'Paw.L', f, rot=(sw * 0.22, 0, 0))
-        key(arm, 'Arm.R', f, rot=(sw2 * 0.52, 0, 0))
-        key(arm, 'Forearm.R', f, rot=(max(0, -sw2) * 0.60, 0, 0))
-        key(arm, 'Paw.R', f, rot=(sw2 * 0.22, 0, 0))
-        key(arm, 'Thigh.L', f, rot=(sw2 * 0.46, 0, 0))
-        key(arm, 'Shin.L', f, rot=(-max(0, sw2) * 0.55, 0, 0))
-        key(arm, 'Foot.L', f, rot=(sw2 * 0.20, 0, 0))
-        key(arm, 'Thigh.R', f, rot=(sw * 0.46, 0, 0))
-        key(arm, 'Shin.R', f, rot=(-max(0, sw) * 0.55, 0, 0))
-        key(arm, 'Foot.R', f, rot=(sw * 0.20, 0, 0))
-        # shoulder roll + hip sway read as feline
-        key(arm, 'Hips', f, rot=(0, math.sin(ph * 2) * 0.05, sw * 0.07),
-            loc=(0, 0, abs(math.sin(ph * 2)) * 0.006))
-        key(arm, 'Spine', f, rot=(0, -math.sin(ph * 2) * 0.04, -sw * 0.05))
-        key(arm, 'Chest', f, rot=(0, 0, sw * 0.04))
-        key(arm, 'Head', f, rot=(0.04, 0, -sw * 0.05))
-        tail_wave(arm, f, 0.26, ph * 1.5, curl=0.16)
+        # front paws lift higher so the beans read (prance.jpg)
+        key(arm, 'Arm.L', f, rot=(sw * 0.78, 0, 0))
+        key(arm, 'Forearm.L', f, rot=(max(0, -sw) * 0.42, 0, 0))
+        key(arm, 'Paw.L', f, rot=(sw * 0.38, 0, 0))
+        key(arm, 'Arm.R', f, rot=(sw2 * 0.78, 0, 0))
+        key(arm, 'Forearm.R', f, rot=(max(0, -sw2) * 0.42, 0, 0))
+        key(arm, 'Paw.R', f, rot=(sw2 * 0.38, 0, 0))
+        key(arm, 'Thigh.L', f, rot=(sw2 * 0.40, 0, 0))
+        key(arm, 'Shin.L', f, rot=(-max(0, sw2) * 0.42, 0, 0))
+        key(arm, 'Foot.L', f, rot=(sw2 * 0.16, 0, 0))
+        key(arm, 'Thigh.R', f, rot=(sw * 0.40, 0, 0))
+        key(arm, 'Shin.R', f, rot=(-max(0, sw) * 0.42, 0, 0))
+        key(arm, 'Foot.R', f, rot=(sw * 0.16, 0, 0))
+        bounce = abs(math.sin(ph * 2)) * 0.014
+        key(arm, 'Hips', f, rot=(0.04, math.sin(ph * 2) * 0.04, sw * 0.06),
+            loc=(0, 0, bounce))
+        key(arm, 'Spine', f, rot=(-0.04, -math.sin(ph * 2) * 0.03, -sw * 0.04))
+        key(arm, 'Chest', f, rot=(-0.03, 0, sw * 0.03))
+        key(arm, 'Neck', f, rot=(-0.06, 0, -sw * 0.03))
+        key(arm, 'Head', f, rot=(-0.08, 0, -sw * 0.04))
+        tail_wave(arm, f, 0.18, ph * 1.2, curl=-0.22)
 
 
 def anim_run(arm):
@@ -945,24 +969,31 @@ def anim_swipe(arm):
 
 
 def anim_sit(arm):
-    """Haunches down, chest up — the key-art pose. 40f settle, holds."""
+    """sit-front: composed upright sit, paws together, tail curled to the side."""
     rest_pose(arm)
     start_action(arm, 'Sit')
     for f, k in ((1, 0.0), (18, 0.75), (30, 1.0), (40, 1.0)):
-        key(arm, 'Hips', f, rot=(k * 0.55, 0, 0), loc=(0, 0, -k * 0.052))
-        key(arm, 'Spine', f, rot=(-k * 0.40, 0, 0))
-        key(arm, 'Chest', f, rot=(-k * 0.22, 0, 0))
-        key(arm, 'Neck', f, rot=(k * 0.10, 0, 0))
-        key(arm, 'Head', f, rot=(k * 0.05, 0, 0))
+        key(arm, 'Hips', f, rot=(k * 0.72, 0, 0), loc=(0, k * 0.012, -k * 0.070))
+        key(arm, 'Spine', f, rot=(-k * 0.16, 0, 0))
+        key(arm, 'Chest', f, rot=(-k * 0.06, 0, 0))
+        key(arm, 'Neck', f, rot=(k * 0.04, 0, 0))
+        key(arm, 'Head', f, rot=(k * 0.02, 0, 0))
         for b in ('Thigh.L', 'Thigh.R'):
-            key(arm, b, f, rot=(k * 1.15, 0, 0))
+            key(arm, b, f, rot=(k * 1.32, 0, 0))
         for b in ('Shin.L', 'Shin.R'):
-            key(arm, b, f, rot=(-k * 1.60, 0, 0))
+            key(arm, b, f, rot=(-k * 1.85, 0, 0))
         for b in ('Foot.L', 'Foot.R'):
-            key(arm, b, f, rot=(k * 0.70, 0, 0))
-        for b in ('Arm.L', 'Arm.R'):
-            key(arm, b, f, rot=(k * 0.12, 0, 0))
-        tail_wave(arm, f, 0.10, f * 0.10, curl=k * 0.45)
+            key(arm, b, f, rot=(k * 0.82, 0, 0))
+        # straight parallel columns, slight inward so the paws kiss
+        key(arm, 'Arm.L', f, rot=(k * 0.06, 0, k * 0.10))
+        key(arm, 'Arm.R', f, rot=(k * 0.06, 0, -k * 0.10))
+        key(arm, 'Forearm.L', f, rot=(k * 0.04, 0, 0))
+        key(arm, 'Forearm.R', f, rot=(k * 0.04, 0, 0))
+        # tail plume wraps forward around the right haunch
+        for i, b in enumerate(TAIL):
+            key(arm, b, f, rot=(k * (0.08 + i * 0.10),
+                                0,
+                                k * (0.55 + i * 0.22)))
 
 
 def anim_cuddle(arm):
@@ -973,20 +1004,20 @@ def anim_cuddle(arm):
         f = 1 + i * 10
         ph = (i / 8) * math.tau
         k = 1.0
-        key(arm, 'Hips', f, rot=(k * 0.55, 0, 0), loc=(0, 0, -k * 0.052))
-        key(arm, 'Spine', f, rot=(-k * 0.40 + math.sin(ph) * 0.05, 0,
+        key(arm, 'Hips', f, rot=(k * 0.72, 0, 0), loc=(0, k * 0.012, -k * 0.070))
+        key(arm, 'Spine', f, rot=(-k * 0.16 + math.sin(ph) * 0.05, 0,
                                   math.sin(ph) * 0.06))
-        key(arm, 'Chest', f, rot=(-k * 0.22, 0, math.sin(ph) * 0.05))
-        key(arm, 'Neck', f, rot=(k * 0.10 - abs(math.sin(ph)) * 0.22, 0,
+        key(arm, 'Chest', f, rot=(-k * 0.06, 0, math.sin(ph) * 0.05))
+        key(arm, 'Neck', f, rot=(k * 0.04 - abs(math.sin(ph)) * 0.22, 0,
                                  math.sin(ph) * 0.10))
-        key(arm, 'Head', f, rot=(k * 0.05 - abs(math.sin(ph)) * 0.28, 0,
+        key(arm, 'Head', f, rot=(k * 0.02 - abs(math.sin(ph)) * 0.28, 0,
                                  math.sin(ph) * 0.30))
         for b in ('Thigh.L', 'Thigh.R'):
-            key(arm, b, f, rot=(k * 1.15, 0, 0))
+            key(arm, b, f, rot=(k * 1.32, 0, 0))
         for b in ('Shin.L', 'Shin.R'):
-            key(arm, b, f, rot=(-k * 1.60, 0, 0))
+            key(arm, b, f, rot=(-k * 1.85, 0, 0))
         for b in ('Foot.L', 'Foot.R'):
-            key(arm, b, f, rot=(k * 0.70, 0, 0))
+            key(arm, b, f, rot=(k * 0.82, 0, 0))
         tail_wave(arm, f, 0.24, ph, curl=0.50)
 
 
@@ -1008,8 +1039,75 @@ def anim_hit(arm):
         tail_wave(arm, f, 0.55, f * 0.8, curl=-0.30)
 
 
+def anim_play_bow(arm):
+    """play-bow.jpg: chest planted, haunches high, tail C over the back."""
+    rest_pose(arm)
+    start_action(arm, 'PlayBow')
+    for f, k in ((1, 0.0), (14, 0.85), (24, 1.0), (36, 1.0)):
+        key(arm, 'Hips', f, rot=(-k * 0.22, 0, 0), loc=(0, -k * 0.018, k * 0.016))
+        key(arm, 'Spine', f, rot=(k * 0.42, 0, 0))
+        key(arm, 'Chest', f, rot=(k * 0.62, 0, 0))
+        key(arm, 'Neck', f, rot=(-k * 0.55, 0, 0))
+        key(arm, 'Head', f, rot=(-k * 0.18, 0, 0))
+        for b in ('Arm.L', 'Arm.R'):
+            key(arm, b, f, rot=(k * 1.05, 0, 0))
+        for b in ('Forearm.L', 'Forearm.R'):
+            key(arm, b, f, rot=(k * 0.28, 0, 0))
+        for b in ('Paw.L', 'Paw.R'):
+            key(arm, b, f, rot=(-k * 0.22, 0, 0))
+        for b in ('Thigh.L', 'Thigh.R'):
+            key(arm, b, f, rot=(-k * 0.18, 0, 0))
+        for b in ('Shin.L', 'Shin.R'):
+            key(arm, b, f, rot=(k * 0.12, 0, 0))
+        tail_wave(arm, f, 0.08, 0.4, curl=-k * 0.55)
+
+
+def anim_loaf(arm):
+    """loaf-sleep.jpg: compact curl, paws tucked, tail wrapped, happy-squint."""
+    rest_pose(arm)
+    start_action(arm, 'Loaf')
+    for f, k in ((1, 0.0), (16, 0.80), (28, 1.0), (40, 1.0)):
+        key(arm, 'Hips', f, rot=(k * 0.88, 0, k * 0.18),
+            loc=(0, k * 0.022, -k * 0.088))
+        key(arm, 'Spine', f, rot=(k * 0.28, 0, k * 0.32))
+        key(arm, 'Chest', f, rot=(k * 0.18, 0, k * 0.20))
+        key(arm, 'Neck', f, rot=(k * 0.32, 0, k * 0.16))
+        key(arm, 'Head', f, rot=(k * 0.22, 0, k * 0.18))
+        for b in ('Thigh.L', 'Thigh.R'):
+            key(arm, b, f, rot=(k * 1.45, 0, 0))
+        for b in ('Shin.L', 'Shin.R'):
+            key(arm, b, f, rot=(-k * 2.05, 0, 0))
+        for b in ('Foot.L', 'Foot.R'):
+            key(arm, b, f, rot=(k * 0.95, 0, 0))
+        for side, z in (('L', 0.22), ('R', -0.12)):
+            key(arm, f'Arm.{side}', f, rot=(k * 0.62, 0, k * z))
+            key(arm, f'Forearm.{side}', f, rot=(k * 0.85, 0, 0))
+            key(arm, f'Paw.{side}', f, rot=(k * 0.40, 0, 0))
+        for i, b in enumerate(TAIL):
+            key(arm, b, f, rot=(k * (0.16 + i * 0.12),
+                                0,
+                                k * (0.85 + i * 0.28)))
+        # happy-squint: squash both eye bones on local Y
+        key(arm, 'Eye.L', f, scale=(1.0, 1.0 - k * 0.72, 1.0))
+        key(arm, 'Eye.R', f, scale=(1.0, 1.0 - k * 0.72, 1.0))
+
+
+def anim_wink(arm):
+    """rooftop-toast face beat: right-eye wink + sassy head tilt. No facial project."""
+    rest_pose(arm)
+    start_action(arm, 'Wink')
+    for f, k in ((1, 0.0), (8, 1.0), (16, 1.0), (24, 0.0)):
+        key(arm, 'Head', f, rot=(k * 0.06, 0, k * 0.18))
+        key(arm, 'Neck', f, rot=(0, 0, k * 0.08))
+        key(arm, 'Ear.R', f, rot=(0, 0, k * 0.35))
+        key(arm, 'Eye.R', f, scale=(1.0, 1.0 - k * 0.88, 1.0))
+        key(arm, 'Eye.L', f, scale=(1.0, 1.0, 1.0))
+        tail_wave(arm, f, 0.12, f * 0.2, curl=0.12)
+
+
 ACTIONS = [anim_idle, anim_idle_look, anim_walk, anim_run,
-           anim_swipe, anim_sit, anim_cuddle, anim_hit]
+           anim_swipe, anim_sit, anim_cuddle, anim_hit,
+           anim_play_bow, anim_loaf, anim_wink]
 
 
 # ─────────────────────────────────────────────────────────── 6. export ──────
@@ -1053,13 +1151,13 @@ def setup_preview():
     world.node_tree.nodes['Background'].inputs[1].default_value = 1.0
     sc.world = world
 
-    # Standard transform + low key so albedo reads true (no highlight clipping)
+    # Standard transform + softer key — white fur clips if the key is hot
     sc.view_settings.view_transform = 'Standard'
-    sc.view_settings.exposure = 0.0
+    sc.view_settings.exposure = -0.15
     for name, loc, energy, size in (
-        ('KeyL', (0.6, -0.7, 0.75), 5.5, 0.6),
-        ('FillL', (-0.8, -0.3, 0.35), 2.2, 0.9),
-        ('RimL', (0.1, 0.9, 0.7), 3.5, 0.5),
+        ('KeyL', (0.6, -0.7, 0.75), 3.4, 0.7),
+        ('FillL', (-0.8, -0.3, 0.35), 1.8, 1.0),
+        ('RimL', (0.1, 0.9, 0.7), 2.2, 0.6),
     ):
         lamp = bpy.data.lights.new(name, 'AREA')
         lamp.energy = energy
@@ -1157,8 +1255,12 @@ def build_suki(render=True):
     # rigid shells ride their nearest bone
     for ob in ears:
         bone_parent(ob, arm, 'Ear.L' if ob.name.endswith('L') else 'Ear.R')
+    eye_bits = ('Eye', 'Pupil', 'Glint', 'Brow', 'Lash')
     for ob in face + whisk + mouth:
-        bone_parent(ob, arm, 'Head')
+        bone = 'Head'
+        if any(ob.name.startswith(p) for p in eye_bits):
+            bone = 'Eye.R' if 'R' in ob.name else 'Eye.L'
+        bone_parent(ob, arm, bone)
     for ob in ribbon:
         bone_parent(ob, arm, 'Neck')
     for ob in pads:

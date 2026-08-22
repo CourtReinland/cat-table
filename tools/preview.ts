@@ -3,6 +3,7 @@
  *   preview.html?model=suki          — sculpted Suki (default)
  *   preview.html?model=candelabra    — img2threejs factory
  * Views: ?view=beauty|side|front|threeq|paw|face
+ * Clip:   ?clip=Sit|Walk|PlayBow|Loaf|Wink|Idle (beauty defaults to Sit)
  * Orbit:  ?a=radians  (yaw around the view target)
  */
 import * as THREE from 'three/webgpu';
@@ -16,6 +17,7 @@ const modelName = (params.get('model') ?? 'suki').toLowerCase();
 const view = (params.get('view') ?? 'beauty').toLowerCase();
 const angle = parseFloat(params.get('a') ?? '0');
 const forceWebGL = params.get('gl') === '1' || params.get('gpu') !== '1';
+const clipParam = params.get('clip');
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGPURenderer({
@@ -28,7 +30,7 @@ await renderer.init();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 0.95;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -36,17 +38,18 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x17131c);
 
 function lookdevLights() {
-  const hemi = new THREE.HemisphereLight(0xfff0e4, 0x2a2230, 0.55);
+  // cooler / softer key so white fur keeps pink shade instead of clipping
+  const hemi = new THREE.HemisphereLight(0xfff2f6, 0x2a2238, 0.42);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff4ea, 1.85);
+  const key = new THREE.DirectionalLight(0xfff6f8, 1.32);
   key.position.set(0.55, 0.85, 0.65);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xc8d4ff, 0.45);
+  const fill = new THREE.DirectionalLight(0xd4dcff, 0.58);
   fill.position.set(-0.8, 0.35, 0.25);
   scene.add(fill);
-  const rim = new THREE.DirectionalLight(0xffd0c0, 0.9);
+  const rim = new THREE.DirectionalLight(0xffd4e4, 0.48);
   rim.position.set(-0.15, 0.55, -0.85);
   scene.add(rim);
 }
@@ -112,12 +115,19 @@ if (modelName === 'candelabra') {
       }
     });
     toonify(model);
-    outlineCharacter(model, 0x3a241c, 0.0026);
+    outlineCharacter(model, 0x3a2840, 0.0024);
     scene.add(model);
     if (gltf.animations.length) {
       mixer = new THREE.AnimationMixer(model);
-      const idle = gltf.animations.find((c) => c.name === 'Idle') ?? gltf.animations[0];
-      mixer.clipAction(idle).play();
+      const want = clipParam
+        ?? (view === 'beauty' ? 'Sit' : view === 'face' ? 'Idle' : 'Idle');
+      const clip = gltf.animations.find((c) => c.name === want)
+        ?? gltf.animations.find((c) => c.name === 'Idle')
+        ?? gltf.animations[0];
+      const action = mixer.clipAction(clip);
+      action.play();
+      // settle one-shot / hold clips (Sit, PlayBow, Loaf, Wink) before stills
+      mixer.update(0.85);
     }
     console.info('[preview] suki.glb', gltf.animations.map((c) => c.name).join(', '));
   } catch (err) {
@@ -177,7 +187,7 @@ frame();
 const hud = document.getElementById('hud');
 if (hud) {
   hud.textContent = modelName === 'suki'
-    ? `Suki isolation · ${view} · drag to orbit`
+    ? `Suki isolation · ${view}${clipParam ? ` · ${clipParam}` : ''} · drag to orbit`
     : `preview · ${modelName}`;
 }
 

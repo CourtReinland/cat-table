@@ -7,8 +7,8 @@ import { toonify, outlineCharacter } from './Toon';
  * Suki — playable heroine.
  *
  * Primary representation is `assets/models/suki.glb`, sculpted from scratch in
- * Blender against the splash key art (tools/blender/sculpt_suki.py): cream coat
- * baked into COLOR_0, amber eyes, pink ribbon collar, banded fluffy tail.
+ * Blender against the canon 2D lock (tools/blender/sculpt_suki.py): fluffy
+ * white / pale-pink coat in COLOR_0, sapphire eyes, hero pink bow.
  *
  * The old procedural cat stays as a fallback if the GLB fails to load, and can
  * be forced with `?suki=proc` for a quick A/B.

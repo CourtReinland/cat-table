@@ -54,7 +54,7 @@ export function toonMaterialFor(
     if (vertexColors) {
       // MeshToonNodeMaterial ignores the `vertexColors` flag under the WebGPU
       // node pipeline, so fold COLOR_0 in explicitly. Suki's whole coat —
-      // tabby banding, pale bib, banded tail — lives in this attribute.
+      // white / pale-pink recess shade + faint forehead M — lives in this attribute.
       m.vertexColors = true;
       // `attribute()` widens its node type to string in the TSL typings, so the
       // vec3 shape has to be reasserted here.
@@ -128,7 +128,7 @@ export function outlineCharacter(root: THREE.Object3D, color = 0x241826, thickne
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
     // tiny/thin bits gain nothing from an outline and just get muddy
-    if (/(Glint|Whisker|Pupil|flame|Icosphere)/.test(m.name)) return;
+    if (/(Glint|Glint2|Whisker|Pupil|Lash|Fang|Tongue|Blush|flame|Icosphere)/.test(m.name)) return;
     if ((m as any).userData?.isOutline) return;
     meshes.push(m);
   });
