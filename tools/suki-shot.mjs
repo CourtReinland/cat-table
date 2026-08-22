@@ -19,11 +19,11 @@ const shots = [
   { name: 'threeq', view: 'threeq', clip: 'Idle' },
   { name: 'paw', view: 'paw', clip: 'Idle' },
   { name: 'face', view: 'face', clip: 'Idle' },
-  { name: 'sit', view: 'front', clip: 'Sit' },
+  { name: 'sit', view: 'beauty', clip: 'Sit' },
   { name: 'play-bow', view: 'side', clip: 'PlayBow' },
-  { name: 'loaf', view: 'front', clip: 'Loaf' },
+  { name: 'loaf', view: 'side', clip: 'Loaf' },
   { name: 'walk', view: 'threeq', clip: 'Walk', t: 0.28 },
-  { name: 'wink', view: 'face', clip: 'Wink', t: 0.35 },
+  { name: 'wink', view: 'front', clip: 'Wink', t: 0.20 },
 ];
 
 const browser = await chromium.launch({

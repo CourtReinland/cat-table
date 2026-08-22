@@ -128,7 +128,7 @@ export function outlineCharacter(root: THREE.Object3D, color = 0x241826, thickne
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
     // tiny/thin bits gain nothing from an outline and just get muddy
-    if (/(Glint|Glint2|Whisker|Pupil|Lash|Fang|Tongue|Blush|flame|Icosphere)/.test(m.name)) return;
+    if (/(Glint|Glint2|Whisker|Pupil|Lash|Fang|Tongue|Blush|LidShut|flame|Icosphere)/.test(m.name)) return;
     if ((m as any).userData?.isOutline) return;
     meshes.push(m);
   });

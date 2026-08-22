@@ -59,12 +59,12 @@ type View = { pos: THREE.Vector3; target: THREE.Vector3; fov: number };
 
 const SUKI_VIEWS: Record<string, View> = {
   // glTF Y-up: muzzle ~+Z, height +Y. Pull back so the whole cat fits.
-  beauty: { pos: new THREE.Vector3(0.42, 0.34, 0.82), target: new THREE.Vector3(0, 0.20, 0.06), fov: 28 },
-  threeq: { pos: new THREE.Vector3(0.52, 0.32, 0.78), target: new THREE.Vector3(0, 0.20, 0.05), fov: 30 },
-  side:   { pos: new THREE.Vector3(1.22, 0.24, 0.08), target: new THREE.Vector3(0, 0.18, 0.04), fov: 26 },
-  front:  { pos: new THREE.Vector3(0.00, 0.24, 1.12), target: new THREE.Vector3(0, 0.18, 0.04), fov: 26 },
-  face:   { pos: new THREE.Vector3(0.08, 0.30, 0.64), target: new THREE.Vector3(0, 0.29, 0.20), fov: 32 },
-  paw:    { pos: new THREE.Vector3(0.044, -0.055, 0.055), target: new THREE.Vector3(0.044, 0.000, 0.090), fov: 36 },
+  beauty: { pos: new THREE.Vector3(0.52, 0.20, 0.88), target: new THREE.Vector3(0, 0.10, 0.00), fov: 28 },
+  threeq: { pos: new THREE.Vector3(0.55, 0.20, 0.80), target: new THREE.Vector3(0, 0.10, 0.00), fov: 30 },
+  side:   { pos: new THREE.Vector3(1.18, 0.16, 0.04), target: new THREE.Vector3(0, 0.13, 0.00), fov: 26 },
+  front:  { pos: new THREE.Vector3(0.00, 0.14, 1.18), target: new THREE.Vector3(0, 0.10, 0.00), fov: 26 },
+  face:   { pos: new THREE.Vector3(0.04, 0.22, 0.56), target: new THREE.Vector3(0, 0.21, 0.12), fov: 30 },
+  paw:    { pos: new THREE.Vector3(0.040, -0.048, 0.048), target: new THREE.Vector3(0.040, 0.000, 0.080), fov: 36 },
 };
 
 const CANDLE_VIEW: View = {
