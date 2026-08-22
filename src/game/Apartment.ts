@@ -483,6 +483,16 @@ export class Apartment {
       top.castShadow = true;
       top.receiveShadow = true;
       lg.add(top);
+      // ogee edge band: darker trim wrapping the slab lip so the counter reads
+      // as a finished piece of furniture instead of a floating texture
+      const band = new THREE.Mesh(
+        new THREE.BoxGeometry(ww + 0.03, 0.075, dd + 0.03),
+        bodyMat,
+      );
+      band.position.set(0, topY - 0.085, cz);
+      band.castShadow = true;
+      band.receiveShadow = true;
+      lg.add(band);
     };
 
     switch (level.surface) {

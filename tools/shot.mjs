@@ -87,7 +87,11 @@ try {
         await page.keyboard.down('KeyD');
         await sleep(700);
         await page.keyboard.up('KeyD');
+        await sleep(800);
+        await shot('05b-play-walked');
         await page.keyboard.press('Space');
+        await sleep(300); // mid-swipe — paw should be visible
+        await shot('05c-paw-midswipe');
         await sleep(900);
         await shot('05-play-push');
         break;

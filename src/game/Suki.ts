@@ -29,10 +29,19 @@ const CLIP = {
 /** Blender metres -> game units (a counter is ~4 units across). */
 const GLB_SCALE = 0.85;
 
+const _euler = new THREE.Euler();
+
 export class Suki {
   group = new THREE.Group();
   yaw = 0;
   speed = 0;
+  /** external velocity applied by shoves/hits; decays, drives tumble */
+  knockVel = new THREE.Vector3();
+  /** rolling/tumbling state: spin axis progress 0→1 over the roll */
+  tumbleT = 0;
+  tumbleDur = 0.55;
+  private tumbleAxis = new THREE.Vector3(1, 0, 0);
+  private tumbleSpin = Math.PI * 2;
 
   private inner: THREE.Group | null = null;
   private mixer: THREE.AnimationMixer | null = null;
@@ -97,6 +106,12 @@ export class Suki {
     await this.loading;
   }
 
+  /** Hide/show the whole cat (used by first-person camera). */
+  setVisible(v: boolean) {
+    this.group.visible = v;
+    this.cat.group.visible = v;
+  }
+
   private play(name: string, fade = 0.22, once = false) {
     if (!this.mixer) return;
     const next = this.actions.get(name) ?? this.actions.get(CLIP.idle);
@@ -148,6 +163,45 @@ export class Suki {
     }
     this.oneShotUntil = 0.45;
     this.play(CLIP.hit, 0.06, true);
+  }
+
+  /**
+   * Get knocked back and roll. `dir` is the shove direction (world XZ),
+   * `power` sets slide distance and spin speed.
+   */
+  knockback(dir: THREE.Vector3, power = 1) {
+    this.knockVel.copy(dir).setY(0).normalize().multiplyScalar(power);
+    this.tumbleT = this.tumbleDur;
+    // spin around the axis perpendicular to travel (a real somersault)
+    this.tumbleAxis.set(-dir.z, 0, dir.x).normalize();
+    this.tumbleSpin = Math.PI * 2 * Math.min(1.4, 0.6 + power * 0.5);
+  }
+
+  /** Integrate knockback velocity + tumble rotation. Returns true while tumbling. */
+  updateKnock(dt: number): boolean {
+    if (this.knockVel.lengthSq() > 0.0001) {
+      this.group.position.addScaledVector(this.knockVel, dt);
+      const decay = Math.exp(-4.2 * dt);
+      this.knockVel.multiplyScalar(decay);
+      if (this.knockVel.lengthSq() < 0.0004) this.knockVel.set(0, 0, 0);
+    }
+    if (this.tumbleT > 0) {
+      this.tumbleT -= dt;
+      const u = 1 - Math.max(0, this.tumbleT) / this.tumbleDur;
+      // ease-out so she lands settled, not snapping
+      const ang = this.tumbleSpin * (1 - Math.pow(1 - u, 2.2));
+      const _q = new THREE.Quaternion().setFromAxisAngle(this.tumbleAxis, -ang);
+      const _e = new THREE.Euler().setFromQuaternion(_q);
+      if (this.inner) this.inner.rotation.copy(_e);
+      this.cat.group.rotation.copy(_e);
+      if (this.tumbleT <= 0) {
+        this.inner?.rotation.set(0, 0, 0);
+        this.cat.group.rotation.set(0, 0, 0);
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 
   update(dt: number, t: number) {

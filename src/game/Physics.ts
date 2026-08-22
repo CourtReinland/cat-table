@@ -234,6 +234,24 @@ export class Physics {
     return true;
   }
 
+  /**
+   * Continuous paw-contact shove: applies force proportional to how hard the
+   * paw is currently swinging and how long it stays in contact — so weight
+   * builds up over the touch instead of teleporting on one frame.
+   */
+  contactShove(b: Body, dir: THREE.Vector3, swing: number, dt: number) {
+    if (b.state === 'gone' || b.immovable) return;
+    const mass = Math.max(0.25, b.mass);
+    // force per second at full swing; heavier props accelerate slower but the
+    // paw keeps pushing while in contact, so a committed swipe still moves them
+    const accel = swing * 7.0 / mass;
+    b.vel.addScaledVector(dir, accel * dt);
+    b.vel.y += swing * 0.35 * dt; // slight lift as the paw sweeps under it
+    b.angVel.x += dir.z * swing * 1.6 * dt;
+    b.angVel.z -= dir.x * swing * 1.6 * dt;
+    if (b.state === 'idle') b.state = 'sliding';
+  }
+
   private shatter(b: Body, impactSpeed: number) {
     b.state = 'gone';
     b.group.visible = false;

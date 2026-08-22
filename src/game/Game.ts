@@ -21,6 +21,7 @@ import {
 } from '../data/content';
 import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
+import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
 
 type Phase =
@@ -88,6 +89,21 @@ export class Game {
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
   private shakeRot = { z: 0 };
+  /** first-person mode: camera rides between Suki's ears */
+  fpCam = true;
+  private fpBobT = 0;
+  private fpPunch = new THREE.Vector3();
+  private fpFovKick = 0;
+  /** set true for one frame after an impact — drives the FP camera jolt */
+  fpJolt = 0;
+  // contact-based paw swipe state
+  private swipeT = 0;
+  private swipeHit = false;
+  private swipeBlocked = false;
+  private pawTip = new THREE.Vector3();
+  /** first-person paw: parented to the camera, sweeps on shove */
+  private fpPaw: THREE.Group | null = null;
+  private fpPawT = -1; // <0 = hidden
 
   // cutscene state
   private cineT = 0;
@@ -241,6 +257,11 @@ export class Game {
         else if (this.phase === 'pause') this.resume();
       }
       if (e.code === 'Space' && this.phase === 'dialogue') this.advanceDialogue();
+      if (e.code === 'KeyC' && this.phase === 'playing') {
+        this.fpCam = !this.fpCam;
+        this.ui.hint(this.fpCam ? "Suki's eyes: first-person" : 'Third-person view');
+        this.ui.hideHint();
+      }
     });
   }
 
@@ -329,6 +350,8 @@ export class Game {
     const sfxName =
       ev.kind === 'glass' ? 'shatter-glass' : ev.kind === 'ceramic' ? 'shatter-ceramic' : ev.kind === 'grand' ? 'smash-grand' : ev.kind === 'metal' ? 'clatter-metal' : 'thud-soft';
     audio.sfx(sfxName, { pan: THREE.MathUtils.clamp(ev.pos.x / 3, -0.8, 0.8) });
+    this.fpJolt = Math.min(1, this.fpJolt + 0.5);
+    this.fpPunch.y += 0.012;
     if (ev.kind === 'soft') this.fx.softBurst(ev.pos);
     else this.fx.shatterBurst(ev.pos, ev.kind);
 
@@ -389,6 +412,15 @@ export class Game {
     let push = (this.input.pressed('Space') || this.input.pointerPressed()) && this.pushCooldown <= 0;
     let meow = this.input.pressed('KeyE');
 
+    // integrate knockback/tumble from the previous frame first — while rolling,
+    // input is ignored (she's airborne, not steering)
+    const rolling = this.apartment.cat.updateKnock(dt);
+    if (rolling) {
+      axes = { x: 0, z: 0 };
+      push = false;
+      meow = false;
+    }
+
     if (this.autopilot) {
       const auto = this.autoInput();
       axes = auto.axes;
@@ -430,43 +462,66 @@ export class Game {
       }
     }
 
-    // committed paw swipe (cooldown so spam-swipe is weaker fantasy)
+    // committed paw swipe — contact-based, not a delayed teleport impulse
     if (push) {
       this.pushCooldown = 0.42;
+      this.swipeT = 0.42;
       cat.push();
       audio.sfx('whoosh');
-      const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
-      let hit = false;
-      let blocked = false;
-      // impact lands mid-swipe (~0.18s) for animation sync feel
-      const applyKick = () => {
-        if (this.phase !== 'playing') return;
+      this.swipeHit = false;
+      this.swipeBlocked = false;
+      if (this.fpCam) {
+        this.buildFpPaw();
+        this.fpPawT = 0.42;
+      }
+    }
+
+    // while the paw is out, anything it touches gets a continuous shove whose
+    // strength follows the swipe arc (wind-up → contact → follow-through)
+    if (this.swipeT > 0) {
+      const prev = this.swipeT;
+      this.swipeT = Math.max(0, this.swipeT - dt);
+      const u = 1 - this.swipeT / 0.42; // 0→1 over the swipe
+      // contact phase: 0.18–0.62 of the arc, peak force mid-swing
+      if (u > 0.16 && u < 0.66) {
+        const phase = Math.sin(((u - 0.16) / 0.5) * Math.PI); // 0→1→0
+        const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
+        // paw tip sweeps out ahead of the body
+        const pawReach = 0.42 + 0.18 * phase;
         for (const b of this.apartment.physics.bodies) {
           if (b.state === 'gone' || b.state === 'falling') continue;
-          const to = new THREE.Vector3().subVectors(b.pos, cat.group.position);
+          const to = new THREE.Vector3().subVectors(b.pos, catPos);
           to.y = 0;
           const dist = to.length();
-          if (dist < 0.5 + b.radiusXZ && to.clone().normalize().dot(facing) > 0.28) {
-            if (b.immovable) {
-              blocked = true;
-              continue;
-            }
-            const ok = this.apartment.physics.kick(
-              b,
-              facing.clone().add(to.normalize().multiplyScalar(0.35)).normalize(),
-              1.35,
-            );
-            if (ok) hit = true;
+          if (dist > pawReach + b.radiusXZ) continue;
+          const dir = to.clone().normalize();
+          if (dir.dot(facing) < 0.2) continue; // behind the paw plane
+          if (b.immovable) {
+            this.swipeBlocked = true;
+            continue;
           }
+          this.apartment.physics.contactShove(b, facing.clone().add(dir.multiplyScalar(0.3)).normalize(), phase, dt);
+          this.swipeHit = true;
         }
-        if (blocked && !hit) {
+        // paw tip position for the FP camera / future FX
+        this.pawTip.set(
+          catPos.x + facing.x * pawReach,
+          s.topY + 0.16 + 0.05 * phase,
+          catPos.z + facing.z * pawReach,
+        );
+      }
+      if (this.swipeT === 0 && prev > 0) {
+        // swipe finished — resolve feedback once
+        if (this.swipeBlocked && !this.swipeHit) {
           audio.sfx('thud-soft', { vol: 0.45 });
           this.ui.hint('Solid. Try something lighter.');
-        } else if (!hit && Math.random() < 0.4) {
+          // heavy immovable shoves back — weight goes both ways
+          this.catVel.multiplyScalar(-0.25);
+          this.fpPunch.z -= 0.03;
+        } else if (!this.swipeHit && Math.random() < 0.4) {
           audio.meow('cute');
         }
-      };
-      setTimeout(applyKick, 160);
+      }
     }
 
     // date clock: clear the surface before he loses interest in the counter
@@ -486,6 +541,13 @@ export class Game {
       cat.hitReact?.();
       audio.meow('sassy');
       audio.sfx('thud-soft', { vol: 0.55 });
+      this.fpJolt = 1;
+      this.fpPunch.set((Math.random() - 0.5) * 0.05, 0.03, -0.05);
+      // real knockback: she gets shoved away and tumbles, not teleported
+      const away = new THREE.Vector3(catPos.x - (hazardHit === 'hand' ? 0 : catPos.x * 0.2), 0, catPos.z + 0.6);
+      if (hazardHit === 'hand') away.set(catPos.x - 0, 0, 0.9); // hand sweeps from above/front
+      this.apartment.cat.knockback(away.normalize(), 1.6);
+      this.catVel.multiplyScalar(0.2);
       this.fx.heartBurst(catPos.clone().add(new THREE.Vector3(0, 0.35, 0)), 2, 0.15);
       this.shakeRot.z = (Math.random() - 0.5) * 0.08;
       if (hazardHit === 'hand') this.ui.hint("Heather's hand!");
@@ -521,14 +583,128 @@ export class Game {
       }
     }
 
+    // first-person camera state (head bob + swipe kick)
+    this.fpBobT += dt * (2.5 + spd * 5.5);
+    if (push) {
+      this.fpFovKick = Math.max(this.fpFovKick, 3.2);
+      this.fpPunch.z += 0.045;
+      this.fpPunch.y += 0.02;
+    }
+
     this.apartment.physics.update(dt);
 
-    // follow camera
-    const cx = catPos.x * 0.72;
-    const desired = new THREE.Vector3(cx, s.topY + 1.45, s.cz + s.halfD + 2.25);
-    this.camPos.lerp(desired, 1 - Math.exp(-3.2 * dt));
-    const look = new THREE.Vector3(catPos.x * 0.8, s.topY + 0.02, catPos.z * 0.5 + s.cz * 0.5);
-    this.camLook.lerp(look, 1 - Math.exp(-5 * dt));
+    if (!this.fpCam) {
+      // follow camera
+      const cx = catPos.x * 0.72;
+      const desired = new THREE.Vector3(cx, s.topY + 1.45, s.cz + s.halfD + 2.25);
+      this.camPos.lerp(desired, 1 - Math.exp(-3.2 * dt));
+      const look = new THREE.Vector3(catPos.x * 0.8, s.topY + 0.02, catPos.z * 0.5 + s.cz * 0.5);
+      this.camLook.lerp(look, 1 - Math.exp(-5 * dt));
+    }
+  }
+
+  /** Build a chunky first-person paw (cream fur + pink beans) parented to the camera. */
+  private buildFpPaw() {
+    if (this.fpPaw) return;
+    const g = new THREE.Group();
+    const furMat = new THREE.MeshToonNodeMaterial({ color: 0xecd2ac, gradientMap: null as any });
+    furMat.gradientMap = toonGradient();
+    const beanMat = new THREE.MeshToonNodeMaterial({ color: 0xf0a0bc, gradientMap: toonGradient() });
+    // forearm
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.22, 4, 10), furMat);
+    arm.rotation.x = Math.PI / 2;
+    arm.position.z = -0.16;
+    g.add(arm);
+    // paw proper — squashed sphere with toe beans
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), furMat);
+    paw.scale.set(1.15, 0.62, 1.0);
+    g.add(paw);
+    for (let i = 0; i < 3; i++) {
+      const toe = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), beanMat);
+      toe.position.set((i - 1) * 0.042, -0.032, 0.055);
+      g.add(toe);
+    }
+    const pad = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), beanMat);
+    pad.scale.set(1.3, 0.5, 1.0);
+    pad.position.set(0, -0.04, 0.005);
+    g.add(pad);
+    g.traverse((o) => ((o as any).frustumCulled = false));
+    g.visible = false;
+    this.fpPaw = g;
+    this.engine.camera.add(g);
+    this.engine.scene.add(this.engine.camera); // camera must be in-graph for children to render
+    this.fpPawT = -1;
+  }
+
+  /** Animate the FP paw sweep: rest low-right → wind-up → arc across view → settle. */
+  private updateFpPaw(dt: number) {
+    if (!this.fpPaw) return;
+    this.fpPaw.visible = this.fpCam && this.phase === 'playing' && this.fpPawT >= 0;
+    if (!this.fpPaw.visible) {
+      if (this.fpCam && this.phase !== 'playing') this.fpPawT = -1;
+      return;
+    }
+    const u = Math.max(0, 1 - this.fpPawT / 0.42); // same arc timing as the swipe
+    let reach: number, side: number, lift: number, roll: number;
+    if (u < 0.25) {
+      const k = u / 0.25; // wind-up: pull right and down
+      reach = 0.34 - 0.06 * k;
+      side = 0.30 + 0.08 * k;
+      lift = -0.16 - 0.04 * k;
+      roll = 0.35 * k;
+    } else if (u < 0.7) {
+      const k = (u - 0.25) / 0.45; // commit: arc left across the view
+      const e = Math.sin(k * Math.PI);
+      reach = 0.28 + 0.24 * e;
+      side = 0.38 - 0.52 * k;
+      lift = -0.20 + 0.13 * e;
+      roll = 0.35 - 0.85 * k;
+    } else {
+      const k = (u - 0.7) / 0.3; // recover back to rest
+      reach = 0.52 - 0.18 * k;
+      side = -0.14 + 0.44 * k;
+      lift = -0.07 - 0.09 * k;
+      roll = -0.5 + 0.5 * k;
+    }
+    this.fpPaw.position.set(side, lift, -reach);
+    this.fpPaw.rotation.set(0.15, side * 0.5, roll);
+    void dt;
+  }
+
+  /** Position the camera between Suki's ears, facing where she faces. */
+  private updateFirstPersonCam(dt: number) {
+    const cat = this.apartment.cat;
+    const p = cat.group.position;
+    const yaw = cat.yaw;
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+    // eye height above her feet origin — GLB scale accounted; head sits ~0.30 up
+    const eye = p.y + 0.31;
+
+    // head bob: gentle vertical sway while walking, still breathing when idle
+    const moving = this.catVel.lengthSq() > 0.02;
+    const bob = moving ? Math.abs(Math.sin(this.fpBobT)) * 0.016 : Math.sin(this.clock.elapsedTime * 1.8) * 0.004;
+    // slight lateral roll-sway with the gait
+    const sway = moving ? Math.sin(this.fpBobT * 0.5) * 0.010 : 0;
+
+    this.camPos.set(p.x - sin * 0.05, eye + bob, p.z - cos * 0.05); // tiny pullback so muzzle doesn't clip
+    this.camLook.set(
+      p.x + sin * 1.4,
+      eye + bob * 0.4 - 0.06,
+      p.z + cos * 1.4,
+    );
+
+    // impact jolt / punch decay
+    this.fpJolt = Math.max(0, this.fpJolt - dt * 4);
+    this.fpPunch.multiplyScalar(Math.exp(-7 * dt));
+    this.fpFovKick = THREE.MathUtils.damp(this.fpFovKick, 0, 6, dt);
+
+    const cam = this.engine.camera;
+    cam.position.copy(this.camPos).add(this.fpPunch);
+    cam.lookAt(this.camLook);
+    cam.rotation.z += sway + (Math.random() - 0.5) * 0.01 * this.fpJolt;
+    cam.fov = 62 + this.fpFovKick + (moving ? Math.min(4, this.catVel.length() * 1.6) : 0);
+    cam.updateProjectionMatrix();
   }
 
   /** dumb-but-effective AI cat for headless testing */
@@ -767,17 +943,34 @@ export class Game {
 
     // camera
     const cam = this.engine.camera;
-    if (this.camMode === 'orbit') {
-      const s = this.apartment.surface;
-      const a = t * 0.14;
-      const target = new THREE.Vector3(Math.sin(a) * 0.7, s.topY + 1.5, s.cz + s.halfD + 2.6 + Math.cos(a * 0.7) * 0.4);
-      this.camPos.lerp(target, 1 - Math.exp(-1.5 * rawDt));
-      this.camLook.lerp(new THREE.Vector3(0, s.topY + 0.2, s.cz), 1 - Math.exp(-2 * rawDt));
+    if (this.camMode === 'follow' && this.fpCam && this.phase === 'playing') {
+      this.updateFirstPersonCam(rawDt);
+      this.apartment.cat.setVisible(false);
+      if (this.fpPawT >= 0) {
+        this.fpPawT -= rawDt;
+        this.updateFpPaw(rawDt);
+      } else if (this.fpPaw) {
+        this.fpPaw.visible = false;
+      }
+    } else {
+      this.apartment.cat.setVisible(true);
+      if (this.camMode === 'orbit') {
+        const s = this.apartment.surface;
+        const a = t * 0.14;
+        const target = new THREE.Vector3(Math.sin(a) * 0.7, s.topY + 1.5, s.cz + s.halfD + 2.6 + Math.cos(a * 0.7) * 0.4);
+        this.camPos.lerp(target, 1 - Math.exp(-1.5 * rawDt));
+        this.camLook.lerp(new THREE.Vector3(0, s.topY + 0.2, s.cz), 1 - Math.exp(-2 * rawDt));
+      }
+      cam.position.copy(this.camPos);
+      this.fx.applyShake(rawDt, cam.position, this.shakeRot);
+      cam.lookAt(this.camLook);
+      cam.rotation.z += this.shakeRot.z;
+      if (Math.abs(cam.fov - (this.fpCam ? 62 : 40)) > 0.01) {
+        // restore projection after FP mode exits
+        cam.fov = 40;
+        cam.updateProjectionMatrix();
+      }
     }
-    cam.position.copy(this.camPos);
-    this.fx.applyShake(rawDt, cam.position, this.shakeRot);
-    cam.lookAt(this.camLook);
-    cam.rotation.z += this.shakeRot.z;
 
     void this.engine.render();
   };

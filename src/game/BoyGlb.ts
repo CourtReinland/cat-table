@@ -68,7 +68,16 @@ export class Boyfriend {
       });
       this.group.add(inner);
       toonify(inner);
-      outlineCharacter(inner);
+      // warmer outline for the boys — separates them from Suki (dark plum)
+      // and reads as "romance lead" rim light
+      outlineCharacter(inner, 0x3a2430, 0.0055);
+      // lift suitor colours slightly so they stay readable in the dim room
+      inner.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const m = mesh.material as any;
+        if (m && m.type?.includes('Toon') && m.color) m.color.multiplyScalar(1.12);
+      });
       this.mixer = new THREE.AnimationMixer(inner);
       for (const clip of src.animations) {
         // NLA track names come through clean: Idle_Sit, Walk, Cuddle…
