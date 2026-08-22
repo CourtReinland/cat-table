@@ -172,8 +172,11 @@ export function stepProwl(
   const targetX = fx * targetSpd;
   const targetZ = fz * targetSpd;
 
-  const speedingUp = targetSpd > spd + 0.02;
-  const rate = speedingUp ? STEER.accel : decelForSpeed(spd);
+  // Accel for in-gait heading catch while input is live and speed is not
+  // actually dropping (90° / reverse while W is held). Scrape only on
+  // release, analog ease, or sprint→walk — when commit lowers speed.
+  const catchHeading = desiredSpd > STEER.yawDeadzone && targetSpd >= spd - 0.02;
+  const rate = catchHeading ? STEER.accel : decelForSpeed(spd);
   const a = 1 - Math.exp(-rate * dt);
 
   let vx = vel.x + (targetX - vel.x) * a;

@@ -226,4 +226,33 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     assert.ok(Math.abs(left) <= STEER.leanMax);
     assert.ok(Math.abs(leanFromYawRate(40)) <= STEER.leanMax);
   });
+
+  it('live 90° cut and reverse use accel catch, not scrape ice-skate', () => {
+    const cut = stepFor(18, { x: 0, z: WALK }, 0, { x: WALK, z: 0 }); // 0.3s
+    const cfx = Math.sin(cut.yaw);
+    const cfz = Math.cos(cut.yaw);
+    const cutAlong = cut.vel.x * cfx + cut.vel.z * cfz;
+    assert.ok(cutAlong > 1.0, `in-gait 90° should keep walk speed along heading (${cutAlong})`);
+    assert.ok(cut.vel.z < 0.85, `old-axis leftover ${cut.vel.z} is ice-skate; heading catch should plant the cut`);
+
+    const rev = stepFor(30, { x: 0, z: WALK }, 0, { x: 0, z: -WALK }); // 0.5s
+    const rfx = Math.sin(rev.yaw);
+    const rfz = Math.cos(rev.yaw);
+    const revAlong = rev.vel.x * rfx + rev.vel.z * rfz;
+    assert.ok(revAlong > 1.0, `held reverse should keep gait speed along heading (${revAlong})`);
+    assert.ok(rev.vel.z < 0.4, `reverse must not ice-skate the old +Z (${rev.vel.z})`);
+  });
+
+  it('scrape still applies when input eases or sprint drops to walk', () => {
+    const eased = WALK * 0.25;
+    const ease = stepProwl(DT, { x: 0, z: WALK }, 0, { x: 0, z: eased });
+    const a = 1 - Math.exp(-decelForSpeed(WALK) * DT);
+    almost(Math.hypot(ease.x, ease.z), WALK + (eased - WALK) * a, 1e-3);
+
+    const sprint = 2.2;
+    const drop = stepProwl(DT, { x: 0, z: sprint }, 0, { x: 0, z: WALK });
+    const dropped = Math.hypot(drop.x, drop.z);
+    assert.ok(dropped > sprint - 0.12, `sprint→walk should scrape, not accel-brake (${dropped})`);
+    assert.ok(dropped < sprint);
+  });
 });
