@@ -437,6 +437,7 @@ export class Game {
     const stepped = stepProwl(dt, this.catVel, cat.yaw, desired);
     this.catVel.set(stepped.x, 0, stepped.z);
     cat.yaw = stepped.yaw;
+    cat.yawRate = stepped.yawRate;
     cat.group.position.addScaledVector(this.catVel, dt);
 
     // clamp to counter top
@@ -825,6 +826,7 @@ export class Game {
       cat.group.position.lerpVectors(this.catFrom, edge, k);
       const d = new THREE.Vector3().subVectors(bf.group.position, cat.group.position);
       cat.yaw = Math.atan2(d.x, d.z);
+      cat.yawRate = 0;
       cat.speed = 0;
     }
 
