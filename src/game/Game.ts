@@ -23,6 +23,7 @@ import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
+import { cameraRelativeMove, lookToCamDir, stepProwl } from './Steer';
 
 type Phase =
   | 'loading'
@@ -85,6 +86,7 @@ export class Game {
   private hazards!: Hazards;
   private targetBreak = 0;
   private catVel = new THREE.Vector3();
+  private lookDir = new THREE.Vector3();
   private camMode: 'follow' | 'orbit' | 'cine' = 'orbit';
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
@@ -428,8 +430,13 @@ export class Game {
     }
 
     const speed = this.input.sprint ? 2.2 : 1.35;
-    const targetVel = new THREE.Vector3(axes.x, 0, axes.z).multiplyScalar(speed);
-    this.catVel.lerp(targetVel, 1 - Math.exp(-10 * dt));
+    // Autopilot already emits world XZ toward props. Player WASD + stick
+    // share camera-local axes and must go through the same camera basis.
+    const worldAxes = this.autopilot ? axes : this.playerWorldAxes(axes);
+    const desired = { x: worldAxes.x * speed, z: worldAxes.z * speed };
+    const stepped = stepProwl(dt, this.catVel, cat.yaw, desired);
+    this.catVel.set(stepped.x, 0, stepped.z);
+    cat.yaw = stepped.yaw;
     cat.group.position.addScaledVector(this.catVel, dt);
 
     // clamp to counter top
@@ -440,13 +447,6 @@ export class Game {
 
     const spd = this.catVel.length();
     cat.speed = spd / 1.5;
-    if (spd > 0.15) {
-      const targetYaw = Math.atan2(this.catVel.x, this.catVel.z);
-      let d = targetYaw - cat.yaw;
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      cat.yaw += d * Math.min(1, dt * 10);
-    }
 
     // body bump — much gentler; can't clear the table by jogging
     const catPos = cat.group.position;
@@ -705,6 +705,19 @@ export class Game {
     cam.rotation.z += sway + (Math.random() - 0.5) * 0.01 * this.fpJolt;
     cam.fov = 62 + this.fpFovKick + (moving ? Math.min(4, this.catVel.length() * 1.6) : 0);
     cam.updateProjectionMatrix();
+  }
+
+  /**
+   * Map camera-local WASD / stick axes onto the live camera look.
+   * W / stick-forward (`axes.z < 0`) walks along getWorldDirection flattened
+   * to XZ — into the lens, which in first-person is also Suki's facing.
+   */
+  private playerWorldAxes(axes: { x: number; z: number }): { x: number; z: number } {
+    if (axes.x === 0 && axes.z === 0) return axes;
+    const cam = this.engine.camera;
+    cam.updateMatrixWorld();
+    cam.getWorldDirection(this.lookDir);
+    return cameraRelativeMove(axes, lookToCamDir(this.lookDir, this.apartment.cat.yaw));
   }
 
   /** dumb-but-effective AI cat for headless testing */
