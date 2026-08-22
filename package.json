@@ -9,6 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit && node --experimental-strip-types --test src/game/Steer.test.ts",
     "shot": "node tools/shot.mjs",
     "gen:assets": "node tools/gen-assets.mjs"
   },

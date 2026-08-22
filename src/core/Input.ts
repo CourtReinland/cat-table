@@ -1,4 +1,32 @@
-/** Keyboard + pointer + touch-stick input, pooled per frame. */
+/**
+ * Keyboard + pointer + touch-stick input, pooled per frame.
+ *
+ * `moveAxes()` is camera-local, not world: `x` = right, `z` = back.
+ * W / ArrowUp / stick-forward all write `z < 0`. Game.ts remaps that
+ * shared pair through the live camera so the stick cannot stay on
+ * world axes after steering is camera-relative.
+ */
+export type MoveAxes = { x: number; z: number };
+
+/** Merge WASD/arrows with the virtual stick in one camera-local space. */
+export function combineMoveAxes(
+  down: (code: string) => boolean,
+  touch: MoveAxes,
+): MoveAxes {
+  let x = touch.x;
+  let z = touch.z;
+  if (down('KeyA') || down('ArrowLeft')) x -= 1;
+  if (down('KeyD') || down('ArrowRight')) x += 1;
+  if (down('KeyW') || down('ArrowUp')) z -= 1;
+  if (down('KeyS') || down('ArrowDown')) z += 1;
+  const len = Math.hypot(x, z);
+  if (len > 1) {
+    x /= len;
+    z /= len;
+  }
+  return { x, z };
+}
+
 export class Input {
   private keys = new Set<string>();
   private pressedEdge = new Set<string>();
@@ -56,19 +84,9 @@ export class Input {
     this.pointerEdge = false;
   }
 
-  moveAxes(): { x: number; z: number } {
-    let x = this.touch.x;
-    let z = this.touch.z;
-    if (this.down('KeyA') || this.down('ArrowLeft')) x -= 1;
-    if (this.down('KeyD') || this.down('ArrowRight')) x += 1;
-    if (this.down('KeyW') || this.down('ArrowUp')) z -= 1;
-    if (this.down('KeyS') || this.down('ArrowDown')) z += 1;
-    const len = Math.hypot(x, z);
-    if (len > 1) {
-      x /= len;
-      z /= len;
-    }
-    return { x, z };
+  /** Camera-local axes. Same contract for keyboard and the virtual stick. */
+  moveAxes(): MoveAxes {
+    return combineMoveAxes((code) => this.down(code), this.touch);
   }
 
   get sprint() {
@@ -88,6 +106,8 @@ export class Input {
       const len = Math.hypot(dx, dy) || 1;
       const cl = Math.min(len, maxR);
       knob.style.transform = `translate(calc(-50% + ${(dx / len) * cl}px), calc(-50% + ${(dy / len) * cl}px))`;
+      // Same camera-local pair as WASD: +x = right, +z = back (stick-down).
+      // Game.ts maps these through the camera; do not write world XZ here.
       this.touch.x = (dx / len) * (cl / maxR);
       this.touch.z = (dy / len) * (cl / maxR);
       this.touch.active = true;
