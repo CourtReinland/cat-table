@@ -596,9 +596,47 @@ body {
   }
 }
 
+/* GS-STEER-STAMP — impossible to miss on a phone. Always on during play. */
+.hud-build {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: clamp(20px, 6.4vw, 32px);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #111;
+  background: #ffe14a;
+  border-top: 4px solid #111;
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 0 #fff;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.title-build {
+  display: inline-block;
+  margin-top: 16px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: clamp(16px, 4.6vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #111;
+  background: #ffe14a;
+  border: 3px solid #111;
+  box-shadow: 0 0 0 3px #fff, 0 4px 0 #111;
+  padding: 6px 14px;
+}
+
 .hud-hint {
   position: absolute;
-  bottom: 22px;
+  bottom: 64px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 13px;
@@ -619,7 +657,7 @@ body {
 /* bark (boyfriend reaction line) */
 .bark {
   position: absolute;
-  bottom: 74px;
+  bottom: 92px;
   left: 50%;
   transform: translate(-50%, 20px);
   display: flex;

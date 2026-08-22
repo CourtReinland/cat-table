@@ -19,26 +19,26 @@ export type ProwlStep = { x: number; z: number; yaw: number; yawRate: number };
 /**
  * Live ea73f93 / 8b29604 puck-adjacent body:
  *   accel 14, decel 9, yawCatch 16, yawDeadzone 0.06, lateralCatch 20
- * yawCatch 16 × dt closes ~27% of the remaining heading per frame — a 180°
- * snap. decel 9 halves speed in ~4 frames. Those are the numbers this ticket
- * walks back.
+ * PR2 / main 684a736 was still too subtle on a phone:
+ *   accel 12, decelSlide 2.2, yawRatePlanted 2.6, yawRateMoving 4.2
+ * GS-STEER-STAMP punches planted A/D (~2.2s 180°) and release slide.
  */
 export const STEER = {
   /** Input present and facing the intent — onto the gait, not an ice-skate. */
   accel: 12,
-  /** Fast residual — Stray slide, paws still skidding. */
-  decelSlide: 2.2,
+  /** Fast residual — long Stray slide, readable on a thumb-stick. */
+  decelSlide: 1.15,
   /** Slow residual — scrape and plant. */
   decelSettle: 5.4,
   /** Blend slide → settle around this speed (u/s). */
   scrapeSpeed: 0.48,
   /**
-   * Planted A/D pivot (rad/s). π / 2.6 ≈ 1.21s for a 180° — feet stay,
-   * body yaws, not a turret.
+   * Planted A/D pivot (rad/s). π / 1.4 ≈ 2.24s for a 180° — feet stay,
+   * body yaws. Main 2.6 was still a hover-puck on a phone.
    */
-  yawRatePlanted: 2.6,
-  /** On the move — still a body turn (π / 4.2 ≈ 0.75s for 180°). */
-  yawRateMoving: 4.2,
+  yawRatePlanted: 1.4,
+  /** On the move — still a body turn (π / 2.2 ≈ 1.43s for 180°). */
+  yawRateMoving: 2.2,
   /** Below this speed (u/s), treat A/D as a planted pivot. */
   plantSpeed: 0.38,
   /**

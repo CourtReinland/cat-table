@@ -1,5 +1,6 @@
 import { LEVELS, SUKI, getBoyfriend, type BoyDef, type LevelDef, type Line } from '../data/content';
 import type { Save } from '../core/Save';
+import { BUILD_STAMP } from '../buildStamp';
 
 type UIEvent =
   | 'start'
@@ -76,6 +77,7 @@ export class UI {
     $('btn-wipe').onclick = () => this.emit('wipe');
     $('btn-ending-title').onclick = () => this.emit('quitTitle');
     $('dialogue').addEventListener('click', () => this.emit('dialogueNext'));
+    this.paintBuildStamp();
 
     // settings inputs
     const s = save.data.settings;
@@ -112,6 +114,15 @@ export class UI {
     // the touch stick/buttons are only meaningful while prowling — otherwise
     // they sit on top of the title and intro menus on any coarse-pointer device
     document.getElementById('touch-ui')?.classList.toggle('visible', visible);
+    if (visible) this.paintBuildStamp();
+  }
+
+  /** Big high-contrast BUILD 3 + hash — play HUD and title. */
+  paintBuildStamp() {
+    for (const id of ['hud-build', 'title-build']) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = BUILD_STAMP;
+    }
   }
 
   private setImg(img: HTMLImageElement, src: string, letter: string) {
