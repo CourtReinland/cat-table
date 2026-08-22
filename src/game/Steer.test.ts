@@ -128,9 +128,9 @@ describe('GS-STEER-01 camera-relative axes', () => {
 });
 
 describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
-  it('yaw rate is a capped body turn, not the live yawCatch-16 turret', () => {
-    assert.ok(STEER.yawRatePlanted < 4, `planted ${STEER.yawRatePlanted} should be a slow pivot`);
-    assert.ok(STEER.yawRateMoving < 6, `moving ${STEER.yawRateMoving} should still take time`);
+  it('yaw rate is a capped body turn, punched past the main 2.6 / 4.2 hover-puck', () => {
+    assert.ok(STEER.yawRatePlanted >= 1.3 && STEER.yawRatePlanted <= 1.6, `planted ${STEER.yawRatePlanted} should be a ~2s 180`);
+    assert.ok(STEER.yawRateMoving < 3, `moving ${STEER.yawRateMoving} should be slower than main 4.2`);
     assert.ok(STEER.yawRatePlanted < STEER.yawRateMoving);
     // old catch: first frame of a 180° closed π * min(1, dt*16) ≈ 0.84 rad
     const turretFirst = Math.PI * Math.min(1, DT * 16);
@@ -148,9 +148,9 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const dist = Math.hypot(early.pos.x, early.pos.z);
     assert.ok(dist < 0.05, `planted 0.2s travel ${dist} should keep the feet still`);
     assert.ok(early.yaw < 0, 'A should yaw toward camera-left');
-    // 0.2s * 2.6 rad/s ≈ 0.52 rad — started, nowhere near 90°
-    assert.ok(Math.abs(early.yaw) < 0.7, `0.2s yaw ${early.yaw} must not be a turret snap`);
-    assert.ok(Math.abs(shortestAngle(early.yaw, -Math.PI / 2)) > 0.7);
+    // 0.2s * 1.4 rad/s ≈ 0.28 rad — started, nowhere near 90°
+    assert.ok(Math.abs(early.yaw) < 0.45, `0.2s yaw ${early.yaw} must not be a turret snap`);
+    assert.ok(Math.abs(shortestAngle(early.yaw, -Math.PI / 2)) > 1.0);
     const earlySpd = Math.hypot(early.vel.x, early.vel.z);
     assert.ok(earlySpd < 0.08, `planted speed ${earlySpd} stays below the walk clip gate`);
     assert.ok(Math.abs(early.last.yawRate) > STEER.yawBusy, 'yawRate must count as active during the pivot');
@@ -158,17 +158,22 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     assert.equal(isSteerActive(0, 0), false);
   });
 
-  it('a 180° turn from rest takes about a second, not a frame', () => {
+  it('a 180° turn from rest takes about two seconds, not a snap', () => {
     const desired = { x: 0, z: -WALK };
-    const short = stepFor(24, { x: 0, z: 0 }, 0, desired); // 0.4s
+    const short = stepFor(36, { x: 0, z: 0 }, 0, desired); // 0.6s
     assert.ok(
       Math.abs(shortestAngle(short.yaw, Math.PI)) > 1.0,
-      `0.4s of a 180° should still be turning (yaw ${short.yaw})`,
+      `0.6s of a 180° should still be turning (yaw ${short.yaw})`,
     );
-    const done = stepFor(90, { x: 0, z: 0 }, 0, desired); // 1.5s
+    const mid = stepFor(90, { x: 0, z: 0 }, 0, desired); // 1.5s
+    assert.ok(
+      Math.abs(shortestAngle(mid.yaw, Math.PI)) > 0.4,
+      `1.5s should still be mid-pivot (yaw ${mid.yaw})`,
+    );
+    const done = stepFor(150, { x: 0, z: 0 }, 0, desired); // 2.5s
     assert.ok(
       Math.abs(shortestAngle(done.yaw, Math.PI)) < 0.2,
-      `1.5s should finish the 180° (yaw ${done.yaw})`,
+      `2.5s should finish the 180° (yaw ${done.yaw})`,
     );
   });
 
@@ -190,19 +195,23 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
   });
 
   it('release is a Stray slide-to-stop, not a hover-puck brake', () => {
-    assert.ok(STEER.decelSlide < 4, `slide decel ${STEER.decelSlide} must be well under the old 9`);
+    assert.ok(STEER.decelSlide >= 1.0 && STEER.decelSlide <= 1.4, `slide ${STEER.decelSlide} should outlast main 2.2`);
     assert.ok(STEER.decelSettle < STEER.accel);
-    assert.ok(decelForSpeed(WALK) < 3, 'at walk speed, friction should be the slide');
+    assert.ok(decelForSpeed(WALK) < 2, 'at walk speed, friction should be the long slide');
     const coast = stepProwl(DT, { x: 0, z: WALK }, 0, { x: 0, z: 0 });
     assert.ok(Math.hypot(coast.x, coast.z) > 1.2, 'one frame of slide must leave almost all speed');
 
-    const mid = stepFor(24, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 0.4s
+    const mid = stepFor(36, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 0.6s
     const midSpd = Math.hypot(mid.vel.x, mid.vel.z);
-    assert.ok(midSpd > 0.45, `0.4s after release she should still be sliding (${midSpd})`);
+    assert.ok(midSpd > 0.55, `0.6s after release she should still be sliding (${midSpd})`);
 
-    const late = stepFor(90, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 1.5s
+    const still = stepFor(90, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 1.5s
+    const stillSpd = Math.hypot(still.vel.x, still.vel.z);
+    assert.ok(stillSpd > 0.04, `1.5s of the long slide should not already be a dead stop (${stillSpd})`);
+
+    const late = stepFor(180, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 3s
     const lateSpd = Math.hypot(late.vel.x, late.vel.z);
-    assert.ok(lateSpd < 0.08, `1.5s should scrape to a stop (${lateSpd})`);
+    assert.ok(lateSpd < 0.08, `3s should scrape to a stop (${lateSpd})`);
   });
 
   it('turns at a lower speed deadzone than the live 0.15 puck', () => {
@@ -216,7 +225,7 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const camDir = lookToCamDir(LOOK_NEG_Z, 0);
     const desiredDir = cameraRelativeMove(AXES_A, camDir);
     const desired = { x: desiredDir.x * WALK, z: desiredDir.z * WALK };
-    const s = stepFor(70, { x: 0, z: 0 }, 0, desired);
+    const s = stepFor(90, { x: 0, z: 0 }, 0, desired);
     assert.ok(Math.abs(shortestAngle(s.yaw, -Math.PI / 2)) < 0.2, `yaw ${s.yaw} should face camera-left`);
     const facingDot = Math.sin(s.yaw) * s.vel.x + Math.cos(s.yaw) * s.vel.z;
     assert.ok(facingDot > 0.5, `once facing, she should walk into it (${facingDot})`);
@@ -231,14 +240,14 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
   });
 
   it('live 90° cut and reverse use accel catch, not scrape ice-skate', () => {
-    const cut = stepFor(18, { x: 0, z: WALK }, 0, { x: WALK, z: 0 }); // 0.3s
+    const cut = stepFor(30, { x: 0, z: WALK }, 0, { x: WALK, z: 0 }); // 0.5s
     const cfx = Math.sin(cut.yaw);
     const cfz = Math.cos(cut.yaw);
     const cutAlong = cut.vel.x * cfx + cut.vel.z * cfz;
     assert.ok(cutAlong > 1.0, `in-gait 90° should keep walk speed along heading (${cutAlong})`);
     assert.ok(cut.vel.z < 0.85, `old-axis leftover ${cut.vel.z} is ice-skate; heading catch should plant the cut`);
 
-    const rev = stepFor(30, { x: 0, z: WALK }, 0, { x: 0, z: -WALK }); // 0.5s
+    const rev = stepFor(48, { x: 0, z: WALK }, 0, { x: 0, z: -WALK }); // 0.8s
     const rfx = Math.sin(rev.yaw);
     const rfz = Math.cos(rev.yaw);
     const revAlong = rev.vel.x * rfx + rev.vel.z * rfz;
@@ -267,7 +276,7 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     let vel: XZ = { x: 0, z: 0 };
     let lock: PlantLock | null = null;
     const pos = { x: 0, z: 0 };
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 120; i++) {
       const r = resolvePlantLock(AXES_A, facing(yaw), Math.hypot(vel.x, vel.z), lock);
       lock = r.lock;
       const desired = { x: r.move.x * WALK, z: r.move.z * WALK };
@@ -287,14 +296,14 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     // Without the lock, live remap keeps A at 90° and plantCommit never clears.
     yaw = 0;
     vel = { x: 0, z: 0 };
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 120; i++) {
       const live = cameraRelativeMove(AXES_A, facing(yaw));
       const s = stepProwl(DT, vel, yaw, { x: live.x * WALK, z: live.z * WALK });
       vel = { x: s.x, z: s.z };
       yaw = s.yaw;
     }
     assert.ok(Math.hypot(vel.x, vel.z) < 0.08, 'live body-locked A must not gain walk speed');
-    assert.ok(Math.abs(yaw) > 3, `should have tank-spun well past 90° (yaw ${yaw})`);
+    assert.ok(Math.abs(yaw) > 2.2, `should have tank-spun well past 90° (yaw ${yaw})`);
   });
 
   it('body-locked W stays live and commits; in-gait A does not start a lock', () => {
