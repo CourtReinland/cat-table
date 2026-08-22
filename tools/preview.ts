@@ -18,6 +18,7 @@ const view = (params.get('view') ?? 'beauty').toLowerCase();
 const angle = parseFloat(params.get('a') ?? '0');
 const forceWebGL = params.get('gl') === '1' || params.get('gpu') !== '1';
 const clipParam = params.get('clip');
+const timeParam = parseFloat(params.get('t') ?? '');
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGPURenderer({
@@ -39,9 +40,9 @@ scene.background = new THREE.Color(0x17131c);
 
 function lookdevLights() {
   // cooler / softer key so white fur keeps pink shade instead of clipping
-  const hemi = new THREE.HemisphereLight(0xfff2f6, 0x2a2238, 0.42);
+  const hemi = new THREE.HemisphereLight(0xfff4f0, 0x322430, 0.48);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff6f8, 1.32);
+  const key = new THREE.DirectionalLight(0xfff8f4, 1.42);
   key.position.set(0.55, 0.85, 0.65);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
@@ -58,12 +59,12 @@ type View = { pos: THREE.Vector3; target: THREE.Vector3; fov: number };
 
 const SUKI_VIEWS: Record<string, View> = {
   // glTF Y-up: muzzle ~+Z, height +Y. Pull back so the whole cat fits.
-  beauty: { pos: new THREE.Vector3(0.62, 0.38, 0.70), target: new THREE.Vector3(0, 0.18, 0.02), fov: 30 },
-  threeq: { pos: new THREE.Vector3(0.66, 0.36, 0.64), target: new THREE.Vector3(0, 0.18, 0.02), fov: 30 },
+  beauty: { pos: new THREE.Vector3(0.42, 0.34, 0.82), target: new THREE.Vector3(0, 0.20, 0.06), fov: 28 },
+  threeq: { pos: new THREE.Vector3(0.52, 0.32, 0.78), target: new THREE.Vector3(0, 0.20, 0.05), fov: 30 },
   side:   { pos: new THREE.Vector3(1.22, 0.24, 0.08), target: new THREE.Vector3(0, 0.18, 0.04), fov: 26 },
-  front:  { pos: new THREE.Vector3(0.00, 0.26, 1.08), target: new THREE.Vector3(0, 0.20, 0.04), fov: 26 },
-  face:   { pos: new THREE.Vector3(0.10, 0.30, 0.40), target: new THREE.Vector3(0, 0.28, 0.18), fov: 26 },
-  paw:    { pos: new THREE.Vector3(0.16, 0.07, 0.24), target: new THREE.Vector3(0.05, 0.018, 0.09), fov: 26 },
+  front:  { pos: new THREE.Vector3(0.00, 0.24, 1.12), target: new THREE.Vector3(0, 0.18, 0.04), fov: 26 },
+  face:   { pos: new THREE.Vector3(0.08, 0.30, 0.64), target: new THREE.Vector3(0, 0.29, 0.20), fov: 32 },
+  paw:    { pos: new THREE.Vector3(0.044, -0.055, 0.055), target: new THREE.Vector3(0.044, 0.000, 0.090), fov: 36 },
 };
 
 const CANDLE_VIEW: View = {
@@ -126,8 +127,9 @@ if (modelName === 'candelabra') {
         ?? gltf.animations[0];
       const action = mixer.clipAction(clip);
       action.play();
-      // settle one-shot / hold clips (Sit, PlayBow, Loaf, Wink) before stills
-      mixer.update(0.85);
+      // ?t= samples a specific second (Wink mid-close, Walk paw-up).
+      // otherwise settle hold clips (Sit / PlayBow / Loaf) before stills
+      mixer.update(Number.isFinite(timeParam) ? timeParam : 0.85);
     }
     console.info('[preview] suki.glb', gltf.animations.map((c) => c.name).join(', '));
   } catch (err) {
@@ -136,7 +138,7 @@ if (modelName === 'candelabra') {
 }
 
 const viewSpec = modelName === 'candelabra' ? CANDLE_VIEW : (SUKI_VIEWS[view] ?? SUKI_VIEWS.beauty);
-const camera = new THREE.PerspectiveCamera(viewSpec.fov, innerWidth / innerHeight, 0.01, 20);
+const camera = new THREE.PerspectiveCamera(viewSpec.fov, innerWidth / innerHeight, view === 'paw' ? 0.002 : 0.01, 20);
 const target = viewSpec.target.clone();
 const radius = viewSpec.pos.clone().sub(target);
 const yaw0 = Math.atan2(radius.x, radius.z);

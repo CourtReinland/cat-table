@@ -532,8 +532,8 @@ def build_face(body):
             apply_transforms(la)
             parts.append(la)
         bl = prim('sphere', f'Blush{tag}',
-                  base + Vector((side * 0.012, 0.004, -0.016)),
-                  (0.012, 0.006, 0.004), material=blush_m, seg=12, ring=8)
+                  base + Vector((side * 0.016, 0.006, -0.018)),
+                  (0.016, 0.008, 0.005), material=blush_m, seg=12, ring=8)
         apply_transforms(bl)
         parts.append(bl)
 
@@ -551,29 +551,29 @@ def build_ribbon():
     band_m = mat('SukiRibbon', RIBBON, rough=0.52)
     knot_m = mat('SukiRibbonDk', RIBBON_DK, rough=0.52)
 
-    band = prim('torus', 'Collar', (0, -0.112, 0.236), (0.040, 0.040, 0.040),
-                (1.08, 0, 0), material=band_m, mseg=28, nseg=8, minor=0.055)
+    band = prim('torus', 'Collar', (0, -0.118, 0.222), (0.044, 0.044, 0.044),
+                (1.12, 0, 0), material=band_m, mseg=28, nseg=8, minor=0.050)
     apply_transforms(band)
     parts.append(band)
 
-    # big front bow, proud of the ruff
-    bx, by, bz = 0.000, -0.132, 0.198
+    # hero bow sits proud of the ruff so it reads from the front
+    bx, by, bz = 0.000, -0.158, 0.176
     for side in (1, -1):
         tag = 'L' if side > 0 else 'R'
         loop = prim('sphere', f'BowLoop{tag}',
-                    (bx + side * 0.028, by - 0.008, bz + 0.008),
-                    (0.028, 0.012, 0.020),
-                    (0.12, side * 0.42, side * 0.06), material=band_m, seg=18, ring=12)
+                    (bx + side * 0.034, by - 0.012, bz + 0.010),
+                    (0.034, 0.014, 0.024),
+                    (0.10, side * 0.38, side * 0.05), material=band_m, seg=18, ring=12)
         apply_transforms(loop)
         parts.append(loop)
         tl = prim('cone', f'BowTail{tag}',
-                  (bx + side * 0.016, by - 0.002, bz - 0.024),
-                  (0.010, 0.0055, 0.024),
-                  (0.95, side * 0.14, 0), material=band_m, seg=8, r2=0.40)
+                  (bx + side * 0.018, by - 0.004, bz - 0.028),
+                  (0.012, 0.0065, 0.028),
+                  (0.95, side * 0.16, 0), material=band_m, seg=8, r2=0.40)
         apply_transforms(tl)
         parts.append(tl)
-    knot = prim('sphere', 'BowKnot', (bx, by - 0.010, bz + 0.004),
-                (0.012, 0.0090, 0.012), material=knot_m, seg=14, ring=10)
+    knot = prim('sphere', 'BowKnot', (bx, by - 0.014, bz + 0.006),
+                (0.014, 0.010, 0.014), material=knot_m, seg=14, ring=10)
     apply_transforms(knot)
     parts.append(knot)
     return parts
@@ -626,13 +626,13 @@ def build_pads():
         ('PawHR', (-0.050, 0.056, 0.004), 1),
     ]
     for name, (x, y, z), fwd in paws:
-        main = prim('sphere', f'{name}Main', (x, y + fwd * 0.002, z),
-                    (0.010, 0.012, 0.004), material=pad_m, seg=12, ring=8)
+        main = prim('sphere', f'{name}Main', (x, y + fwd * 0.002, z - 0.004),
+                    (0.012, 0.014, 0.0055), material=pad_m, seg=12, ring=8)
         apply_transforms(main)
         parts.append(main)
-        for i, dx in enumerate((-0.008, -0.0025, 0.0025, 0.008)):
-            toe = prim('sphere', f'{name}Toe{i}', (x + dx, y + fwd * 0.012, z + 0.001),
-                       (0.0036, 0.0042, 0.0024), material=pad_m, seg=8, ring=6)
+        for i, dx in enumerate((-0.009, -0.003, 0.003, 0.009)):
+            toe = prim('sphere', f'{name}Toe{i}', (x + dx, y + fwd * 0.013, z - 0.003),
+                       (0.0044, 0.0050, 0.0032), material=pad_m, seg=8, ring=6)
             apply_transforms(toe)
             parts.append(toe)
     return parts
@@ -973,11 +973,11 @@ def anim_sit(arm):
     rest_pose(arm)
     start_action(arm, 'Sit')
     for f, k in ((1, 0.0), (18, 0.75), (30, 1.0), (40, 1.0)):
-        key(arm, 'Hips', f, rot=(k * 0.72, 0, 0), loc=(0, k * 0.012, -k * 0.070))
-        key(arm, 'Spine', f, rot=(-k * 0.16, 0, 0))
-        key(arm, 'Chest', f, rot=(-k * 0.06, 0, 0))
-        key(arm, 'Neck', f, rot=(k * 0.04, 0, 0))
-        key(arm, 'Head', f, rot=(k * 0.02, 0, 0))
+        key(arm, 'Hips', f, rot=(k * 0.50, 0, 0), loc=(0, k * 0.018, -k * 0.062))
+        key(arm, 'Spine', f, rot=(-k * 0.38, 0, 0))
+        key(arm, 'Chest', f, rot=(-k * 0.18, 0, 0))
+        key(arm, 'Neck', f, rot=(k * 0.12, 0, 0))
+        key(arm, 'Head', f, rot=(k * 0.06, 0, 0))
         for b in ('Thigh.L', 'Thigh.R'):
             key(arm, b, f, rot=(k * 1.32, 0, 0))
         for b in ('Shin.L', 'Shin.R'):
@@ -1004,13 +1004,13 @@ def anim_cuddle(arm):
         f = 1 + i * 10
         ph = (i / 8) * math.tau
         k = 1.0
-        key(arm, 'Hips', f, rot=(k * 0.72, 0, 0), loc=(0, k * 0.012, -k * 0.070))
-        key(arm, 'Spine', f, rot=(-k * 0.16 + math.sin(ph) * 0.05, 0,
+        key(arm, 'Hips', f, rot=(k * 0.50, 0, 0), loc=(0, k * 0.018, -k * 0.062))
+        key(arm, 'Spine', f, rot=(-k * 0.38 + math.sin(ph) * 0.05, 0,
                                   math.sin(ph) * 0.06))
-        key(arm, 'Chest', f, rot=(-k * 0.06, 0, math.sin(ph) * 0.05))
-        key(arm, 'Neck', f, rot=(k * 0.04 - abs(math.sin(ph)) * 0.22, 0,
+        key(arm, 'Chest', f, rot=(-k * 0.18, 0, math.sin(ph) * 0.05))
+        key(arm, 'Neck', f, rot=(k * 0.12 - abs(math.sin(ph)) * 0.22, 0,
                                  math.sin(ph) * 0.10))
-        key(arm, 'Head', f, rot=(k * 0.02 - abs(math.sin(ph)) * 0.28, 0,
+        key(arm, 'Head', f, rot=(k * 0.06 - abs(math.sin(ph)) * 0.28, 0,
                                  math.sin(ph) * 0.30))
         for b in ('Thigh.L', 'Thigh.R'):
             key(arm, b, f, rot=(k * 1.32, 0, 0))
@@ -1067,12 +1067,12 @@ def anim_loaf(arm):
     rest_pose(arm)
     start_action(arm, 'Loaf')
     for f, k in ((1, 0.0), (16, 0.80), (28, 1.0), (40, 1.0)):
-        key(arm, 'Hips', f, rot=(k * 0.88, 0, k * 0.18),
+        key(arm, 'Hips', f, rot=(k * 0.88, 0, 0),
             loc=(0, k * 0.022, -k * 0.088))
-        key(arm, 'Spine', f, rot=(k * 0.28, 0, k * 0.32))
-        key(arm, 'Chest', f, rot=(k * 0.18, 0, k * 0.20))
-        key(arm, 'Neck', f, rot=(k * 0.32, 0, k * 0.16))
-        key(arm, 'Head', f, rot=(k * 0.22, 0, k * 0.18))
+        key(arm, 'Spine', f, rot=(k * 0.28, 0, 0))
+        key(arm, 'Chest', f, rot=(k * 0.18, 0, 0))
+        key(arm, 'Neck', f, rot=(k * 0.32, 0, 0))
+        key(arm, 'Head', f, rot=(k * 0.22, 0, 0))
         for b in ('Thigh.L', 'Thigh.R'):
             key(arm, b, f, rot=(k * 1.45, 0, 0))
         for b in ('Shin.L', 'Shin.R'):

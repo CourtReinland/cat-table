@@ -17,13 +17,13 @@ const shots = [
   { name: 'side', view: 'side', clip: 'Idle' },
   { name: 'front', view: 'front', clip: 'Idle' },
   { name: 'threeq', view: 'threeq', clip: 'Idle' },
-  { name: 'paw', view: 'paw', clip: 'Walk' },
+  { name: 'paw', view: 'paw', clip: 'Idle' },
   { name: 'face', view: 'face', clip: 'Idle' },
   { name: 'sit', view: 'front', clip: 'Sit' },
   { name: 'play-bow', view: 'side', clip: 'PlayBow' },
-  { name: 'loaf', view: 'beauty', clip: 'Loaf' },
-  { name: 'walk', view: 'threeq', clip: 'Walk' },
-  { name: 'wink', view: 'face', clip: 'Wink' },
+  { name: 'loaf', view: 'front', clip: 'Loaf' },
+  { name: 'walk', view: 'threeq', clip: 'Walk', t: 0.28 },
+  { name: 'wink', view: 'face', clip: 'Wink', t: 0.35 },
 ];
 
 const browser = await chromium.launch({
@@ -42,7 +42,8 @@ page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => logs.push(`[PAGEERROR] ${e.message}`));
 
 for (const shot of shots) {
-  const url = `${BASE}/preview.html?model=suki&view=${shot.view}&clip=${shot.clip}&gl=1`;
+  const t = shot.t != null ? `&t=${shot.t}` : '';
+  const url = `${BASE}/preview.html?model=suki&view=${shot.view}&clip=${shot.clip}${t}&gl=1`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__ready, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1800);
