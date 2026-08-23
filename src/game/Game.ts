@@ -24,6 +24,7 @@ import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
 import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, type PlantLock } from './Steer';
+import { CameraRig, DEFAULT_FP_CAM, OTS } from './CameraRig';
 
 type Phase =
   | 'loading'
@@ -93,8 +94,9 @@ export class Game {
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
   private shakeRot = { z: 0 };
-  /** first-person mode: camera rides between Suki's ears */
-  fpCam = true;
+  /** first-person is a C toggle — boot default is close OTS (GS-CAM-OTS) */
+  fpCam = DEFAULT_FP_CAM;
+  private rig = new CameraRig();
   private fpBobT = 0;
   private fpPunch = new THREE.Vector3();
   private fpFovKick = 0;
@@ -264,7 +266,13 @@ export class Game {
       if (e.code === 'Space' && this.phase === 'dialogue') this.advanceDialogue();
       if (e.code === 'KeyC' && this.phase === 'playing') {
         this.fpCam = !this.fpCam;
-        this.ui.hint(this.fpCam ? "Suki's eyes: first-person" : 'Third-person view');
+        if (!this.fpCam) {
+          const cat = this.apartment.cat;
+          this.rig.snap(cat.group.position, cat.yaw);
+          this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
+          this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
+        }
+        this.ui.hint(this.fpCam ? "Suki's eyes: first-person" : 'Over-the-shoulder');
         this.ui.hideHint();
       }
     });
@@ -332,10 +340,13 @@ export class Game {
     setTimeout(() => this.ui.hideHint(), 6200);
     audio.music('play');
     audio.meow('sassy');
-    // snap camera behind cat
-    const s = this.apartment.surface;
-    this.camPos.set(this.apartment.cat.group.position.x * 0.7, s.topY + 1.45, s.cz + s.halfD + 2.25);
-    this.camLook.set(0, s.topY + 0.02, s.cz);
+    // boot: close OTS, at rest — no leftover drive, not first-person
+    this.haltProwl();
+    this.fpCam = DEFAULT_FP_CAM;
+    const cat = this.apartment.cat;
+    this.rig.snap(cat.group.position, cat.yaw);
+    this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
+    this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
   }
 
   private pause() {
@@ -607,12 +618,9 @@ export class Game {
     this.apartment.physics.update(dt);
 
     if (!this.fpCam) {
-      // follow camera
-      const cx = catPos.x * 0.72;
-      const desired = new THREE.Vector3(cx, s.topY + 1.45, s.cz + s.halfD + 2.25);
-      this.camPos.lerp(desired, 1 - Math.exp(-3.2 * dt));
-      const look = new THREE.Vector3(catPos.x * 0.8, s.topY + 0.02, catPos.z * 0.5 + s.cz * 0.5);
-      this.camLook.lerp(look, 1 - Math.exp(-5 * dt));
+      this.rig.follow(dt, catPos, cat.yaw, this.catVel);
+      this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
+      this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
     }
   }
 
@@ -1006,9 +1014,9 @@ export class Game {
       this.fx.applyShake(rawDt, cam.position, this.shakeRot);
       cam.lookAt(this.camLook);
       cam.rotation.z += this.shakeRot.z;
-      if (Math.abs(cam.fov - (this.fpCam ? 62 : 40)) > 0.01) {
-        // restore projection after FP mode exits
-        cam.fov = 40;
+      const wantFov = this.camMode === 'follow' ? OTS.fov : 40;
+      if (Math.abs(cam.fov - wantFov) > 0.01) {
+        cam.fov = wantFov;
         cam.updateProjectionMatrix();
       }
     }

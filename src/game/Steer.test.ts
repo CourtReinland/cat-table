@@ -16,7 +16,7 @@ import {
   type PlantLock,
   type XZ,
 } from './Steer.ts';
-import { combineMoveAxes } from '../core/Input.ts';
+import { combineMoveAxes, restDeadzone, REST_DEADZONE } from '../core/Input.ts';
 
 const LOOK_NEG_Z = { x: 0, y: 0, z: -1 };
 const LOOK_POS_X = { x: 1, y: 0, z: 0 };
@@ -355,5 +355,39 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const a = 1 - Math.exp(-decelForSpeed(WALK) * DT);
     const expect = WALK + (0.3 * WALK - WALK) * a;
     almost(Math.hypot(eased.x, eased.z), expect, 1e-3);
+  });
+});
+
+describe('GS-CAM-OTS rest / no auto-forward', () => {
+  it('no keys and a centered stick is exactly rest', () => {
+    const a = combineMoveAxes(() => false, { x: 0, z: 0 });
+    almost(a.x, 0);
+    almost(a.z, 0);
+    const rest = restDeadzone(a);
+    almost(rest.x, 0);
+    almost(rest.z, 0);
+  });
+
+  it('tiny analog noise is rest, not a phantom W', () => {
+    const noisy = restDeadzone({ x: 0.02, z: -0.04 });
+    almost(noisy.x, 0);
+    almost(noisy.z, 0);
+    assert.ok(REST_DEADZONE >= 0.05);
+    const w = restDeadzone(AXES_W);
+    almost(w.z, -1);
+  });
+
+  it('zero desired from a standstill does not invent forward drive', () => {
+    const s = stepProwl(DT, { x: 0, z: 0 }, 0, { x: 0, z: 0 });
+    almost(s.x, 0);
+    almost(s.z, 0);
+    almost(s.yawRate, 0);
+    assert.equal(isSteerActive(0, 0), false);
+  });
+
+  it('camera-relative of rest axes is rest for any look', () => {
+    const a = cameraRelativeMove({ x: 0, z: 0 }, lookToCamDir(LOOK_POS_X, 0));
+    almost(a.x, 0);
+    almost(a.z, 0);
   });
 });

@@ -27,6 +27,17 @@ export function combineMoveAxes(
   return { x, z };
 }
 
+/**
+ * Analog / key noise below this is rest. Stops a leftover stick from
+ * looking like a held W on boot.
+ */
+export const REST_DEADZONE = 0.06;
+
+export function restDeadzone(axes: MoveAxes, dz = REST_DEADZONE): MoveAxes {
+  if (Math.hypot(axes.x, axes.z) < dz) return { x: 0, z: 0 };
+  return axes;
+}
+
 export class Input {
   private keys = new Set<string>();
   private pressedEdge = new Set<string>();
@@ -86,7 +97,7 @@ export class Input {
 
   /** Camera-local axes. Same contract for keyboard and the virtual stick. */
   moveAxes(): MoveAxes {
-    return combineMoveAxes((code) => this.down(code), this.touch);
+    return restDeadzone(combineMoveAxes((code) => this.down(code), this.touch));
   }
 
   get sprint() {
