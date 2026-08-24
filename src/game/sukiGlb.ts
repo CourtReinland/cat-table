@@ -31,8 +31,10 @@ export const GLB_SCALE = 1;
 export const GLB_YAW_OFFSET = 0;
 
 /**
- * Sit belly-cards shred on this bind. Long idle stays on Idle / Idle_Look
- * (stand). Sit remains on the GLB for tools; gameplay must not rest into it.
+ * Sit belly-cards shred on the authored bind (hips 16° / thighs 22° / shins 28°).
+ * Long idle stays on Idle / Idle_Look (stand). Sit remains on the GLB after a
+ * travel tame (tools/character-pipe/tame_paw_mesh.py) so isolation f28 can plant
+ * without exploding Hunyuan cards. Gameplay must not rest into Sit.
  */
 export const USE_SIT_FOR_LONG_IDLE = false;
 
@@ -60,15 +62,20 @@ export const PAW_HIT_RADIUS = 0.11;
  * GS-PAW-MESH — Hunyuan fur-card shells tube when Swipe over-rotates the
  * forearm and nearest-bone weights smear a paw across both wrists / the chest.
  * Play GLB is patched in place (tools/character-pipe/tame_paw_mesh.py): paw
- * verts exclusive-bind to paw_* bones, Swipe/Hit travel is slerped toward rest.
- * Do not remake Hunyuan.
+ * verts exclusive-bind to paw_* bones, Swipe/Hit/Sit travel is slerped toward
+ * rest. Sit is not rest. Do not remake Hunyuan.
  */
 export const PAW_MESH = {
   exclusiveBones: ['paw_FL', 'paw_FR', 'paw_HL', 'paw_HR'] as const,
   swipeTameBones: ['upper_FL', 'lower_FL', 'paw_FL', 'shoulder_L'] as const,
-  /** Walk-scale. Pre-fix Swipe upper_FL was ~59°. */
+  /** Walk-scale. Pre-fix Swipe upper_FL was ~59°. Keep 0.38 tame. */
   swipeMaxDeltaDeg: 28,
   hitTameBones: ['spine_01', 'neck', 'head', 'tail_01'] as const,
   hitMaxDeltaDeg: 14,
+  sitTameBones: ['hip_L', 'thigh_L', 'shin_L', 'spine_01'] as const,
+  /** Authored Sit shin was 28°; f28 exploded 540 edges. */
+  sitMaxDeltaDeg: 12,
+  /** Sit must still fold off Idle stand — never bind sit as rest. */
+  sitMinHipDeg: 4,
   lowYExclusiveMin: 0.85,
 } as const;

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""GS-PAW-MESH: tame Swipe/Hit travel and lock paw shells to paw bones.
+"""GS-PAW-MESH: tame Swipe/Hit/Sit travel and lock paw shells to paw bones.
 
 Operates on the already-bound Hunyuan play GLB. Does not remesh, Hunyuan,
 or metaball. Clip deltas are slerped toward rest; paw-region verts are
 hard-bound to a single paw_* joint; distal limb cards drop spine/body
 weights so a Hit grab cannot tube legs into the chest.
+
+Sit cannot exclusive-lock belly/haunch the way paws lock: Hunyuan cards span
+spine↔hind, so a Voronoi bind tears the waist worse than mixed weights.
+Authored Sit (hips 16° / thighs 22° / shins 28°) explodes 540 edges at f28.
+Travel is slerped toward rest until exploded ≤ 40. Rest stays Idle stand —
+never bind Sit as rest.
 """
 from __future__ import annotations
 
@@ -50,6 +56,26 @@ HIT_ROT_SCALE = {
     "tail_01": 0.50,
 }
 HIT_TRS_SCALE = {"root": 0.40}
+
+# Sit f28 belly/hind shred. Uniform ~0.36 clears the exploded gate; hip/thigh
+# stay a hair hotter so isolation still reads haunches-down, not Idle stand.
+# Tail 0.50 keeps the sit cue without pulling the rump apart.
+SIT_ROT_SCALE = {
+    "spine_01": 0.32,
+    "spine_02": 0.32,
+    "spine_03": 0.40,
+    "neck": 0.40,
+    "head": 0.40,
+    "hip_L": 0.38,
+    "hip_R": 0.38,
+    "thigh_L": 0.36,
+    "thigh_R": 0.36,
+    "shin_L": 0.30,
+    "shin_R": 0.30,
+    "tail_01": 0.50,
+    "tail_02": 0.50,
+}
+SIT_TRS_SCALE = {"root": 0.40}
 
 PAW_NAMES = ("paw_FL", "paw_FR", "paw_HL", "paw_HR")
 LIMB_CHAINS = {
@@ -669,6 +695,30 @@ def tame_clip(gltf, blob, anim_name, rot_scale, trs_scale):
     return touched
 
 
+def unique_edges(faces):
+    e = np.vstack([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]])
+    e.sort(axis=1)
+    return np.unique(e, axis=0)
+
+
+def shred_metric(rest_v, pose_v, edges):
+    """Same gate as bind_suki_stand.shred_metric, but on every unique tri-edge."""
+    r0 = np.linalg.norm(rest_v[edges[:, 0]] - rest_v[edges[:, 1]], axis=1)
+    r1 = np.linalg.norm(pose_v[edges[:, 0]] - pose_v[edges[:, 1]], axis=1)
+    ok = r0 > 1e-6
+    ratio = r1[ok] / np.maximum(r0[ok], 1e-12)
+    stretched = int((ratio > 3.5).sum())
+    exploded = int((ratio > 8.0).sum())
+    frac_st = stretched / max(1, len(ratio))
+    return {
+        "max_edge_ratio": float(ratio.max()) if len(ratio) else 1.0,
+        "stretch_frac": frac_st,
+        "exploded": exploded,
+        "checked": int(len(ratio)),
+        "shred": (frac_st > 0.035) or (exploded > 40),
+    }
+
+
 def exclusive_paw_frac(pos, joints_idx, weights, names, y_cut=0.045):
     name_to_j = {n: i for i, n in enumerate(names)}
     paw = {name_to_j[n] for n in PAW_NAMES}
@@ -709,29 +759,40 @@ def main():
         gltf, blob, "Swipe", list(SWIPE_ROT_SCALE.keys())
     )
     hit_before = clip_max_deltas(gltf, blob, "Hit", list(HIT_ROT_SCALE.keys()))
+    sit_before = clip_max_deltas(gltf, blob, "Sit", list(SIT_ROT_SCALE.keys()))
     paw_frac_before, low_n = exclusive_paw_frac(pos, joints_idx, weights, names)
 
-    already = swipe_before.get("upper_FL", 99) <= 28 and paw_frac_before >= 0.85
-    if already:
-        print("GLB already tamed — skip clip/weight writes, stills only", flush=True)
-        swipe_tame = {}
-        hit_tame = {}
-        new_j, new_w = joints_idx, weights
-        paw_locked = limb_isolated = 0
-        ibm, rest_world = ibm_worlds(gltf, blob)
+    already_swipe = swipe_before.get("upper_FL", 99) <= 28 and paw_frac_before >= 0.85
+    # Authored Sit shin is 28°. After tame it is ~8°. Do not skip Sit just
+    # because Swipe/paws already landed — and do not re-tame Swipe (0.38).
+    already_sit = sit_before.get("shin_L", 99) <= 12 and sit_before.get("hip_L", 99) <= 8
+
+    swipe_tame = {}
+    hit_tame = {}
+    sit_tame = {}
+    new_j, new_w = joints_idx, weights
+    paw_locked = limb_isolated = 0
+    ibm, rest_world = ibm_worlds(gltf, blob)
+
+    if already_swipe:
+        print("Swipe/paws already tamed — skip Swipe/Hit/weight writes", flush=True)
     else:
         swipe_tame = tame_clip(gltf, blob, "Swipe", SWIPE_ROT_SCALE, {})
         hit_tame = tame_clip(gltf, blob, "Hit", HIT_ROT_SCALE, HIT_TRS_SCALE)
-
-        ibm, rest_world = ibm_worlds(gltf, blob)
         new_j, new_w, paw_locked, limb_isolated = lock_weights(
             pos, joints_idx, weights, names, rest_world
         )
         write_u8_vec4(gltf, blob, prim["attributes"]["JOINTS_0"], new_j)
         write_f32_vec(gltf, blob, prim["attributes"]["WEIGHTS_0"], new_w)
 
+    if already_sit:
+        print("Sit already tamed — skip Sit clip writes", flush=True)
+    else:
+        sit_tame = tame_clip(gltf, blob, "Sit", SIT_ROT_SCALE, SIT_TRS_SCALE)
+
     swipe_after = clip_max_deltas(gltf, blob, "Swipe", list(SWIPE_ROT_SCALE.keys()))
     hit_after = clip_max_deltas(gltf, blob, "Hit", list(HIT_ROT_SCALE.keys()))
+    sit_after = clip_max_deltas(gltf, blob, "Sit", list(SIT_ROT_SCALE.keys()))
     paw_frac_after, _ = exclusive_paw_frac(pos, new_j, new_w, names)
 
     dst = Path(args.dst)
@@ -742,15 +803,19 @@ def main():
     rest_pose = posed_worlds(gltf, blob, "Idle", 0.0, ibm, parent, joint_nodes)
     swipe_pose = posed_worlds(gltf, blob, "Swipe", 0.40, ibm, parent, joint_nodes)
     hit_pose = posed_worlds(gltf, blob, "Hit", 0.23, ibm, parent, joint_nodes)
+    sit_pose = posed_worlds(gltf, blob, "Sit", 1.1667, ibm, parent, joint_nodes)
     rest_v = skin_points(pos, new_j, new_w, rest_pose, ibm)
     swipe_v = skin_points(pos, new_j, new_w, swipe_pose, ibm)
     hit_v = skin_points(pos, new_j, new_w, hit_pose, ibm)
+    sit_v = skin_points(pos, new_j, new_w, sit_pose, ibm)
+    edges = unique_edges(faces)
+    sit_shred = shred_metric(rest_v, sit_v, edges)
 
     stills = Path(args.stills)
     print("rasterizing stills…", flush=True)
     # Point splat is the reliable still (triangle fill is too slow in CPython
     # on 140k tris). Radius 2 reads as a volume; tubes would be long thin traces.
-    for name, verts in (("rest", rest_v), ("swipe", swipe_v), ("hit", hit_v)):
+    for name, verts in (("rest", rest_v), ("swipe", swipe_v), ("hit", hit_v), ("sit", sit_v)):
         img = rasterize_points(verts, radius=2)
         write_png(stills / f"gs-paw-mesh-{name}.png", img)
         print(f"  wrote {stills / f'gs-paw-mesh-{name}.png'}")
@@ -768,8 +833,12 @@ def main():
         "swipe_after": swipe_after,
         "hit_before": hit_before,
         "hit_after": hit_after,
+        "sit_before": sit_before,
+        "sit_after": sit_after,
         "swipe_tame": swipe_tame,
         "hit_tame": hit_tame,
+        "sit_tame": sit_tame,
+        "sit_shred": sit_shred,
     }
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).write_text(json.dumps(report, indent=2) + "\n")
@@ -782,6 +851,18 @@ def main():
         return 1
     if hit_after.get("neck", 99) > 14:
         print("WARN: Hit neck still too hot", file=sys.stderr)
+        return 1
+    if sit_after.get("shin_L", 99) > 12:
+        print("WARN: Sit shin_L still too hot", file=sys.stderr)
+        return 1
+    if sit_after.get("hip_L", 0) < 4:
+        print("WARN: Sit collapsed into rest — do not bind sit as rest", file=sys.stderr)
+        return 1
+    if sit_shred["shred"]:
+        print(
+            f"WARN: Sit f28 still shreds exploded={sit_shred['exploded']}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

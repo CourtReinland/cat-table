@@ -697,31 +697,36 @@ def pose_rest():
 
 
 def pose_sit():
-    """Haunches down from STAND rest — distinct sit, not bind rest."""
+    """Haunches down from STAND rest — distinct sit, not bind rest.
+
+    GS-PAW-MESH: authored 16/22/28 hip/thigh/shin shreds Hunyuan belly cards
+    at f28 (540 exploded edges). Exclusive belly lock tears the waist worse
+    than mixed weights. Travel matches tame_paw_mesh.SIT_ROT_SCALE.
+    """
     zero_pose()
-    set_e("spine_01", x=-12)
-    set_e("spine_02", x=-10)
-    set_e("spine_03", x=8)
-    set_e("neck", x=-12, z=8)
-    set_e("head", x=10, z=-4, y=6)
-    set_e("hip_L", x=16)
-    set_e("hip_R", x=16)
-    set_e("thigh_L", x=22)
-    set_e("thigh_R", x=22)
-    set_e("shin_L", x=-28)
-    set_e("shin_R", x=-28)
-    set_e("paw_HL", x=12)
-    set_e("paw_HR", x=12)
-    set_e("shoulder_L", x=6)
-    set_e("shoulder_R", x=6)
-    set_e("upper_FL", x=10)
-    set_e("upper_FR", x=10)
-    set_e("tail_01", x=-18, z=22)
-    set_e("tail_02", x=-8, z=28)
-    set_e("tail_03", z=24)
-    set_e("tail_04", x=10, z=16)
+    set_e("spine_01", x=-3.8)
+    set_e("spine_02", x=-3.2)
+    set_e("spine_03", x=3.2)
+    set_e("neck", x=-4.8, z=3.2)
+    set_e("head", x=4.0, z=-1.6, y=2.4)
+    set_e("hip_L", x=6.1)
+    set_e("hip_R", x=6.1)
+    set_e("thigh_L", x=7.9)
+    set_e("thigh_R", x=7.9)
+    set_e("shin_L", x=-8.4)
+    set_e("shin_R", x=-8.4)
+    set_e("paw_HL", x=4)
+    set_e("paw_HR", x=4)
+    set_e("shoulder_L", x=2)
+    set_e("shoulder_R", x=2)
+    set_e("upper_FL", x=4)
+    set_e("upper_FR", x=4)
+    set_e("tail_01", x=-9, z=11)
+    set_e("tail_02", x=-4, z=14)
+    set_e("tail_03", z=12)
+    set_e("tail_04", x=5, z=8)
     if "root" in arm.pose.bones:
-        arm.pose.bones["root"].location = (0, 0.01, -0.02)
+        arm.pose.bones["root"].location = (0, 0.004, -0.008)
 
 
 def pose_walk():
@@ -1033,23 +1038,27 @@ def swipe_frame(f, n):
 
 
 def sit_frame(f, n):
+    """GS-PAW-MESH: tame Sit so Hunyuan belly/hind cards do not explode at f28.
+
+    Do not bind this as rest. Rest is Idle four-on-floor stand.
+    """
     t = ease((f - 1) / max(1, n - 1))
     zero_pose()
-    set_e("spine_01", x=-12 * t)
-    set_e("spine_02", x=-10 * t)
-    set_e("spine_03", x=8 * t)
-    set_e("neck", x=-12 * t, z=8 * t)
-    set_e("head", x=10 * t, z=-4 * t, y=6 * t)
-    set_e("hip_L", x=16 * t)
-    set_e("hip_R", x=16 * t)
-    set_e("thigh_L", x=22 * t)
-    set_e("thigh_R", x=22 * t)
-    set_e("shin_L", x=-28 * t)
-    set_e("shin_R", x=-28 * t)
-    set_e("tail_01", x=-18 * t, z=22 * t)
-    set_e("tail_02", z=28 * t)
+    set_e("spine_01", x=-3.8 * t)
+    set_e("spine_02", x=-3.2 * t)
+    set_e("spine_03", x=3.2 * t)
+    set_e("neck", x=-4.8 * t, z=3.2 * t)
+    set_e("head", x=4.0 * t, z=-1.6 * t, y=2.4 * t)
+    set_e("hip_L", x=6.1 * t)
+    set_e("hip_R", x=6.1 * t)
+    set_e("thigh_L", x=7.9 * t)
+    set_e("thigh_R", x=7.9 * t)
+    set_e("shin_L", x=-8.4 * t)
+    set_e("shin_R", x=-8.4 * t)
+    set_e("tail_01", x=-9 * t, z=11 * t)
+    set_e("tail_02", z=14 * t)
     if "root" in arm.pose.bones:
-        arm.pose.bones["root"].location = (0, 0.01 * t, -0.02 * t)
+        arm.pose.bones["root"].location = (0, 0.004 * t, -0.008 * t)
 
 
 def cuddle_frame(f, n):

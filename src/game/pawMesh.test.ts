@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { BUILD_STAMP } from '../buildStamp.ts';
-import { CLIP, PAW_MESH } from './sukiGlb.ts';
+import { CLIP, PAW_MESH, USE_SIT_FOR_LONG_IDLE } from './sukiGlb.ts';
 
 const glbPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/assets/models/suki.glb');
 
@@ -131,11 +131,12 @@ describe('GS-PAW-MESH Hunyuan paw shells', () => {
   const joints = readU8x4(bin, gltf, prim.attributes.JOINTS_0);
   const weights = readF32(bin, gltf, prim.attributes.WEIGHTS_0);
 
-  it('keeps Idle/Swipe/Hit on the bound GLB', () => {
+  it('keeps Idle/Swipe/Hit/Sit on the bound GLB', () => {
     const have = new Set(gltf.animations.map((a) => a.name));
     assert.ok(have.has(CLIP.idle));
     assert.ok(have.has(CLIP.swipe));
     assert.ok(have.has(CLIP.hit));
+    assert.ok(have.has(CLIP.sit));
   });
 
   it('tames Swipe forearm/wrist travel to walk scale', () => {
@@ -154,6 +155,24 @@ describe('GS-PAW-MESH Hunyuan paw shells', () => {
     assert.ok(d.spine_01 < PAW_MESH.hitMaxDeltaDeg, `spine_01 ${d.spine_01}`);
     assert.ok(d.head < PAW_MESH.hitMaxDeltaDeg, `head ${d.head}`);
     assert.ok(d.tail_01 < PAW_MESH.hitMaxDeltaDeg + 0.5, `tail_01 ${d.tail_01}`);
+  });
+
+  it('tames Sit hind/spine travel so f28 does not shred belly cards', () => {
+    const d = clipDeltas(gltf, bin, 'Sit', PAW_MESH.sitTameBones);
+    assert.ok(d.shin_L < PAW_MESH.sitMaxDeltaDeg, `shin_L ${d.shin_L}`);
+    assert.ok(d.thigh_L < PAW_MESH.sitMaxDeltaDeg, `thigh_L ${d.thigh_L}`);
+    assert.ok(d.hip_L < 8, `hip_L ${d.hip_L}`);
+    assert.ok(d.spine_01 < 8, `spine_01 ${d.spine_01}`);
+    // Still a sit — never bind sit as rest.
+    assert.ok(d.hip_L > PAW_MESH.sitMinHipDeg, `hip_L collapsed to rest ${d.hip_L}`);
+    assert.equal(USE_SIT_FOR_LONG_IDLE, false);
+  });
+
+  it('Idle stand is rest — Sit is not bound over four-on-floor', () => {
+    const idle = clipDeltas(gltf, bin, 'Idle', ['hip_L', 'thigh_L', 'shin_L', 'spine_01']);
+    for (const [bone, deg] of Object.entries(idle)) {
+      assert.ok(deg < 3, `Idle ${bone} ${deg} — rest must stay stand`);
+    }
   });
 
   it('locks low-Y paw-shell verts to a single paw bone', () => {
