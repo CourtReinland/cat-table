@@ -4,9 +4,9 @@ import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { BUILD_STAMP } from '../buildStamp.ts';
-import { CLIP, PAW_MESH, USE_SIT_FOR_LONG_IDLE } from './sukiGlb.ts';
+import { CLIP, PAW_MESH, SUKI_GLB_SRC, USE_SIT_FOR_LONG_IDLE } from './sukiGlb.ts';
 
-const glbPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/assets/models/suki.glb');
+const glbPath = join(dirname(fileURLToPath(import.meta.url)), '../../public', SUKI_GLB_SRC);
 
 type Gltf = {
   nodes: { name?: string; rotation?: number[]; children?: number[] }[];
@@ -204,8 +204,8 @@ describe('GS-PAW-MESH Hunyuan paw shells', () => {
     assert.equal(mixedContra, 0, 'paw shells must not span both forearms');
   });
 
-  it('visible stamp is BUILD 10', () => {
-    assert.match(BUILD_STAMP, /^BUILD 10\b/);
+  it('visible stamp is BUILD 11', () => {
+    assert.match(BUILD_STAMP, /^BUILD 11\b/);
   });
 
   it('keeps Swipe tame scale at 0.38', () => {

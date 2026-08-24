@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { BUILD_STAMP } from '../buildStamp.ts';
 import {
   CLIP,
   GLB_SCALE,
@@ -14,7 +15,9 @@ import {
   PAW_MESH,
   SUKI_BOW,
   SUKI_FACE,
+  SUKI_GLB_SRC,
   SUKI_TAIL,
+  sukiGlbUrl,
 } from './sukiGlb.ts';
 
 describe('GS-SUKI-IN Hunyuan play mesh', () => {
@@ -130,5 +133,31 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
     assert.match(toon, /MeshBasicNodeMaterial/);
     assert.match(toon, /SUKI_FLUFF_HEX/);
+  });
+
+  it('cache-busts the play GLB URL with the BUILD stamp and does not rename the file', () => {
+    assert.equal(SUKI_GLB_SRC, 'assets/models/suki.glb');
+    const url = sukiGlbUrl();
+    assert.equal(url.split('?')[0], SUKI_GLB_SRC);
+    assert.match(url, /\?v=/);
+    assert.ok(url.includes(encodeURIComponent(BUILD_STAMP)), `${url} missing stamp ${BUILD_STAMP}`);
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
+    assert.match(src, /sukiGlbUrl\(\)/);
+    assert.doesNotMatch(src, /loadAsync\(\s*['"]assets\/models\/suki\.glb['"]\s*\)/);
+  });
+
+  it('applies paper coat + nape bow + face on both backends — not gated on ?gl=1', () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
+    const engine = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../core/Engine.ts'), 'utf8');
+    assert.match(src, /toonifySukiCoat\(this\.inner\)/);
+    assert.match(src, /attachHeroBow\(sk\.skeleton\)/);
+    assert.match(src, /attachHeroFace\(sk\.skeleton\)/);
+    assert.match(src, /napeLocal/);
+    assert.equal(SUKI_BOW.napeLocal.y, 0.028);
+    assert.equal(SUKI_BOW.napeLocal.z, -0.042);
+    assert.equal(SUKI_FACE.overlay, true);
+    assert.doesNotMatch(src, /\?gl|forceWebGL|usingWebGPU|safeMode/);
+    // Engine may force WebGL on mobile Safari; stills look must not live there.
+    assert.doesNotMatch(engine, /toonifySukiCoat|attachHeroBow|attachHeroFace/);
   });
 });

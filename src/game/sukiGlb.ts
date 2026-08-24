@@ -3,6 +3,23 @@
  * without pulling three/webgpu.
  */
 
+import { BUILD_STAMP } from '../buildStamp.ts';
+
+/**
+ * Public URL path for the play mesh. On-disk file stays
+ * `public/assets/models/suki.glb` — do not rename.
+ */
+export const SUKI_GLB_SRC = 'assets/models/suki.glb';
+
+/**
+ * Loader URL for play, playthrough, and any GLTFLoader of this file.
+ * Pages serves the GLB with max-age=600; a BUILD-sha query stops the
+ * phone from keeping a stale cream/slop file after the JS stamp moves.
+ */
+export function sukiGlbUrl(): string {
+  return `${SUKI_GLB_SRC}?v=${encodeURIComponent(BUILD_STAMP)}`;
+}
+
 /** Clip names authored by tools/character-pipe/bind_suki_stand.py. */
 export const CLIP = {
   idle: 'Idle',

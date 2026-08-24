@@ -75,9 +75,14 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     assert.ok(SUKI_FACE.faceLuma > SUKI_FACE.coatLuma);
     assert.match(fluffFn, /Never assign Hunyuan maps/);
     assert.match(fluffFn, /MeshBasicNodeMaterial/);
+    assert.match(fluffFn, /toneMapped = false/);
+    assert.match(fluffFn, /SRGBColorSpace/);
     assert.doesNotMatch(fluffFn, /m\.map\s*=/);
     assert.doesNotMatch(fluffFn, /MeshToonNodeMaterial/);
     assert.doesNotMatch(fluffFn, /mix\(paper, rgb, ident\)/);
     assert.doesNotMatch(coatFn, /outlineCharacter\(/);
+    assert.doesNotMatch(coatFn, /isSkippable/);
+    assert.match(coatFn, /sukiFluffMaterial/);
+    assert.doesNotMatch(toon, /\?gl|forceWebGL|usingWebGPU/);
   });
 });

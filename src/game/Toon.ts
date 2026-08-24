@@ -189,14 +189,22 @@ function stampSukiFaceMask(mesh: THREE.Mesh) {
 function sukiFluffMaterial(src: any) {
   // Unlit paper — MeshToon would multiply Hana lightColor (purple hemi +
   // peach lamp) and ignore gradient G/B. HEX × cool stops are the pixels.
+  // MeshBasicNodeMaterial + TSL runs on both WebGPU and the WebGL backend;
+  // do not gate this path on ?gl=1 / forceWebGL. toneMapped off so ACES
+  // cannot peach the paper hex on one backend only.
   const m = new THREE.MeshBasicNodeMaterial({
     color: FLUFF,
     side: THREE.FrontSide,
   });
+  m.toneMapped = false;
+  m.userData.sukiFluff = true;
   const band = vec3(texture(sukiFluffGradient(), vec2(float(0.78), float(0.5))));
   const paper = band.mul(tslColor(FLUFF));
   const albedo = src?.map as THREE.Texture | undefined;
   if (albedo) {
+    // WebGPU samples linear unless colorSpace is sRGB — that blew the
+    // chroma/luma identity gates and kept Hunyuan hatch (the slop path).
+    albedo.colorSpace = THREE.SRGBColorSpace;
     const rgb = vec3(texture(albedo));
     const cmax = max(rgb.x, max(rgb.y, rgb.z));
     const cmin = min(rgb.x, min(rgb.y, rgb.z));
@@ -247,10 +255,16 @@ export function toonifySukiCoat(root: THREE.Object3D) {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
+    if ((mesh as any).userData?.isOutline) return;
     stampSukiFaceMask(mesh);
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const converted = mats.map((m: any) => {
-      if (!m || isSkippable(m)) return m;
+      if (!m) return m;
+      // Never use isSkippable here. WebGPU may present the GLTF coat as
+      // MeshBasicNodeMaterial (type includes "Basic") before this runs;
+      // skipping left raw Hunyuan maps on one backend. Both backends
+      // get paper MeshBasic + identity TSL.
+      if (m.userData?.sukiFluff) return m;
       return sukiFluffMaterial(m);
     });
     mesh.material = Array.isArray(mesh.material) ? converted : converted[0];
