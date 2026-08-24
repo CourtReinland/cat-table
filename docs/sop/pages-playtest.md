@@ -12,7 +12,7 @@ Bump the integer in **both** files when a play mesh or feel change ships:
 - `src/buildStamp.ts` (fallback string + comment)
 - `vite.config.ts` (`export const BUILD_STAMP = \`BUILD N ${gitShort()}\``)
 
-On `main` as of this pack both files say **BUILD 5**. `src/game/CameraRig.test.ts` and `src/game/RoomLook.test.ts` assert that number — update them if you bump. `src/ui/UI.ts` paints the stamp on play HUD and title.
+**Read both files. Do not trust this SOP's number.** As of this writing `main` is BUILD 8; it has been 7, then 5, at different times. Bump both files plus any tests that assert the integer (`src/game/CameraRig.test.ts`, `src/game/RoomLook.test.ts`). `src/ui/UI.ts` paints the stamp on play HUD and title.
 
 `vite.config.ts` uses `base: './'`.
 
