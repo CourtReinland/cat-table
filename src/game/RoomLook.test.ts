@@ -9,7 +9,10 @@ import {
   BLOOM,
   EMISSIVE,
   MATTE,
+  NIGHT_AMBIENT,
+  NIGHT_FILL_POS,
   NIGHT_KEY_POS,
+  NIGHT_KEY_TARGET,
   NIGHT_RIG,
   TOON_HOT_STOP,
   capEmissive,
@@ -34,19 +37,32 @@ describe('GS-ROOM-LIGHT bloom contract', () => {
 });
 
 describe('GS-ROOM-LIGHT night rig', () => {
-  it('dims the shared apartment rig so silhouettes hold', () => {
-    assert.ok(NIGHT_RIG.hemi <= 0.35, `hemi ${NIGHT_RIG.hemi} fills shadows`);
-    assert.ok(NIGHT_RIG.moon <= 0.55, `moon ${NIGHT_RIG.moon} is a second sun`);
-    assert.ok(NIGHT_RIG.key <= 22, `key ${NIGHT_RIG.key} floods the counter`);
-    assert.ok(NIGHT_RIG.lamp <= 10, `lamp ${NIGHT_RIG.lamp} is a room wash`);
-    assert.ok(NIGHT_RIG.fill <= 5, `fill ${NIGHT_RIG.fill} kills contrast`);
-    assert.ok(NIGHT_RIG.pendant <= 8, `pendant ${NIGHT_RIG.pendant} glows the island`);
-    assert.ok(NIGHT_RIG.fogDensity <= 0.04, `fog ${NIGHT_RIG.fogDensity} eats the window`);
+  it('is a soft rim plus fill, not a left-side clip pool and black cliff', () => {
+    assert.ok(NIGHT_RIG.hemi >= 0.42 && NIGHT_RIG.hemi <= 0.65, `hemi ${NIGHT_RIG.hemi} must lift cabinets without going daylight`);
+    assert.ok(NIGHT_RIG.moon >= 0.45 && NIGHT_RIG.moon <= 0.75, `moon ${NIGHT_RIG.moon}`);
+    assert.ok(NIGHT_RIG.key <= 7, `key ${NIGHT_RIG.key} still dumps a white pool`);
+    assert.ok(NIGHT_RIG.lamp >= 8 && NIGHT_RIG.lamp <= 12, `lamp ${NIGHT_RIG.lamp} should read as a practical`);
+    assert.ok(NIGHT_RIG.fill >= 5.5 && NIGHT_RIG.fill <= 10, `fill ${NIGHT_RIG.fill}`);
+    assert.ok(NIGHT_RIG.pendant <= 5, `pendant ${NIGHT_RIG.pendant} is a second sun`);
+    assert.ok(NIGHT_RIG.fogDensity <= 0.03, `fog ${NIGHT_RIG.fogDensity} eats the window`);
+    assert.ok(NIGHT_RIG.key < NIGHT_RIG.fill, 'rim must be weaker than the fill that lifts the dark half');
   });
 
-  it('puts warm key on the left, not a ceiling flood', () => {
+  it('puts warm rim behind-left and fill on the window half', () => {
     assert.ok(NIGHT_KEY_POS.x < -1.5, `key x=${NIGHT_KEY_POS.x} is not left-side warmth`);
-    assert.ok(NIGHT_KEY_POS.y >= 2.8 && NIGHT_KEY_POS.y <= 3.8, `key height ${NIGHT_KEY_POS.y}`);
+    assert.ok(NIGHT_KEY_POS.z < 0, `key z=${NIGHT_KEY_POS.z} must be behind for a rim, not a slab dump`);
+    assert.ok(NIGHT_KEY_TARGET.y > 1.2, `target y=${NIGHT_KEY_TARGET.y} must graze above the counter`);
+    assert.ok(NIGHT_FILL_POS.x > 1, `fill x=${NIGHT_FILL_POS.x} must lift the right/window half`);
+  });
+
+  it('keeps ambient dusty cocoa-purple, not magenta bounce', () => {
+    const fill = NIGHT_AMBIENT.fill;
+    const r = (fill >> 16) & 255;
+    const b = fill & 255;
+    assert.ok(b - r < 30, `fill ${fill.toString(16)} is magenta bounce`);
+    assert.ok(luminance(fill) < 0.32, `fill too bright`);
+    assert.ok(luminance(NIGHT_AMBIENT.ground) < 0.12);
+    assert.ok(luminance(NIGHT_AMBIENT.rim) > 0.45, 'rim should read warm peach');
   });
 });
 
@@ -83,6 +99,7 @@ describe('GS-ROOM-LIGHT material factory', () => {
     assert.ok(MATTE.stoneRough >= 0.75);
     assert.ok(MATTE.floorRough >= 0.85);
     assert.ok(MATTE.glassRough >= MATTE.minRough);
+    assert.ok(MATTE.ceramicRough >= 0.85);
   });
 
   it('caps hot call sites and lifts chrome-low roughness', () => {
@@ -106,6 +123,9 @@ describe('GS-ROOM-LIGHT kitchen night palette', () => {
     assert.ok(luminance(kitchen!.counterColor) < 0.14, `counter too bright ${kitchen!.counterColor.toString(16)}`);
     assert.ok(luminance(kitchen!.fogColor) < 0.08, `fog too bright ${kitchen!.fogColor.toString(16)}`);
     assert.ok(luminance(kitchen!.sky) < 0.14, `sky too bright ${kitchen!.sky.toString(16)}`);
+    const fr = (kitchen!.fillColor >> 16) & 255;
+    const fb = kitchen!.fillColor & 255;
+    assert.ok(fb - fr < 40, `kitchen fill ${kitchen!.fillColor.toString(16)} is magenta bounce`);
   });
 });
 
@@ -124,6 +144,10 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(apt, /NIGHT_RIG\.hemi/);
     assert.match(apt, /NIGHT_RIG\.key/);
     assert.match(apt, /NIGHT_KEY_POS/);
+    assert.match(apt, /NIGHT_KEY_TARGET/);
+    assert.match(apt, /NIGHT_FILL_POS/);
+    assert.match(apt, /NIGHT_AMBIENT/);
+    assert.match(apt, /this\.key\.castShadow = false/);
     assert.match(apt, /EMISSIVE\.bulb/);
     assert.match(apt, /MATTE\.floorRough/);
 
@@ -131,5 +155,9 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(props, /export function roomMat/);
     assert.match(props, /roomMatOpts/);
     assert.match(props, /EMISSIVE\.flame/);
+    assert.match(props, /ceramicMat|ceramicSurface/);
+
+    const textures = src('Textures.ts');
+    assert.match(textures, /export function ceramicSurface/);
   });
 });

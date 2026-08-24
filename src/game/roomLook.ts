@@ -19,21 +19,35 @@ export const BLOOM = {
   threshold: 0.97,
 } as const;
 
-/** Shared apartment rig — dim enough that toon bands hold silhouettes. */
+/** Shared apartment rig. Peak is the rim, not a counter pool; hemi/fill
+ *  keep cabinets from falling into a black cliff. */
 export const NIGHT_RIG = {
-  hemi: 0.26,
-  moon: 0.38,
-  key: 15,
-  lamp: 6.5,
-  fill: 3.2,
-  pendant: 5.5,
+  hemi: 0.52,
+  moon: 0.58,
+  key: 4.8,
+  lamp: 9.5,
+  fill: 7.2,
+  pendant: 3.6,
   tvGlow: 2.2,
   chandelier: 6,
-  fogDensity: 0.032,
+  fogDensity: 0.022,
 } as const;
 
-/** Warm key from upper-left (title art rim), not a ceiling flood. */
-export const NIGHT_KEY_POS = { x: -3.1, y: 3.35, z: 1.35 } as const;
+/** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white. */
+export const NIGHT_AMBIENT = {
+  sky: 0x43384c,
+  ground: 0x1a1412,
+  fill: 0x4e4258,
+  rim: 0xffc08a,
+  moon: 0x8890b4,
+} as const;
+
+/** Warm rim from upper-left/rear — grazes the cat, does not dump on the slab. */
+export const NIGHT_KEY_POS = { x: -2.6, y: 3.8, z: -1.8 } as const;
+export const NIGHT_KEY_TARGET = { x: 0.2, y: 1.55, z: 0.15 } as const;
+export const NIGHT_KEY_CONE = { angle: 0.92, penumbra: 0.88, distance: 14, decay: 2 } as const;
+/** Front-right fill so the window half of the room exists. */
+export const NIGHT_FILL_POS = { x: 2.2, y: 1.75, z: 2.5 } as const;
 
 /** Self-lit practicals. Intensities sit above Toon's 0.4 skip so bulbs
  *  stay lamps, but under BLOOM.threshold so they don't wash the room. */
@@ -67,6 +81,7 @@ export const MATTE = {
   tileRough: 0.55,
   stoneVein: 0.18,
   stoneNormal: 0.22,
+  ceramicRough: 0.9,
 } as const;
 
 export type RoomMatOpts = {

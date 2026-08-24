@@ -13,7 +13,7 @@ import {
   panelSurface,
   surfaceMat,
 } from './Textures';
-import { EMISSIVE, MATTE, NIGHT_KEY_POS, NIGHT_RIG } from './roomLook';
+import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG } from './roomLook';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -90,16 +90,31 @@ function cityTex(skyColor: number) {
       ctx.fillStyle = `rgba(6, 4, 14, ${0.72 + Math.random() * 0.26})`;
       ctx.fillRect(x, 384 - bh, bw, bh);
     }
-    // city practicals: small warm/cool punctures, not bloom bokeh soup
-    for (let i = 0; i < 130; i++) {
+    // city practicals: readable punctures, not bloom bokeh soup
+    for (let i = 0; i < 110; i++) {
       const warm = Math.random() < 0.62;
-      ctx.fillStyle = warm ? 'rgba(255, 196, 130, 0.7)' : 'rgba(176, 168, 220, 0.5)';
+      ctx.fillStyle = warm ? 'rgba(255, 196, 130, 0.82)' : 'rgba(186, 176, 220, 0.55)';
       ctx.shadowColor = warm ? '#ffc282' : '#b0a8dc';
-      ctx.shadowBlur = 3 + Math.random() * 7;
-      const r = 0.7 + Math.random() * 2.0;
+      ctx.shadowBlur = 2 + Math.random() * 5;
+      const r = 0.6 + Math.random() * 1.7;
       ctx.beginPath();
       ctx.arc(Math.random() * 512, 200 + Math.random() * 180, r, 0, 7);
       ctx.fill();
+    }
+    // a few window stacks so the skyline reads as buildings, not sparkle
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 9; i++) {
+      const bx = 20 + Math.random() * 470;
+      const by = 220 + Math.random() * 120;
+      const cols = 2 + Math.floor(Math.random() * 3);
+      const rows = 3 + Math.floor(Math.random() * 4);
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          if (Math.random() < 0.35) continue;
+          ctx.fillStyle = Math.random() < 0.7 ? 'rgba(255, 190, 120, 0.7)' : 'rgba(170, 160, 210, 0.45)';
+          ctx.fillRect(bx + c * 5, by + r * 6, 2, 3);
+        }
+      }
     }
     // moon — a cool disc, tight halo
     ctx.shadowColor = '#e8dcc8';
@@ -378,10 +393,12 @@ export class Apartment {
     g.add(plantG);
 
     // ── lighting rig ──
-    this.hemi = new THREE.HemisphereLight(0x3a2c58, 0x100810, NIGHT_RIG.hemi);
+    // Warm rim from upper-left/rear (title art). Key does not cast shadow —
+    // BUILD 5's left pool + right-side black cliff was that shadow cliff.
+    this.hemi = new THREE.HemisphereLight(NIGHT_AMBIENT.sky, NIGHT_AMBIENT.ground, NIGHT_RIG.hemi);
     g.add(this.hemi);
 
-    this.moon = new THREE.DirectionalLight(0x8fb0ff, NIGHT_RIG.moon);
+    this.moon = new THREE.DirectionalLight(NIGHT_AMBIENT.moon, NIGHT_RIG.moon);
     this.moon.position.set(4.5, 3.8, -2.2);
     this.moon.target.position.set(-0.5, 0.8, 0.5);
     this.moon.castShadow = true;
@@ -393,20 +410,25 @@ export class Apartment {
     this.moon.shadow.bias = -0.002;
     g.add(this.moon, this.moon.target);
 
-    this.key = new THREE.SpotLight(0xffd4a8, NIGHT_RIG.key, 13, 0.52, 0.72, 1.8);
+    this.key = new THREE.SpotLight(
+      NIGHT_AMBIENT.rim,
+      NIGHT_RIG.key,
+      NIGHT_KEY_CONE.distance,
+      NIGHT_KEY_CONE.angle,
+      NIGHT_KEY_CONE.penumbra,
+      NIGHT_KEY_CONE.decay,
+    );
     this.key.position.set(NIGHT_KEY_POS.x, NIGHT_KEY_POS.y, NIGHT_KEY_POS.z);
-    this.key.target.position.set(0, 1, 0.3);
-    this.key.castShadow = true;
-    this.key.shadow.mapSize.set(1024, 1024);
-    this.key.shadow.bias = -0.0015;
+    this.key.target.position.set(NIGHT_KEY_TARGET.x, NIGHT_KEY_TARGET.y, NIGHT_KEY_TARGET.z);
+    this.key.castShadow = false;
     g.add(this.key, this.key.target);
 
-    this.lamp = new THREE.PointLight(0xffb46a, NIGHT_RIG.lamp, 8, 1.9);
+    this.lamp = new THREE.PointLight(0xffb46a, NIGHT_RIG.lamp, 9, 1.7);
     this.lamp.position.set(3.6, 1.62, -1.4);
     g.add(this.lamp);
 
-    this.fill = new THREE.PointLight(0x6a58a8, NIGHT_RIG.fill, 11, 1.9);
-    this.fill.position.set(-2.5, 1.6, 2.4);
+    this.fill = new THREE.PointLight(NIGHT_AMBIENT.fill, NIGHT_RIG.fill, 12, 1.6);
+    this.fill.position.set(NIGHT_FILL_POS.x, NIGHT_FILL_POS.y, NIGHT_FILL_POS.z);
     g.add(this.fill);
 
     this.scene.add(g);
@@ -456,15 +478,20 @@ export class Apartment {
     }
     this.scene.fog = new THREE.FogExp2(level.fogColor, NIGHT_RIG.fogDensity);
     this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(0.55);
-    this.hemi.color.setHex(level.fillColor).multiplyScalar(0.45);
+    this.hemi.color.setHex(NIGHT_AMBIENT.sky);
+    this.hemi.groundColor.setHex(NIGHT_AMBIENT.ground);
     this.hemi.intensity = NIGHT_RIG.hemi;
-    this.key.color.setHex(level.keyColor);
+    this.key.color.setHex(NIGHT_AMBIENT.rim);
     this.key.intensity = NIGHT_RIG.key;
-    this.key.target.position.set(0, topY, cz);
+    this.key.position.set(NIGHT_KEY_POS.x, NIGHT_KEY_POS.y, NIGHT_KEY_POS.z);
+    this.key.target.position.set(NIGHT_KEY_TARGET.x, NIGHT_KEY_TARGET.y, NIGHT_KEY_TARGET.z);
+    this.key.castShadow = false;
     this.lamp.color.setHex(level.lampColor);
     this.lamp.intensity = NIGHT_RIG.lamp;
-    this.fill.color.setHex(level.fillColor);
+    this.fill.color.setHex(NIGHT_AMBIENT.fill).lerp(new THREE.Color(level.fillColor), 0.22);
     this.fill.intensity = NIGHT_RIG.fill;
+    this.fill.position.set(NIGHT_FILL_POS.x, NIGHT_FILL_POS.y, NIGHT_FILL_POS.z);
+    this.moon.color.setHex(NIGHT_AMBIENT.moon);
     this.moon.intensity = NIGHT_RIG.moon;
     if (this.cityMat) {
       this.cityMat.map?.dispose();

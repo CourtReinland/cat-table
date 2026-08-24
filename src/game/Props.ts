@@ -3,6 +3,7 @@ import { PROP_LIBRARY, type PropKind } from '../data/content';
 import { createCandelabraModel } from './models/createCandelabraModel';
 import { refineCandelabra } from './models/refineCandelabra';
 import { EMISSIVE, MATTE, roomMatOpts, type RoomMatOpts } from './roomLook';
+import { ceramicSurface, surfaceMat } from './Textures';
 
 export interface PropVisual {
   group: THREE.Group;
@@ -44,6 +45,23 @@ export function roomMat(color: number, opts: RoomMatOpts = {}) {
   return stdMat(color, roomMatOpts(opts));
 }
 
+function ceramicMat(color: number) {
+  return surfaceMat(ceramicSurface(color), [1.15, 1.15]);
+}
+
+function glassRim(radius: number, y: number) {
+  const mat = new THREE.MeshBasicNodeMaterial({
+    color: 0xffe0c4,
+    transparent: true,
+    opacity: 0.3,
+    depthWrite: false,
+  });
+  const ring = mesh(TORUS(radius, 0.0032, Math.PI * 2), mat, false);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = y;
+  return ring;
+}
+
 function mesh(geo: THREE.BufferGeometry, mat: any, castShadow = true): THREE.Mesh {
   const m = new THREE.Mesh(geo, mat);
   m.castShadow = castShadow;
@@ -79,9 +97,9 @@ export function buildProp(kind: PropKind): PropVisual {
 
   switch (kind) {
     case 'mug': {
-      const body = mesh(CYL(w * 0.42, w * 0.38, h), roomMat(c, { rough: 0.72 }));
+      const body = mesh(CYL(w * 0.42, w * 0.38, h), ceramicMat(c));
       body.position.y = h / 2;
-      const handle = mesh(TORUS(w * 0.22, 0.016), roomMat(c, { rough: 0.72 }));
+      const handle = mesh(TORUS(w * 0.22, 0.016), ceramicMat(c));
       handle.rotation.y = Math.PI / 2;
       handle.position.set(w * 0.44, h * 0.55, 0);
       g.add(body, handle);
@@ -97,20 +115,20 @@ export function buildProp(kind: PropKind): PropVisual {
         const base = mesh(CYL(w * 0.34, w * 0.38, 0.014), glassMat);
         base.position.y = 0.007;
         const wine = mesh(lathe([[0.012, h * 0.37], [w * 0.3, h * 0.48], [w * 0.4, h * 0.64]]), roomMat(0x8a1638, { rough: 0.35, transparent: true, opacity: 0.9 }), false);
-        g.add(bowl, stem, base, wine);
+        g.add(bowl, stem, base, wine, glassRim(w * 0.44, h * 0.96));
       } else {
-        const tumblerMat = roomMat(c, { rough: 0.38, metal: MATTE.glassMetal, transparent: true, opacity: 0.35 });
+        const tumblerMat = roomMat(c, { rough: 0.38, metal: MATTE.glassMetal, transparent: true, opacity: 0.32 });
         const cup = mesh(lathe([[0.002, 0.006], [w * 0.4, 0.01], [w * 0.45, h * 0.92], [w * 0.42, h]]), tumblerMat);
-        const water = mesh(CYL(w * 0.36, w * 0.33, h * 0.45), roomMat(0x7ab8d8, { transparent: true, opacity: 0.55, rough: 0.32 }), false);
+        const water = mesh(CYL(w * 0.36, w * 0.33, h * 0.45), roomMat(0x7ab8d8, { transparent: true, opacity: 0.45, rough: 0.32 }), false);
         water.position.y = h * 0.3;
-        g.add(cup, water);
+        g.add(cup, water, glassRim(w * 0.43, h * 0.97));
       }
       break;
     }
     case 'plate': {
-      const p = mesh(CYL(w * 0.48, w * 0.42, h * 0.55, 20), roomMat(c, { rough: 0.78 }));
+      const p = mesh(CYL(w * 0.48, w * 0.42, h * 0.55, 20), ceramicMat(c));
       p.position.y = h * 0.275;
-      const rim = mesh(TORUS(w * 0.46, h * 0.32, Math.PI * 2), roomMat(c, { rough: 0.78 }));
+      const rim = mesh(TORUS(w * 0.46, h * 0.32, Math.PI * 2), ceramicMat(c));
       rim.rotation.x = Math.PI / 2;
       rim.position.y = h * 0.62;
       g.add(p, rim);
@@ -188,10 +206,10 @@ export function buildProp(kind: PropKind): PropVisual {
       break;
     }
     case 'bowl': {
-      const bowlMat = roomMat(c, { rough: 0.72 });
+      const bowlMat = ceramicMat(c);
       const shell = mesh(
         new THREE.SphereGeometry(w * 0.5, 16, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5),
-        new THREE.MeshStandardNodeMaterial({ color: c, roughness: 0.72, metalness: 0, side: THREE.DoubleSide }),
+        surfaceMat(ceramicSurface(c, 43), [1.1, 1.1], { side: THREE.DoubleSide }),
       );
       shell.scale.y = 0.72;
       shell.position.y = h * 0.32;
@@ -257,16 +275,17 @@ export function buildProp(kind: PropKind): PropVisual {
       break;
     }
     case 'teapot': {
-      const body = mesh(SPH(w * 0.5, 14), roomMat(c, { rough: 0.62 }));
+      const pot = ceramicMat(c);
+      const body = mesh(SPH(w * 0.5, 14), pot);
       body.scale.y = 0.75;
       body.position.y = h * 0.45;
-      const spout = mesh(CONE(0.025, h * 0.4, 8), roomMat(c, { rough: 0.62 }));
+      const spout = mesh(CONE(0.025, h * 0.4, 8), pot);
       spout.rotation.z = -0.9;
       spout.position.set(w * 0.48, h * 0.55, 0);
-      const handle = mesh(TORUS(w * 0.24, 0.014), roomMat(c, { rough: 0.62 }));
+      const handle = mesh(TORUS(w * 0.24, 0.014), pot);
       handle.rotation.y = Math.PI / 2;
       handle.position.set(-w * 0.45, h * 0.55, 0);
-      const lidKnob = mesh(SPH(0.018, 8), roomMat(c, { rough: 0.62 }));
+      const lidKnob = mesh(SPH(0.018, 8), pot);
       lidKnob.position.y = h * 0.9;
       g.add(body, spout, handle, lidKnob);
       break;

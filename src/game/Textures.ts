@@ -196,6 +196,31 @@ export function marbleSurface(baseHex: number, veinHex: number, seed = 7, repeat
   });
 }
 
+/** Dusty ceramic for mugs, plates, teapots — speckle and wear, never paper-white. */
+export function ceramicSurface(baseHex: number, seed = 41, repeat = 2): Surface {
+  return cached(`ceramic${baseHex}${seed}${repeat}`, () => {
+    let base = rgb(baseHex);
+    const luma = 0.2126 * base[0] + 0.7152 * base[1] + 0.0722 * base[2];
+    if (luma > 0.72) {
+      base = mix(base, [0.76, 0.66, 0.56], 0.42);
+    }
+    const grain = fbm(seed, 4, 12);
+    const stainN = fbm(seed + 17, 3, 4);
+    const s = paint(256, repeat, 1.0, (u, v) => {
+      const g = grain(u, v);
+      const stain = Math.max(0, stainN(u * 0.7, v * 0.9) - 0.6) ** 2;
+      const speckle = g > 0.78 ? (g - 0.78) * 0.5 : g < 0.18 ? (g - 0.18) * 0.25 : 0;
+      const dirt = mix(base, [0.38, 0.28, 0.22], stain * 0.35 + 0.06);
+      const n = (g - 0.5) * 0.08;
+      return [dirt[0] + n + speckle * 0.06, dirt[1] + n * 0.9, dirt[2] + n * 0.8, g * 0.45 + stain];
+    });
+    s.roughness = MATTE.ceramicRough;
+    s.metalness = 0;
+    s.normalScale = 0.2;
+    return s;
+  });
+}
+
 /** Painted plaster for walls — mottled, with dust streaks and a trowel finish. */
 export function plasterSurface(baseHex: number, seed = 3, repeat = 3): Surface {
   return cached(`plaster${baseHex}${seed}${repeat}`, () => {
