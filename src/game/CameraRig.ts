@@ -14,6 +14,34 @@ import * as THREE from 'three';
  */
 export const DEFAULT_FP_CAM = false;
 
+/**
+ * Stills-only 3/4 front portrait. Default play OTS is unchanged.
+ * Trigger with `?portrait=1` or V. Do not use C / first-person (that hides the cat).
+ */
+export const PORTRAIT = {
+  /** Cat-local: +X right, +Y up, +Z forward. Negative side = 3/4 from the left. */
+  side: -0.12,
+  /** Eye line on the 0.40 m Hunyuan (feet origin). */
+  height: 0.26,
+  /** Metres in front of the feet origin along heading — in FRONT of the muzzle. */
+  front: 0.34,
+  /** Look at the face, not the OTS chest (0.15). */
+  lookHeight: 0.235,
+  lookAhead: 0.11,
+  fov: 32,
+  near: 0.025,
+  far: 80,
+} as const;
+
+export function stillsPortraitRequested(): boolean {
+  if (typeof location === 'undefined') return false;
+  try {
+    return new URLSearchParams(location.search).get('portrait') === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Cat-local close OTS. +X right, +Y up, −Z behind. */
 export const OTS = {
   side: 0.18,
@@ -56,6 +84,39 @@ export function catRight(yaw: number): XZ {
 
 /** World pose for a close OTS camera that frames the whole cat. */
 type Vec3 = { x: number; y: number; z: number };
+
+/** World pose for a close 3/4 front stills portrait. Cat stays visible. */
+export function portraitPose(catPos: Vec3, yaw: number): { pos: THREE.Vector3; look: THREE.Vector3 } {
+  const fwd = catForward(yaw);
+  const right = catRight(yaw);
+  return {
+    pos: new THREE.Vector3(
+      catPos.x + right.x * PORTRAIT.side + fwd.x * PORTRAIT.front,
+      catPos.y + PORTRAIT.height,
+      catPos.z + right.z * PORTRAIT.side + fwd.z * PORTRAIT.front,
+    ),
+    look: new THREE.Vector3(
+      catPos.x + fwd.x * PORTRAIT.lookAhead,
+      catPos.y + PORTRAIT.lookHeight,
+      catPos.z + fwd.z * PORTRAIT.lookAhead,
+    ),
+  };
+}
+
+export function applyPortraitPose(
+  camera: THREE.PerspectiveCamera,
+  catPos: Vec3,
+  yaw: number,
+): { pos: THREE.Vector3; look: THREE.Vector3 } {
+  const pose = portraitPose(catPos, yaw);
+  camera.position.copy(pose.pos);
+  camera.lookAt(pose.look);
+  camera.fov = PORTRAIT.fov;
+  camera.near = PORTRAIT.near;
+  camera.far = PORTRAIT.far;
+  camera.updateProjectionMatrix();
+  return pose;
+}
 
 export function otsPose(
   catPos: Vec3,

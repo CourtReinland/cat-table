@@ -107,6 +107,13 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.match(src, /HeroFace/);
     assert.ok(SUKI_FACE.headLocal.y >= 0.04, `headLocal.y ${SUKI_FACE.headLocal.y} still inside the skull`);
     assert.ok(SUKI_FACE.headLocal.x <= -0.015, `headLocal.x ${SUKI_FACE.headLocal.x} sits on the +X cheek, not the face`);
+    assert.ok(SUKI_FACE.lashLen >= 0.015, `lashLen ${SUKI_FACE.lashLen} papers out in portrait`);
+    assert.ok(SUKI_FACE.blushRadius >= 0.016, `blushRadius ${SUKI_FACE.blushRadius} papers out in portrait`);
+    const { r: br, b: bb } = {
+      r: (SUKI_FACE.blush >> 16) & 255,
+      b: SUKI_FACE.blush & 255,
+    };
+    assert.ok(br > bb + 40, 'blush must stay pink, not grey paper');
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
     const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
     assert.match(toon, /MeshBasicNodeMaterial/);

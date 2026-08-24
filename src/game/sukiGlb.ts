@@ -131,10 +131,13 @@ export const SUKI_FACE = {
   parentBone: 'head' as const,
   sapphire: 0x1e5ad8,
   lash: 0x1a1422,
-  blush: 0xf278a0,
+  blush: 0xf45a92,
   nose: 0xf24a96,
   highlight: 0xffffff,
   eyeRadius: 0.016,
+  /** Portrait-readable ink strokes; too short papers into the white coat. */
+  lashLen: 0.018,
+  blushRadius: 0.018,
   /** Head AABB is −X-heavy; sit overlay on the muzzle, not the +X cheek. */
   headLocal: { x: -0.028, y: 0.048, z: -0.008 },
 } as const;

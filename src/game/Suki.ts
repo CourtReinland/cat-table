@@ -80,19 +80,19 @@ function addEye(root: THREE.Group, sign: number) {
   root.add(glint);
 
   for (let i = 0; i < 3; i++) {
-    const lash = new THREE.Mesh(new THREE.ConeGeometry(0.002, 0.011, 5), ink);
+    const lash = new THREE.Mesh(new THREE.ConeGeometry(0.0024, SUKI_FACE.lashLen, 5), ink);
     lash.name = iris.name + 'Lash' + i;
-    lash.position.set(x + sign * (0.006 + i * 0.0035), y + 0.002, z - 0.011 - i * 0.001);
-    lash.rotation.x = 0.85;
-    lash.rotation.z = sign * (0.28 + i * 0.22);
+    lash.position.set(x + sign * (0.007 + i * 0.004), y + 0.003, z - 0.014 - i * 0.002);
+    lash.rotation.x = 0.95;
+    lash.rotation.z = sign * (0.32 + i * 0.24);
     lash.frustumCulled = false;
     root.add(lash);
   }
 
-  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), blushM);
+  const blush = new THREE.Mesh(new THREE.SphereGeometry(SUKI_FACE.blushRadius, 10, 8), blushM);
   blush.name = sign > 0 ? 'BlushL' : 'BlushR';
-  blush.scale.set(1.25, 0.5, 0.78);
-  blush.position.set(x + sign * 0.004, y - 0.004, z + 0.018);
+  blush.scale.set(1.3, 0.52, 0.82);
+  blush.position.set(x + sign * 0.006, y - 0.004, z + 0.02);
   blush.frustumCulled = false;
   root.add(blush);
 }

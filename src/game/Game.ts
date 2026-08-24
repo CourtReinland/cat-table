@@ -26,7 +26,7 @@ import type { ShatterEvent } from './Physics';
 import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
 import { pawHitsProp } from './pawHit';
 import { PAW_HIT_RADIUS } from './sukiGlb';
-import { CameraRig, DEFAULT_FP_CAM, OTS } from './CameraRig';
+import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
 
 type Phase =
   | 'loading'
@@ -98,6 +98,11 @@ export class Game {
   private shakeRot = { z: 0 };
   /** first-person is a C toggle — boot default is close OTS (GS-CAM-OTS) */
   fpCam = DEFAULT_FP_CAM;
+  /**
+   * Stills 3/4 front portrait (`?portrait=1` or V). Not first-person.
+   * Default play OTS is unchanged when this is off.
+   */
+  portraitCam = false;
   private rig = new CameraRig();
   private fpBobT = 0;
   private fpPunch = new THREE.Vector3();
@@ -150,6 +155,7 @@ export class Game {
     // URL test hooks: ?auto=1&level=2&instant=1&quality=low
     const q = new URLSearchParams(location.search);
     this.autopilot = q.get('auto') === '1';
+    this.portraitCam = stillsPortraitRequested() || q.get('portrait') === '1';
     const forcedQ = q.get('quality');
     if (forcedQ === 'low' || forcedQ === 'medium' || forcedQ === 'high') {
       this.save.data.settings.quality = forcedQ;
@@ -267,6 +273,7 @@ export class Game {
       }
       if (e.code === 'Space' && this.phase === 'dialogue') this.advanceDialogue();
       if (e.code === 'KeyC' && this.phase === 'playing') {
+        if (this.portraitCam) this.setPortraitCam(false);
         this.fpCam = !this.fpCam;
         if (!this.fpCam) {
           const cat = this.apartment.cat;
@@ -275,6 +282,12 @@ export class Game {
           this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
         }
         this.ui.hint(this.fpCam ? "Suki's eyes: first-person" : 'Over-the-shoulder');
+        this.ui.hideHint();
+      }
+      if (e.code === 'KeyV') {
+        if (this.phase === 'loading' || this.phase === 'cinematic') return;
+        this.setPortraitCam(!this.portraitCam);
+        this.ui.hint(this.portraitCam ? 'Portrait stills' : 'Over-the-shoulder');
         this.ui.hideHint();
       }
     });
@@ -345,6 +358,20 @@ export class Game {
     // boot: close OTS, at rest — no leftover drive, not first-person
     this.haltProwl();
     this.fpCam = DEFAULT_FP_CAM;
+    const cat = this.apartment.cat;
+    this.rig.snap(cat.group.position, cat.yaw);
+    this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
+    this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
+  }
+
+  /** Stills 3/4 front portrait. Never hides the cat. Restores OTS when off. */
+  setPortraitCam(on: boolean) {
+    this.portraitCam = on;
+    if (on) {
+      this.fpCam = false;
+      this.apartment.cat.setVisible(true);
+      return;
+    }
     const cat = this.apartment.cat;
     this.rig.snap(cat.group.position, cat.yaw);
     this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
@@ -639,9 +666,10 @@ export class Game {
 
     this.apartment.physics.update(dt);
 
-    if (!this.fpCam) {
+    if (!this.portraitCam && !this.fpCam) {
       // Pose-lock (CameraRig.follow no longer damps). Snap on halt so a
       // leftover catch-up cannot slide props in the OTS frame after keyup.
+      // Portrait stills own the lens when on — park the OTS rig so V-off snaps.
       if (spd < 1e-6) this.rig.snap(catPos, cat.yaw, 0);
       else this.rig.follow(dt, catPos, cat.yaw, this.catVel);
       this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
@@ -1023,7 +1051,25 @@ export class Game {
 
     // camera
     const cam = this.engine.camera;
-    if (this.camMode === 'follow' && this.fpCam && this.phase === 'playing') {
+    if (
+      this.portraitCam &&
+      this.phase !== 'loading' &&
+      this.phase !== 'cinematic' &&
+      this.phase !== 'pause'
+    ) {
+      this.fpCam = false;
+      this.apartment.cat.setVisible(true);
+      const pose = portraitPose(this.apartment.cat.group.position, this.apartment.cat.yaw);
+      this.camPos.copy(pose.pos);
+      this.camLook.copy(pose.look);
+      cam.position.copy(this.camPos);
+      cam.lookAt(this.camLook);
+      if (Math.abs(cam.fov - PORTRAIT.fov) > 0.05 || Math.abs(cam.near - PORTRAIT.near) > 0.001) {
+        cam.fov = PORTRAIT.fov;
+        cam.near = PORTRAIT.near;
+        cam.updateProjectionMatrix();
+      }
+    } else if (this.camMode === 'follow' && this.fpCam && this.phase === 'playing') {
       this.updateFirstPersonCam(rawDt);
       this.apartment.cat.setVisible(false);
       if (this.fpPawT >= 0) {
@@ -1046,8 +1092,9 @@ export class Game {
       cam.lookAt(this.camLook);
       cam.rotation.z += this.shakeRot.z;
       const wantFov = this.camMode === 'follow' ? OTS.fov : 40;
-      if (Math.abs(cam.fov - wantFov) > 0.01) {
+      if (Math.abs(cam.fov - wantFov) > 0.01 || Math.abs(cam.near - OTS.near) > 0.001) {
         cam.fov = wantFov;
+        cam.near = OTS.near;
         cam.updateProjectionMatrix();
       }
     }
@@ -1090,6 +1137,8 @@ export class Game {
       bodies: bodySummary,
       webgpu: this.engine.usingWebGPU,
       autopilot: this.autopilot,
+      fpCam: this.fpCam,
+      portraitCam: this.portraitCam,
     };
   }
 

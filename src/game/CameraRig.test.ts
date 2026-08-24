@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import * as THREE from 'three';
 import { BUILD_STAMP } from '../buildStamp.ts';
@@ -7,12 +8,16 @@ import {
   CameraRig,
   DEFAULT_FP_CAM,
   OTS,
+  PORTRAIT,
   applyOtsPose,
+  applyPortraitPose,
   catForward,
   catFrameCorners,
   makeOtsCamera,
   otsPose,
   pointsInView,
+  portraitPose,
+  stillsPortraitRequested,
 } from './CameraRig.ts';
 import { STEER } from './Steer.ts';
 
@@ -29,6 +34,15 @@ function ndcOf(
 describe('GS-CAM-OTS default + stamp', () => {
   it('does not boot into first-person', () => {
     assert.equal(DEFAULT_FP_CAM, false);
+  });
+
+  it('keeps default play OTS numbers', () => {
+    assert.equal(OTS.back, 1.32);
+    assert.equal(OTS.side, 0.18);
+    assert.equal(OTS.height, 0.5);
+    assert.equal(OTS.lookHeight, 0.15);
+    assert.equal(OTS.fov, 52);
+    assert.equal(OTS.near, 0.08);
   });
 
   it('visible stamp is BUILD 10', () => {
@@ -155,5 +169,75 @@ describe('GS-SUKI-POLISH leftover: OTS follow lag after W release', () => {
     const ndc = mug.clone().project(cam);
     assert.ok(Math.abs(ndc.x - ndc0.x) < 1e-6, `prop NDC x drifted ${ndc.x - ndc0.x}`);
     assert.ok(Math.abs(ndc.y - ndc0.y) < 1e-6, `prop NDC y drifted ${ndc.y - ndc0.y}`);
+  });
+});
+
+describe('GS-PLAY-ART stills portrait camera', () => {
+  it('stands in front of the cat, 3/4, looking at the face not the OTS chest', () => {
+    const cat = new THREE.Vector3(0, 1.0, 0);
+    const yaw = 0;
+    const pose = portraitPose(cat, yaw);
+    const fwd = catForward(yaw);
+    const toCam = {
+      x: pose.pos.x - cat.x,
+      y: pose.pos.y - cat.y,
+      z: pose.pos.z - cat.z,
+    };
+    const ahead = toCam.x * fwd.x + toCam.z * fwd.z;
+    assert.ok(ahead > 0.2, `portrait must be in FRONT of the cat, ahead=${ahead}`);
+    assert.ok(toCam.x < -0.05, `3/4 from cat's left, side=${toCam.x}`);
+    assert.ok(PORTRAIT.lookHeight > OTS.lookHeight, 'portrait looks at the face, OTS at the chest');
+    assert.ok(pose.look.y > cat.y + 0.2, 'look sits on the muzzle / eyes');
+    assert.ok(PORTRAIT.fov < OTS.fov, 'tighter fov so eyes fill the frame');
+    assert.notEqual(PORTRAIT.front, OTS.back);
+  });
+
+  it('puts Hunyuan eye-line points in a close portrait frame', () => {
+    const cat = new THREE.Vector3(0.4, 1.12, 0.2);
+    const yaw = Math.PI * 0.5;
+    const fwd = catForward(yaw);
+    const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    const eyes = [
+      new THREE.Vector3(
+        cat.x + right.x * -0.02 + fwd.x * 0.13,
+        cat.y + 0.25,
+        cat.z + right.z * -0.02 + fwd.z * 0.13,
+      ),
+      new THREE.Vector3(
+        cat.x + right.x * 0.018 + fwd.x * 0.13,
+        cat.y + 0.25,
+        cat.z + right.z * 0.018 + fwd.z * 0.13,
+      ),
+    ];
+    const cam = new THREE.PerspectiveCamera(PORTRAIT.fov, 16 / 9, PORTRAIT.near, PORTRAIT.far);
+    applyPortraitPose(cam, cat, yaw);
+    assert.ok(pointsInView(cam, eyes, 0.88), 'eyes leave the portrait frame');
+    const n0 = ndcOf(cam, eyes[0]);
+    const n1 = ndcOf(cam, eyes[1]);
+    const span = Math.hypot(n0.x - n1.x, n0.y - n1.y);
+    assert.ok(span > 0.12, `eyes too small in portrait NDC span=${span}`);
+    assert.ok(Math.abs(n0.y) < 0.55 && Math.abs(n1.y) < 0.55, 'eyes not vertically in the portrait');
+  });
+
+  it('does not change default OTS when computing a portrait pose', () => {
+    const cat = new THREE.Vector3(0, 1.12, 0);
+    const ots = otsPose(cat, 0, 0);
+    portraitPose(cat, 0);
+    const ots2 = otsPose(cat, 0, 0);
+    assert.ok(ots.pos.distanceTo(ots2.pos) < 1e-12);
+    assert.equal(OTS.back, 1.32);
+    assert.equal(DEFAULT_FP_CAM, false);
+    assert.equal(stillsPortraitRequested(), false);
+  });
+
+  it('Game wires ?portrait=1 and V without hiding the cat or touching OTS', () => {
+    const src = readFileSync(new URL('./Game.ts', import.meta.url), 'utf8');
+    assert.match(src, /KeyV/);
+    assert.match(src, /portrait=1/);
+    assert.match(src, /setPortraitCam/);
+    assert.match(src, /portraitPose/);
+    assert.match(src, /setVisible\(true\)/);
+    assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
+    assert.doesNotMatch(src, /portraitCam.*fpCam\s*=\s*true/);
   });
 });
