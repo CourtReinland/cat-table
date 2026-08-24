@@ -476,11 +476,11 @@ export class Apartment {
     // buildRoom already toonify(roomGroup). A raw surfaceMat swap leaves
     // MeshStandardNodeMaterial on the walls (toonify(lg) never sees them),
     // and PBR can clip past BLOOM.threshold. Retint, then toonify each wall.
+    // Do not dispose map/normalMap: plasterSurface keeps them in
+    // Textures.cached and toonMaterialFor keys by map.uuid — dispose
+    // poisons a later return to this room (walls go black).
     for (const i of [1, 2, 3]) {
       const wall = this.roomGroup.children[i] as THREE.Mesh;
-      const prev = wall.material as { map?: THREE.Texture | null; normalMap?: THREE.Texture | null };
-      prev.map?.dispose();
-      prev.normalMap?.dispose();
       wall.material = wallPlaster;
       toonify(wall);
     }

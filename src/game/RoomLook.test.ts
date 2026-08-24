@@ -167,10 +167,9 @@ describe('GS-ROOM-LIGHT wiring', () => {
 
     const apt = src('Apartment.ts');
     const load = apt.slice(apt.indexOf('loadLevel('));
-    assert.match(load, /for \(const i of \[1, 2, 3\]\)/);
-    assert.match(load, /prev\.map\?\.dispose\(\)/);
-    assert.match(load, /prev\.normalMap\?\.dispose\(\)/);
-    assert.match(load, /toonify\(wall\)/);
+    const wallLoop = load.match(/for \(const i of \[1, 2, 3\]\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
+    assert.match(wallLoop, /toonify\(wall\)/);
+    assert.doesNotMatch(wallLoop, /\.dispose\(/);
     assert.match(apt, /NIGHT_RIG\.hemi/);
     assert.match(apt, /NIGHT_RIG\.key/);
     assert.match(apt, /NIGHT_KEY_POS/);
