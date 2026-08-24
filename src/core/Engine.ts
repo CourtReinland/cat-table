@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { pass } from 'three/tsl';
 import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js';
+import { BLOOM } from '../game/roomLook';
 
 export type Quality = 'high' | 'medium' | 'low';
 
@@ -81,7 +82,7 @@ export class Engine {
     this.pipeline = new THREE.RenderPipeline(this.renderer);
     const color = this.scenePass.getTextureNode();
     if (this.bloomOn) {
-      const bloomPass = bloom(color, 0.28, 0.5, 0.85);
+      const bloomPass = bloom(color, BLOOM.strength, BLOOM.radius, BLOOM.threshold);
       this.pipeline.outputNode = color.add(bloomPass) as any;
     } else {
       this.pipeline.outputNode = color;

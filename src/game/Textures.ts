@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { MATTE } from './roomLook';
 
 /**
  * Procedural surface textures for the apartment.
@@ -163,44 +164,58 @@ function mix(a: [number, number, number], b: [number, number, number], t: number
 
 // ── surfaces ────────────────────────────────────────────────────────────────
 
-/** Polished stone with drifting veins — kitchen island, vanity, date table. */
+/** Dusty night stone — sparse stains, low-contrast grain. Not chrome marble. */
 export function marbleSurface(baseHex: number, veinHex: number, seed = 7, repeat = 2): Surface {
   return cached(`marble${baseHex}${veinHex}${seed}${repeat}`, () => {
     const base = rgb(baseHex);
     const vein = rgb(veinHex);
     const warp = fbm(seed, 4, 4);
     const grain = fbm(seed + 31, 5, 16);
-    const s = paint(512, repeat, 1.4, (u, v) => {
-      // domain-warped stripes give the classic marble vein — kept sparse and
-      // low-contrast so the counter reads as stone, not as a contour map
+    const stainN = fbm(seed + 67, 3, 3);
+    const s = paint(512, repeat, 0.85, (u, v) => {
       const w = warp(u, v) - 0.5;
-      const t = Math.sin((u * 1.6 + v * 0.9 + w * 2.2) * Math.PI * 2);
-      const veinAmt = Math.pow(Math.max(0, 1 - Math.abs(t) * 5.5), 3);
-      const speck = (grain(u, v) - 0.5) * 0.05;
-      const c = mix(base, vein, veinAmt * 0.40);
-      return [c[0] + speck, c[1] + speck, c[2] + speck, veinAmt * 0.25 + grain(u, v) * 0.15];
+      const t = Math.sin((u * 1.1 + v * 0.7 + w * 1.6) * Math.PI * 2);
+      const veinAmt = Math.pow(Math.max(0, 1 - Math.abs(t) * 7), 4);
+      const dust = grain(u, v);
+      const stain = Math.max(0, stainN(u * 0.8, v * 1.1) - 0.58) ** 2;
+      const grit = dust > 0.78 ? (dust - 0.78) * 0.45 : dust < 0.16 ? (dust - 0.16) * 0.2 : 0;
+      const speck = (dust - 0.5) * 0.07;
+      const c = mix(base, vein, veinAmt * MATTE.stoneVein);
+      const lived = mix(c, [c[0] * 0.62, c[1] * 0.64, c[2] * 0.7], stain * 0.85);
+      return [
+        lived[0] + speck + grit * 0.08,
+        lived[1] + speck * 0.9 + grit * 0.06,
+        lived[2] + speck * 0.8 + grit * 0.05,
+        dust * 0.35 + stain * 0.5,
+      ];
     });
-    s.roughness = 0.32;
-    s.metalness = 0.04;
-    s.normalScale = 0.35;
+    s.roughness = MATTE.stoneRough;
+    s.metalness = MATTE.stoneMetal;
+    s.normalScale = MATTE.stoneNormal;
     return s;
   });
 }
 
-/** Painted plaster for walls — mottled, with a soft trowel texture. */
+/** Painted plaster for walls — mottled, with dust streaks and a trowel finish. */
 export function plasterSurface(baseHex: number, seed = 3, repeat = 3): Surface {
   return cached(`plaster${baseHex}${seed}${repeat}`, () => {
     const base = rgb(baseHex);
     const mottle = fbm(seed, 4, 3);
     const fine = fbm(seed + 91, 3, 24);
-    const s = paint(256, repeat, 1.1, (u, v) => {
-      const m = (mottle(u, v) - 0.5) * 0.16;
-      const f = (fine(u, v) - 0.5) * 0.05;
-      const c: [number, number, number] = [base[0] + m + f, base[1] + m + f, base[2] + m + f];
-      return [c[0], c[1], c[2], mottle(u, v) * 0.5 + fine(u, v) * 0.5];
+    const s = paint(256, repeat, 1.25, (u, v) => {
+      const m = (mottle(u, v) - 0.5) * 0.22;
+      const f = (fine(u, v) - 0.5) * 0.06;
+      // vertical water stain / dust fall
+      const streak = Math.max(0, mottle(u * 0.35, v * 0.12) - 0.62) * 0.28;
+      const c: [number, number, number] = [
+        base[0] + m + f - streak * 0.12,
+        base[1] + m + f - streak * 0.1,
+        base[2] + m + f - streak * 0.04,
+      ];
+      return [c[0], c[1], c[2], mottle(u, v) * 0.45 + fine(u, v) * 0.4 + streak];
     });
-    s.roughness = 0.95;
-    s.normalScale = 0.25;
+    s.roughness = MATTE.plasterRough;
+    s.normalScale = 0.32;
     return s;
   });
 }
@@ -215,12 +230,13 @@ export function fabricSurface(baseHex: number, seed = 11, repeat = 4): Surface {
       const wx = Math.sin(u * Math.PI * 2 * 32);
       const wy = Math.sin(v * Math.PI * 2 * 32);
       const weave = wx * wy > 0 ? 0.06 : -0.06;
-      const n = (slub(u, v) - 0.5) * 0.10;
-      const l = 1 + weave + n;
+      const n = (slub(u, v) - 0.5) * 0.12;
+      const fade = (slub(u * 0.4, v * 0.4) - 0.5) * 0.08;
+      const l = 1 + weave + n + fade;
       return [base[0] * l, base[1] * l, base[2] * l, (weave + 0.06) * 4 + slub(u, v) * 0.4];
     });
-    s.roughness = 0.98;
-    s.normalScale = 0.6;
+    s.roughness = MATTE.fabricRough;
+    s.normalScale = 0.55;
     return s;
   });
 }
@@ -256,11 +272,12 @@ export function panelSurface(baseHex: number, seed = 23, repeat = 2): Surface {
       // stretched noise reads as wood grain running vertically
       const g = grain(u * 0.25, v * 3.0);
       const rings = Math.sin((g * 6 + u * 9) * Math.PI * 2) * 0.5 + 0.5;
-      const l = 0.88 + rings * 0.16 + (g - 0.5) * 0.12;
-      return [base[0] * l, base[1] * l, base[2] * l, rings * 0.6 + g * 0.4];
+      const dust = (grain(u * 2.2, v * 0.4) - 0.5) * 0.1;
+      const l = 0.82 + rings * 0.14 + (g - 0.5) * 0.1 + dust;
+      return [base[0] * l, base[1] * l, base[2] * l, rings * 0.55 + g * 0.35];
     });
-    s.roughness = 0.7;
-    s.normalScale = 0.3;
+    s.roughness = MATTE.panelRough;
+    s.normalScale = 0.36;
     return s;
   });
 }
@@ -279,8 +296,8 @@ export function tileSurface(baseHex: number, groutHex: number, seed = 29, repeat
       const c = mix(base, grout, isGrout);
       return [c[0] + n, c[1] + n, c[2] + n, isGrout ? 0 : 1];
     });
-    s.roughness = 0.25;
-    s.normalScale = 0.5;
+    s.roughness = MATTE.tileRough;
+    s.normalScale = 0.45;
     return s;
   });
 }
@@ -289,7 +306,7 @@ export function tileSurface(baseHex: number, groutHex: number, seed = 29, repeat
 export function surfaceMat(s: Surface, repeat?: [number, number], extra: Record<string, unknown> = {}) {
   const m = new THREE.MeshStandardNodeMaterial({
     map: s.map,
-    roughness: s.roughness ?? 0.8,
+    roughness: s.roughness ?? MATTE.defaultRough,
     metalness: s.metalness ?? 0,
     ...extra,
   });

@@ -5,6 +5,7 @@
  * Standalone module so it survives factory regeneration.
  */
 import * as THREE from 'three/webgpu';
+import { EMISSIVE } from '../roomLook';
 
 const lathe = (pts: [number, number][], seg = 24) =>
   new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
@@ -151,7 +152,7 @@ export function refineCandelabra(root: THREE.Group) {
   const flameMaterial = new THREE.MeshStandardMaterial({
     color: 0xffc46a,
     emissive: 0xffa030,
-    emissiveIntensity: 2.4,
+    emissiveIntensity: EMISSIVE.flame,
     roughness: 0.5,
     transparent: true,
     opacity: 0.95,
