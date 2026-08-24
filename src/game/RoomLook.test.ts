@@ -155,8 +155,8 @@ describe('GS-ROOM-LIGHT per-level accents on the night family', () => {
 });
 
 describe('GS-ROOM-LIGHT stamp', () => {
-  it('visible stamp is BUILD 7 (CameraRig.test.ts owns this too)', () => {
-    assert.match(BUILD_STAMP, /^BUILD 7\b/);
+  it('visible stamp is BUILD 8 (CameraRig.test.ts owns this too)', () => {
+    assert.match(BUILD_STAMP, /^BUILD 8\b/);
   });
 });
 

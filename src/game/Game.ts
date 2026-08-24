@@ -524,6 +524,8 @@ export class Game {
         const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
         cat.preparePaws(dt);
         const paws = cat.getPawTips();
+        // XZ paw-sphere vs prop disc. Rest Y (counterRestY) is not a miss
+        // layer — contact ignores height. Immovable is the only skip.
         for (const b of this.apartment.physics.bodies) {
           if (b.state === 'gone' || b.state === 'falling') continue;
           let hit = false;

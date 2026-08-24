@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import type { ShatterKind } from '../data/content';
 import { counterRestY, hitCounter } from './ground';
+import { contactAccel, kickScale } from './mass';
 
 export interface ShatterEvent {
   kind: ShatterKind;
@@ -219,9 +220,8 @@ export class Physics {
   /** Kick a body with an impulse (called by the cat). Returns false if blocked/immovable. */
   kick(b: Body, dir: THREE.Vector3, power: number): boolean {
     if (b.state === 'gone' || b.immovable) return false;
-    const mass = Math.max(0.25, b.mass);
     // Mass-heavy props need several committed swipes; light glass still yields.
-    const scale = power / (mass * 1.35);
+    const scale = kickScale(power, b.mass);
     b.vel.addScaledVector(dir, scale);
     b.vel.y += power * 0.05;
     b.angVel.add(
@@ -242,10 +242,9 @@ export class Physics {
    */
   contactShove(b: Body, dir: THREE.Vector3, swing: number, dt: number) {
     if (b.state === 'gone' || b.immovable) return;
-    const mass = Math.max(0.25, b.mass);
     // force per second at full swing; heavier props accelerate slower but the
     // paw keeps pushing while in contact, so a committed swipe still moves them
-    const accel = swing * 7.0 / mass;
+    const accel = contactAccel(swing, b.mass);
     b.vel.addScaledVector(dir, accel * dt);
     b.vel.y += swing * 0.35 * dt; // slight lift as the paw sweeps under it
     b.angVel.x += dir.z * swing * 1.6 * dt;

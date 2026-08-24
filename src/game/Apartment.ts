@@ -893,7 +893,7 @@ export class Apartment {
         mass: def.mass,
         immovable: !!def.immovable,
       });
-      // subtle tint so immovable anchors read as "won't budge"
+      // subtle tint so leftover immovable scenery (none of the smashables) reads as planted
       if (def.immovable) {
         visual.group.traverse((o) => {
           const m = o as THREE.Mesh;
