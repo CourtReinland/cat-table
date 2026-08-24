@@ -102,3 +102,39 @@ export const SUKI_BOW = {
   loopRadius: 0.04,
   tailLength: 0.06,
 } as const;
+
+/**
+ * Face identity on the single Hunyuan skinned mesh (`node_0`).
+ * Coat stays MeshBasic paper (0xfbfdff). Head/ear verts get a looser chroma
+ * + luma gate so sapphire / lashes / blush / nose keep maps instead of
+ * flattening into a blue dot. Do not widen the coat gate — hatch is graphite.
+ */
+export const SUKI_FACE = {
+  bones: ['head', 'ear_L', 'ear_R'] as const,
+  attr: 'sukiFace',
+  /** Tight: bow + saturated iris only. Graphite hatch stays paper. */
+  coatChroma: 0.14,
+  coatLuma: 0.22,
+  /** Face verts: pale blush (~0.06 chroma) and grey lashes (~0.38 luma). */
+  faceChroma: 0.055,
+  faceLuma: 0.42,
+  /** Saturate identity rgb (unlit albedo is dusty). */
+  sat: 2.2,
+  /** Lift lit identity; ink stays crushed. */
+  lift: 1.45,
+  inkMul: 0.7,
+} as const;
+
+/**
+ * Idle/rest tail sits in front of the OTS-left HeroBow loop (cat +X plume).
+ * Extra bone XYZ after the mixer; Idle still wags around this bias.
+ * Do not bind Sit as rest. Do not move default OTS.
+ */
+export const SUKI_TAIL = {
+  bones: ['tail_01', 'tail_02'] as const,
+  nudge: {
+    /** −X lowers/back; −Z swings the plume outboard of the left loop. */
+    tail_01: { x: -14, y: 0, z: -20 },
+    tail_02: { x: -6, y: 0, z: -10 },
+  },
+} as const;

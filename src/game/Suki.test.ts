@@ -13,6 +13,8 @@ import {
   PAW_HIT_RADIUS,
   PAW_MESH,
   SUKI_BOW,
+  SUKI_FACE,
+  SUKI_TAIL,
 } from './sukiGlb.ts';
 
 describe('GS-SUKI-IN Hunyuan play mesh', () => {
@@ -74,5 +76,26 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.match(src, /MeshBasicNodeMaterial/);
     assert.match(src, /SUKI_BOW\.parentBone/);
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
+  });
+
+  it('splits face identity off the paper coat and nudges rest tail off the left bow loop', () => {
+    assert.deepEqual([...SUKI_FACE.bones], ['head', 'ear_L', 'ear_R']);
+    assert.equal(SUKI_FACE.attr, 'sukiFace');
+    assert.equal(SUKI_FACE.coatChroma, 0.14);
+    assert.ok(SUKI_FACE.faceChroma <= 0.06, `faceChroma ${SUKI_FACE.faceChroma} still papers pale blush`);
+    assert.ok(SUKI_FACE.faceLuma >= 0.38, `faceLuma ${SUKI_FACE.faceLuma} still papers grey lashes`);
+    assert.ok(SUKI_FACE.coatLuma <= 0.24, 'coat luma gate must stay tight or hatch returns');
+    assert.ok(SUKI_FACE.sat >= 1.8, 'unlit identity needs a saturate or the iris is a blue dot');
+    assert.deepEqual([...SUKI_TAIL.bones], ['tail_01', 'tail_02']);
+    assert.ok(SUKI_TAIL.nudge.tail_01.z <= -16, `tail_01 z ${SUKI_TAIL.nudge.tail_01.z} does not clear the left loop`);
+    assert.ok(SUKI_TAIL.nudge.tail_01.x <= -10, `tail_01 x ${SUKI_TAIL.nudge.tail_01.x} still climbs the nape`);
+    assert.equal(USE_SIT_FOR_LONG_IDLE, false);
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
+    assert.match(src, /applyTailNudge/);
+    assert.match(src, /SUKI_TAIL\.bones/);
+    assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
+    const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
+    assert.match(toon, /MeshBasicNodeMaterial/);
+    assert.match(toon, /SUKI_FLUFF_HEX/);
   });
 });

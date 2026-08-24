@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonifySukiCoat } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
-import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW } from './sukiGlb';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW, SUKI_TAIL } from './sukiGlb';
 
 export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
@@ -20,6 +20,24 @@ export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGl
  */
 
 const _euler = new THREE.Euler();
+const _tailNudgeQ = new Map<string, THREE.Quaternion>();
+
+function tailNudgeQuat(name: keyof typeof SUKI_TAIL.nudge) {
+  let q = _tailNudgeQ.get(name);
+  if (!q) {
+    const e = SUKI_TAIL.nudge[name];
+    q = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(
+        THREE.MathUtils.degToRad(e.x),
+        THREE.MathUtils.degToRad(e.y),
+        THREE.MathUtils.degToRad(e.z),
+        'XYZ',
+      ),
+    );
+    _tailNudgeQ.set(name, q);
+  }
+  return q;
+}
 
 function heroBowMaterial() {
   const m = new THREE.MeshBasicNodeMaterial({
@@ -188,6 +206,7 @@ export class Suki {
     if (this.useGlb) {
       if (this.mixer && !this.animAdvanced) {
         this.mixer.update(dt);
+        this.applyTailNudge();
         this.animAdvanced = true;
       }
     } else {
@@ -195,6 +214,20 @@ export class Suki {
       this.animAdvanced = true;
     }
     this.group.updateMatrixWorld(true);
+  }
+
+  /**
+   * Idle/rest plume sits in front of the OTS-left HeroBow loop. Mixer owns
+   * the clip; this is a rest-relative XYZ bias so the wag never covers the
+   * nape bow. Do not bind Sit as rest.
+   */
+  private applyTailNudge() {
+    if (!this.skeleton) return;
+    for (const name of SUKI_TAIL.bones) {
+      const bone = this.skeleton.bones.find((b) => b.name === name);
+      if (!bone) continue;
+      bone.quaternion.multiply(tailNudgeQuat(name));
+    }
   }
 
   /** World-space front paw tips (GLB bones, or procedural paws). */
@@ -348,7 +381,10 @@ export class Suki {
       this.current!.timeScale = 1;
     }
 
-    if (this.mixer && !this.animAdvanced) this.mixer.update(dt);
+    if (this.mixer && !this.animAdvanced) {
+      this.mixer.update(dt);
+      this.applyTailNudge();
+    }
     this.animAdvanced = false;
     this.group.rotation.y = this.yaw;
     // Light bank on the mesh — group yaw stays the gameplay heading so

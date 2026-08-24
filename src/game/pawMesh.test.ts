@@ -207,4 +207,10 @@ describe('GS-PAW-MESH Hunyuan paw shells', () => {
   it('visible stamp is BUILD 10', () => {
     assert.match(BUILD_STAMP, /^BUILD 10\b/);
   });
+
+  it('keeps Swipe tame scale at 0.38', () => {
+    const py = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../tools/character-pipe/tame_paw_mesh.py'), 'utf8');
+    assert.match(py, /"upper_FL": 0\.38/);
+    assert.match(py, /"upper_FR": 0\.38/);
+  });
 });

@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
-import { positionLocal, normalLocal, attribute, vec2, vec3, color as tslColor, texture, mix, float, max, min, step } from 'three/tsl';
+import { positionLocal, normalLocal, attribute, vec2, vec3, color as tslColor, texture, mix, float, max, min, step, saturate } from 'three/tsl';
+import { SUKI_FACE } from './sukiGlb';
 
 /**
  * Cel-shading pass for the whole game:
@@ -152,6 +153,33 @@ function sukiFluffGradient(): THREE.DataTexture {
   return fluffGrad;
 }
 
+/** Per-vert face weight from head/ear bones — chroma split without a second mesh. */
+function stampSukiFaceMask(mesh: THREE.Mesh) {
+  const geo = mesh.geometry;
+  if (geo.getAttribute(SUKI_FACE.attr)) return;
+  const n = geo.getAttribute('position')?.count ?? 0;
+  const arr = new Float32Array(n);
+  const sk = mesh as THREE.SkinnedMesh;
+  const idx = geo.getAttribute('skinIndex');
+  const wt = geo.getAttribute('skinWeight');
+  if (sk.isSkinnedMesh && sk.skeleton && idx && wt) {
+    const face = new Set<number>();
+    sk.skeleton.bones.forEach((b, i) => {
+      if ((SUKI_FACE.bones as readonly string[]).includes(b.name)) face.add(i);
+    });
+    const comp = (attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, i: number, k: number) =>
+      k === 0 ? attr.getX(i) : k === 1 ? attr.getY(i) : k === 2 ? attr.getZ(i) : attr.getW(i);
+    for (let i = 0; i < n; i++) {
+      let w = 0;
+      for (let k = 0; k < 4; k++) {
+        if (face.has(comp(idx, i, k))) w += comp(wt, i, k);
+      }
+      arr[i] = w;
+    }
+  }
+  geo.setAttribute(SUKI_FACE.attr, new THREE.BufferAttribute(arr, 1));
+}
+
 function sukiFluffMaterial(src: any) {
   // Unlit paper — MeshToon would multiply Hana lightColor (purple hemi +
   // peach lamp) and ignore gradient G/B. HEX × cool stops are the pixels.
@@ -168,9 +196,28 @@ function sukiFluffMaterial(src: any) {
     const cmin = min(rgb.x, min(rgb.y, rgb.z));
     const chroma = cmax.sub(cmin);
     const luma = rgb.dot(vec3(0.299, 0.587, 0.114));
-    // Hard mask: keep saturated eyes/bow and dark features; coat becomes flat white.
-    const ident = max(step(float(0.14), chroma), float(1).sub(step(float(0.28), luma)));
-    m.colorNode = mix(paper, rgb, ident);
+    const faceW = float(attribute(SUKI_FACE.attr, 'float') as never);
+    // Coat: tight chroma so hatch stays paper. Face verts: pale blush + lashes.
+    const chromaGate = mix(float(SUKI_FACE.coatChroma), float(SUKI_FACE.faceChroma), faceW);
+    const lumaGate = mix(float(SUKI_FACE.coatLuma), float(SUKI_FACE.faceLuma), faceW);
+    const ident = max(step(chromaGate, chroma), float(1).sub(step(lumaGate, luma)));
+    // Unlit raw albedo flattens the iris into a blue dot. Saturate + lift
+    // identity; crush lashes/nose so they stay ink against paper.
+    const grey = vec3(luma, luma, luma);
+    const sat = mix(grey, rgb, float(SUKI_FACE.sat));
+    const lift = mix(float(SUKI_FACE.inkMul), float(SUKI_FACE.lift), step(float(0.35), luma));
+    const lifted = saturate(sat.mul(lift));
+    const isBlue = step(rgb.x, rgb.z)
+      .mul(step(rgb.y.mul(float(0.92)), rgb.z))
+      .mul(step(float(0.07), chroma));
+    const sapphire = vec3(float(0.13), float(0.40), float(0.88));
+    const withEye = mix(lifted, mix(lifted, sapphire, float(0.38)), isBlue);
+    const isPink = step(rgb.z, rgb.x)
+      .mul(step(float(0.05), chroma))
+      .mul(step(float(0.25), faceW));
+    const blush = vec3(float(1.0), float(0.5), float(0.66));
+    const identRgb = mix(withEye, mix(withEye, blush, float(0.3)), isPink);
+    m.colorNode = mix(paper, identRgb, ident);
   } else {
     m.colorNode = paper;
   }
@@ -183,6 +230,7 @@ export function toonifySukiCoat(root: THREE.Object3D) {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
+    stampSukiFaceMask(mesh);
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const converted = mats.map((m: any) => {
       if (!m || isSkippable(m)) return m;
