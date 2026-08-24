@@ -1,10 +1,10 @@
 /**
- * Night apartment look contracts (GS-ROOM-LIGHT).
+ * Night apartment look contracts (GS-ROOM-LIGHT + GS-ROOM-COLOR).
  *
  * Title key art (`public/assets/ui/title-keyart.jpg`) is the color script:
- * dusty lived-in night kitchen, readable silhouettes, deep purple/black with
- * warm practicals (window city, lamp, left-side warmth), punchy matte hero
- * objects — not bloom soup or PBR chrome.
+ * dusty lived-in night kitchen, readable silhouettes, deep purple/indigo
+ * with warm practicals (window city, lamp, left-side warmth), punchy matte
+ * hero objects — not a crushed-black cave, bloom soup, or PBR chrome.
  *
  * Shared by Apartment, Props, Textures, Engine, and tests. Pure numbers —
  * no three.js — so node tests can lock the contracts without WebGPU.
@@ -79,9 +79,48 @@ export const MATTE = {
   fabricRough: 0.98,
   panelRough: 0.8,
   tileRough: 0.55,
-  stoneVein: 0.18,
-  stoneNormal: 0.22,
+  stoneVein: 0.38,
+  stoneNormal: 0.38,
   ceramicRough: 0.9,
+} as const;
+
+/**
+ * Night-readable local color. Toon multiplies albedo by TOON_SHADOW_STOP
+ * (~0.28) in shadow, so a 0x4a444c counter still displays as ~0.08 — a
+ * black slab except in the lamp puddle (BUILD 6 play shot). Paint local
+ * color bright enough that shadow-band hue survives, without flattening
+ * per-level lamp accents.
+ */
+export const NIGHT_SURFACE = {
+  minWallLuma: 0.34,
+  minCounterLuma: 0.46,
+  minSkyLuma: 0.14,
+  minFogLuma: 0.10,
+  maxWallLuma: 0.52,
+  maxCounterLuma: 0.62,
+  maxSkyLuma: 0.30,
+  maxFogLuma: 0.22,
+  /** Painted map pixels (marble / plaster) after stain + grain. */
+  minMapLuma: 0.38,
+  /** Granite blotches: mix toward pale grey / charcoal purple. */
+  stonePale: 0.46,
+  stoneChar: 0.28,
+  /** Cabinet body vs slab — darker wood, not crushed into the floor. */
+  cabinetMul: 0.86,
+  /** Fog → scene background. */
+  bgMul: 0.88,
+  floorLightMin: 36,
+  floorLightMax: 56,
+  /** Purple-red foot of the city gradient (title key art window). */
+  cityBot: 0x6a3060,
+  shellWall: 0x746090,
+  shellRug: 0x7a5870,
+  shellRugAccent: 0x9a7088,
+  shellShelf: 0x72584e,
+  shellFrame: 0x6a5a62,
+  shellLeaf: 0x4a8a50,
+  shellPan: 0x7a787e,
+  shellRack: 0x6a6058,
 } as const;
 
 export type RoomMatOpts = {
@@ -120,6 +159,26 @@ export function luminance(hex: number): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** Scale a hex toward a brighter twin of itself, preserving hue. */
+export function liftLuma(hex: number, minLuma: number): number {
+  const L = luminance(hex);
+  if (L >= minLuma) return hex;
+  if (L < 1e-5) return mixHex(0x3a2a3a, 0x5a4c56, Math.min(1, minLuma / 0.28));
+  const s = minLuma / L;
+  let r = Math.min(255, Math.round(((hex >> 16) & 255) * s));
+  let g = Math.min(255, Math.round(((hex >> 8) & 255) * s));
+  let b = Math.min(255, Math.round((hex & 255) * s));
+  let out = (r << 16) | (g << 8) | b;
+  // integer rounding can undershoot the luma floor
+  while (luminance(out) < minLuma && r + g + b < 255 * 3) {
+    r = Math.min(255, r + 1);
+    g = Math.min(255, g + 1);
+    b = Math.min(255, b + 1);
+    out = (r << 16) | (g << 8) | b;
+  }
+  return out;
+}
+
 /** Mix two 0xRRGGBB colors. `t` is the weight of `b`. */
 export function mixHex(a: number, b: number, t: number): number {
   const ar = (a >> 16) & 255;
@@ -145,5 +204,7 @@ export function levelMood(level: { keyColor: number; fillColor: number; lampColo
   };
 }
 
-/** Toon gradient hot stop in Toon.ts — bloom must sit above this. */
+/** Toon gradient stops in Toon.ts — bloom must sit above the hot stop.
+ *  Shadow is the band the BUILD 6 play slab actually lives in. */
+export const TOON_SHADOW_STOP = 72 / 255;
 export const TOON_HOT_STOP = 238 / 255;

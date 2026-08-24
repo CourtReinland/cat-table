@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { MATTE } from './roomLook';
+import { MATTE, NIGHT_SURFACE } from './roomLook';
 
 /**
  * Procedural surface textures for the apartment.
@@ -162,32 +162,52 @@ function mix(a: [number, number, number], b: [number, number, number], t: number
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
+function lumaRgb(c: [number, number, number]): number {
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+
+/** Keep painted pixels above the night floor so toon*shadow still shows hue. */
+function keepNightRgb(c: [number, number, number], minLuma: number = NIGHT_SURFACE.minMapLuma): [number, number, number] {
+  const L = lumaRgb(c);
+  if (L >= minLuma) return c;
+  if (L < 1e-5) return [0.42, 0.38, 0.46];
+  const s = minLuma / L;
+  return [Math.min(1, c[0] * s), Math.min(1, c[1] * s), Math.min(1, c[2] * s)];
+}
+
 // ── surfaces ────────────────────────────────────────────────────────────────
 
-/** Dusty night stone — sparse stains, low-contrast grain. Not chrome marble. */
+/** Dusty night granite — light-grey / charcoal flecks stay visible at night. Not chrome marble. */
 export function marbleSurface(baseHex: number, veinHex: number, seed = 7, repeat = 2): Surface {
   return cached(`marble${baseHex}${veinHex}${seed}${repeat}`, () => {
     const base = rgb(baseHex);
     const vein = rgb(veinHex);
+    const pale: [number, number, number] = [0.78, 0.74, 0.70];
+    const charcoal: [number, number, number] = [0.32, 0.30, 0.36];
     const warp = fbm(seed, 4, 4);
     const grain = fbm(seed + 31, 5, 16);
+    const blotch = fbm(seed + 11, 3, 2);
     const stainN = fbm(seed + 67, 3, 3);
-    const s = paint(512, repeat, 0.85, (u, v) => {
+    const s = paint(512, repeat, 1.35, (u, v) => {
       const w = warp(u, v) - 0.5;
       const t = Math.sin((u * 1.1 + v * 0.7 + w * 1.6) * Math.PI * 2);
       const veinAmt = Math.pow(Math.max(0, 1 - Math.abs(t) * 7), 4);
       const dust = grain(u, v);
+      const blot = blotch(u * 0.7, v * 0.85);
       const stain = Math.max(0, stainN(u * 0.8, v * 1.1) - 0.58) ** 2;
-      const grit = dust > 0.78 ? (dust - 0.78) * 0.45 : dust < 0.16 ? (dust - 0.16) * 0.2 : 0;
-      const speck = (dust - 0.5) * 0.07;
-      const c = mix(base, vein, veinAmt * MATTE.stoneVein);
-      const lived = mix(c, [c[0] * 0.62, c[1] * 0.64, c[2] * 0.7], stain * 0.85);
-      return [
-        lived[0] + speck + grit * 0.08,
-        lived[1] + speck * 0.9 + grit * 0.06,
-        lived[2] + speck * 0.8 + grit * 0.05,
-        dust * 0.35 + stain * 0.5,
-      ];
+      const grit = dust > 0.68 ? (dust - 0.68) * 0.85 : dust < 0.28 ? (dust - 0.28) * 0.45 : 0;
+      const speck = (dust - 0.5) * 0.16;
+      let c = mix(base, vein, veinAmt * MATTE.stoneVein);
+      // Large blotches so grain survives 5-step toon + OTS distance, not just close speckle.
+      if (blot > 0.52) c = mix(c, pale, NIGHT_SURFACE.stonePale * ((blot - 0.52) / 0.48));
+      else if (blot < 0.44) c = mix(c, charcoal, NIGHT_SURFACE.stoneChar * ((0.44 - blot) / 0.44));
+      const lived = mix(c, [c[0] * 0.9, c[1] * 0.91, c[2] * 0.94], stain * 0.28);
+      const out = keepNightRgb([
+        lived[0] + speck + grit * 0.18,
+        lived[1] + speck * 0.92 + grit * 0.14,
+        lived[2] + speck * 0.88 + grit * 0.1,
+      ]);
+      return [out[0], out[1], out[2], blot * 0.55 + dust * 0.3 + stain * 0.2];
     });
     s.roughness = MATTE.stoneRough;
     s.metalness = MATTE.stoneMetal;
@@ -228,15 +248,19 @@ export function plasterSurface(baseHex: number, seed = 3, repeat = 3): Surface {
     const mottle = fbm(seed, 4, 3);
     const fine = fbm(seed + 91, 3, 24);
     const s = paint(256, repeat, 1.25, (u, v) => {
-      const m = (mottle(u, v) - 0.5) * 0.22;
-      const f = (fine(u, v) - 0.5) * 0.06;
-      // vertical water stain / dust fall
+      const m = (mottle(u, v) - 0.5) * 0.34;
+      const f = (fine(u, v) - 0.5) * 0.1;
+      // vertical water stain / dust fall — tinted mauve, not a black drip
       const streak = Math.max(0, mottle(u * 0.35, v * 0.12) - 0.62) * 0.28;
-      const c: [number, number, number] = [
-        base[0] + m + f - streak * 0.12,
-        base[1] + m + f - streak * 0.1,
-        base[2] + m + f - streak * 0.04,
-      ];
+      const dustHi = Math.max(0, mottle(u, v) - 0.55) * 0.18;
+      const c = keepNightRgb(
+        [
+          base[0] + m + f - streak * 0.08 + dustHi * 0.12,
+          base[1] + m + f - streak * 0.06 + dustHi * 0.08,
+          base[2] + m + f - streak * 0.02 + dustHi * 0.16,
+        ],
+        NIGHT_SURFACE.minWallLuma,
+      );
       return [c[0], c[1], c[2], mottle(u, v) * 0.45 + fine(u, v) * 0.4 + streak];
     });
     s.roughness = MATTE.plasterRough;
@@ -254,11 +278,12 @@ export function fabricSurface(baseHex: number, seed = 11, repeat = 4): Surface {
       // over/under weave: two out-of-phase square waves
       const wx = Math.sin(u * Math.PI * 2 * 32);
       const wy = Math.sin(v * Math.PI * 2 * 32);
-      const weave = wx * wy > 0 ? 0.06 : -0.06;
-      const n = (slub(u, v) - 0.5) * 0.12;
+      const weave = wx * wy > 0 ? 0.08 : -0.08;
+      const n = (slub(u, v) - 0.5) * 0.14;
       const fade = (slub(u * 0.4, v * 0.4) - 0.5) * 0.08;
       const l = 1 + weave + n + fade;
-      return [base[0] * l, base[1] * l, base[2] * l, (weave + 0.06) * 4 + slub(u, v) * 0.4];
+      const c = keepNightRgb([base[0] * l, base[1] * l, base[2] * l], NIGHT_SURFACE.minWallLuma);
+      return [c[0], c[1], c[2], (weave + 0.08) * 4 + slub(u, v) * 0.4];
     });
     s.roughness = MATTE.fabricRough;
     s.normalScale = 0.55;
@@ -279,8 +304,9 @@ export function rugSurface(baseHex: number, accentHex: number, seed = 19, repeat
       const band = Math.sin(r * Math.PI * 7) > 0.55 ? 1 : 0;
       const petal = Math.sin(Math.atan2(dy, dx) * 8) > 0.7 && r < 0.55 ? 1 : 0;
       const c = mix(base, accent, Math.min(1, band * 0.55 + petal * 0.5));
-      const n = (pile(u, v) - 0.5) * 0.14;
-      return [c[0] + n, c[1] + n, c[2] + n, pile(u, v)];
+      const n = (pile(u, v) - 0.5) * 0.18;
+      const out = keepNightRgb([c[0] + n, c[1] + n, c[2] + n], NIGHT_SURFACE.minWallLuma);
+      return [out[0], out[1], out[2], pile(u, v)];
     });
     s.roughness = 1;
     s.normalScale = 0.8;
@@ -297,9 +323,10 @@ export function panelSurface(baseHex: number, seed = 23, repeat = 2): Surface {
       // stretched noise reads as wood grain running vertically
       const g = grain(u * 0.25, v * 3.0);
       const rings = Math.sin((g * 6 + u * 9) * Math.PI * 2) * 0.5 + 0.5;
-      const dust = (grain(u * 2.2, v * 0.4) - 0.5) * 0.1;
-      const l = 0.82 + rings * 0.14 + (g - 0.5) * 0.1 + dust;
-      return [base[0] * l, base[1] * l, base[2] * l, rings * 0.55 + g * 0.35];
+      const dust = (grain(u * 2.2, v * 0.4) - 0.5) * 0.12;
+      const l = 0.92 + rings * 0.18 + (g - 0.5) * 0.12 + dust;
+      const c = keepNightRgb([base[0] * l, base[1] * l, base[2] * l], NIGHT_SURFACE.minWallLuma);
+      return [c[0], c[1], c[2], rings * 0.55 + g * 0.35];
     });
     s.roughness = MATTE.panelRough;
     s.normalScale = 0.36;

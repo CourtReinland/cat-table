@@ -14,9 +14,12 @@ import {
   NIGHT_FILL_POS,
   NIGHT_KEY_POS,
   NIGHT_RIG,
+  NIGHT_SURFACE,
   TOON_HOT_STOP,
+  TOON_SHADOW_STOP,
   capEmissive,
   levelMood,
+  liftLuma,
   luminance,
   matteMetal,
   mixHex,
@@ -64,6 +67,11 @@ describe('GS-ROOM-LIGHT night rig', () => {
     assert.ok(luminance(fill) < 0.32, `fill too bright`);
     assert.ok(luminance(NIGHT_AMBIENT.ground) < 0.12);
     assert.ok(luminance(NIGHT_AMBIENT.rim) > 0.45, 'rim should read warm peach');
+    // captain-owned: do not retune hemi/fog/sky/ground on a surface-color ticket
+    assert.equal(NIGHT_RIG.hemi, 0.52);
+    assert.equal(NIGHT_RIG.fogDensity, 0.022);
+    assert.equal(NIGHT_AMBIENT.sky, 0x43384c);
+    assert.equal(NIGHT_AMBIENT.ground, 0x1a1412);
   });
 });
 
@@ -116,14 +124,93 @@ describe('GS-ROOM-LIGHT material factory', () => {
   });
 });
 
-describe('GS-ROOM-LIGHT kitchen night palette', () => {
-  it('keeps kitchen walls and counter dark enough for the title key art', () => {
+describe('GS-ROOM-COLOR night-readable surfaces', () => {
+  it('keeps kitchen local color at night, not a crushed-black cave', () => {
     const kitchen = LEVELS.find((l) => l.id === 'kitchen');
     assert.ok(kitchen, 'kitchen level missing');
-    assert.ok(luminance(kitchen!.wallColor) < 0.14, `wall too bright ${kitchen!.wallColor.toString(16)}`);
-    assert.ok(luminance(kitchen!.counterColor) < 0.14, `counter too bright ${kitchen!.counterColor.toString(16)}`);
-    assert.ok(luminance(kitchen!.fogColor) < 0.08, `fog too bright ${kitchen!.fogColor.toString(16)}`);
-    assert.ok(luminance(kitchen!.sky) < 0.14, `sky too bright ${kitchen!.sky.toString(16)}`);
+    const { wallColor, counterColor, fogColor, sky } = kitchen!;
+    assert.ok(
+      luminance(wallColor) >= NIGHT_SURFACE.minWallLuma && luminance(wallColor) <= NIGHT_SURFACE.maxWallLuma,
+      `wall ${wallColor.toString(16)} luma=${luminance(wallColor).toFixed(3)}`,
+    );
+    assert.ok(
+      luminance(counterColor) >= NIGHT_SURFACE.minCounterLuma && luminance(counterColor) <= NIGHT_SURFACE.maxCounterLuma,
+      `counter ${counterColor.toString(16)} luma=${luminance(counterColor).toFixed(3)}`,
+    );
+    assert.ok(
+      luminance(fogColor) >= NIGHT_SURFACE.minFogLuma && luminance(fogColor) <= NIGHT_SURFACE.maxFogLuma,
+      `fog ${fogColor.toString(16)} luma=${luminance(fogColor).toFixed(3)}`,
+    );
+    assert.ok(
+      luminance(sky) >= NIGHT_SURFACE.minSkyLuma && luminance(sky) <= NIGHT_SURFACE.maxSkyLuma,
+      `sky ${sky.toString(16)} luma=${luminance(sky).toFixed(3)}`,
+    );
+    // dusty mauve / granite, not grey daylight or the 0x161218 black slab
+    assert.notEqual(counterColor, 0x161218);
+    assert.ok((wallColor & 255) > ((wallColor >> 16) & 255), `wall ${wallColor.toString(16)} should stay mauve`);
+    assert.ok((sky & 255) > ((sky >> 16) & 255), `sky ${sky.toString(16)} should stay purple-red`);
+    assert.ok(luminance(counterColor) * TOON_HOT_STOP >= 0.18, 'lit granite must survive the toon hot stop');
+    assert.ok(
+      luminance(counterColor) * TOON_SHADOW_STOP >= 0.12,
+      `table must keep hue in the toon shadow band (play shot was a black slab). luma*shadow=${(luminance(counterColor) * TOON_SHADOW_STOP).toFixed(3)}`,
+    );
+  });
+
+  it('lifts every level’s walls/counter/sky/fog into the night-readable band', () => {
+    for (const level of LEVELS) {
+      const tag = level.id;
+      assert.ok(
+        luminance(level.wallColor) >= NIGHT_SURFACE.minWallLuma && luminance(level.wallColor) <= NIGHT_SURFACE.maxWallLuma,
+        `${tag} wall ${level.wallColor.toString(16)} luma=${luminance(level.wallColor).toFixed(3)}`,
+      );
+      assert.ok(
+        luminance(level.counterColor) >= NIGHT_SURFACE.minCounterLuma &&
+          luminance(level.counterColor) <= NIGHT_SURFACE.maxCounterLuma,
+        `${tag} counter ${level.counterColor.toString(16)} luma=${luminance(level.counterColor).toFixed(3)}`,
+      );
+      assert.ok(
+        luminance(level.sky) >= NIGHT_SURFACE.minSkyLuma && luminance(level.sky) <= NIGHT_SURFACE.maxSkyLuma,
+        `${tag} sky ${level.sky.toString(16)} luma=${luminance(level.sky).toFixed(3)}`,
+      );
+      assert.ok(
+        luminance(level.fogColor) >= NIGHT_SURFACE.minFogLuma && luminance(level.fogColor) <= NIGHT_SURFACE.maxFogLuma,
+        `${tag} fog ${level.fogColor.toString(16)} luma=${luminance(level.fogColor).toFixed(3)}`,
+      );
+      assert.ok(luminance(level.fogColor) < luminance(level.wallColor), `${tag} fog should sit behind the walls`);
+    }
+  });
+
+  it('preserves hue when lifting a crushed black slab', () => {
+    const lifted = liftLuma(0x161218, NIGHT_SURFACE.minCounterLuma);
+    assert.ok(luminance(lifted) >= NIGHT_SURFACE.minCounterLuma - 0.001);
+    assert.ok(luminance(lifted) <= NIGHT_SURFACE.maxCounterLuma + 0.02, 'lift is not a daylight fill');
+    const srcR = (0x4a2c3a >> 16) & 255;
+    const srcB = 0x4a2c3a & 255;
+    const out = liftLuma(0x4a2c3a, 0.22);
+    const outR = (out >> 16) & 255;
+    const outB = out & 255;
+    assert.ok(srcR > srcB, 'source is warm');
+    assert.ok(outR >= outB, `lifted ${out.toString(16)} must keep warm hue`);
+  });
+
+  it('keeps granite flecks, cabinet body, and floor grain in the house look', () => {
+    assert.ok(MATTE.stoneVein >= 0.26, 'vein/grain too timid to read at night');
+    assert.ok(MATTE.stoneNormal >= 0.28 && MATTE.stoneNormal <= 0.5, 'normals catch grain, not chrome');
+    assert.ok(MATTE.stoneMetal === 0);
+    assert.ok(NIGHT_SURFACE.stonePale >= 0.22, 'pale granite flecks must actually mix in');
+    assert.ok(NIGHT_SURFACE.stoneChar >= 0.12);
+    assert.ok(NIGHT_SURFACE.cabinetMul >= 0.7 && NIGHT_SURFACE.cabinetMul < 1, 'cabinets darker than the slab, not crushed');
+    assert.ok(NIGHT_SURFACE.bgMul >= 0.75, 'background must keep fog hue');
+    assert.ok(NIGHT_SURFACE.floorLightMin >= 32, 'floor boards too dark to show grain');
+    assert.ok(NIGHT_SURFACE.floorLightMax <= 62 && NIGHT_SURFACE.floorLightMax > NIGHT_SURFACE.floorLightMin);
+    assert.ok(luminance(NIGHT_SURFACE.cityBot) >= 0.14, 'window foot is a purple-red, not black');
+    assert.ok(luminance(NIGHT_SURFACE.shellWall) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellRug) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellShelf) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellFrame) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellPan) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellRack) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(TOON_SHADOW_STOP < 0.32 && TOON_SHADOW_STOP > 0.24);
   });
 });
 
@@ -155,8 +242,8 @@ describe('GS-ROOM-LIGHT per-level accents on the night family', () => {
 });
 
 describe('GS-ROOM-LIGHT stamp', () => {
-  it('visible stamp is BUILD 8 (CameraRig.test.ts owns this too)', () => {
-    assert.match(BUILD_STAMP, /^BUILD 8\b/);
+  it('visible stamp is BUILD 9 (CameraRig.test.ts owns this too)', () => {
+    assert.match(BUILD_STAMP, /^BUILD 9\b/);
   });
 });
 
@@ -183,6 +270,27 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(apt, /this\.key\.castShadow = false/);
     assert.match(apt, /EMISSIVE\.bulb/);
     assert.match(apt, /MATTE\.floorRough/);
+    assert.match(apt, /NIGHT_SURFACE\.cabinetMul/);
+    assert.match(apt, /NIGHT_SURFACE\.bgMul/);
+    assert.match(apt, /NIGHT_SURFACE\.cityBot/);
+    assert.match(apt, /NIGHT_SURFACE\.floorLightMin/);
+    assert.match(apt, /NIGHT_SURFACE\.shellPan/);
+    assert.match(apt, /NIGHT_SURFACE\.shellRack/);
+    assert.match(apt, /const pole =[\s\S]*?NIGHT_SURFACE\.shellRack/);
+    assert.match(apt, /const cord =[\s\S]*?NIGHT_SURFACE\.shellRack/);
+    assert.match(
+      apt,
+      /roomMat\(NIGHT_SURFACE\.shellPan, \{ rough: 0\.7, metal: 0\.18, emissive: level\.lampColor, emissiveIntensity: EMISSIVE\.shade \}/,
+    );
+    assert.match(apt, /roomMat\(0xf5e0b8[\s\S]*?EMISSIVE\.shade/);
+    assert.doesNotMatch(apt, /roomMat\(0x2a2a32/);
+    assert.doesNotMatch(apt, /roomMat\(0x141014/);
+    assert.doesNotMatch(apt, /roomMat\(0x2a2422/);
+    assert.match(apt, /liftLuma\(/);
+    assert.doesNotMatch(apt, /multiplyScalar\(0\.48\)/);
+    assert.doesNotMatch(apt, /rgba\(6, 4, 14/);
+    assert.doesNotMatch(apt, /#241811/);
+    assert.doesNotMatch(apt, /#3a2a24/);
 
     const props = src('Props.ts');
     assert.match(props, /export function roomMat/);
@@ -192,5 +300,9 @@ describe('GS-ROOM-LIGHT wiring', () => {
 
     const textures = src('Textures.ts');
     assert.match(textures, /export function ceramicSurface/);
+    assert.match(textures, /keepNightRgb/);
+    assert.match(textures, /NIGHT_SURFACE\.stonePale/);
+    assert.match(textures, /NIGHT_SURFACE\.minMapLuma/);
+    assert.match(textures, /blotch/);
   });
 });

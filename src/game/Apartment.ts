@@ -14,7 +14,7 @@ import {
   panelSurface,
   surfaceMat,
 } from './Textures';
-import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG, levelMood } from './roomLook';
+import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG, NIGHT_SURFACE, levelMood, liftLuma } from './roomLook';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -45,16 +45,18 @@ function shaftTexture() {
 }
 
 function woodFloorTex() {
+  const lo = NIGHT_SURFACE.floorLightMin;
+  const span = NIGHT_SURFACE.floorLightMax - NIGHT_SURFACE.floorLightMin;
   return canvasTex(512, 512, (ctx) => {
-    ctx.fillStyle = '#241811';
+    ctx.fillStyle = '#5a4034';
     ctx.fillRect(0, 0, 512, 512);
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 4; c++) {
-        const l = 12 + Math.random() * 10;
-        ctx.fillStyle = `hsl(${22 + Math.random() * 8}, ${28 + Math.random() * 12}%, ${l}%)`;
+        const l = lo + Math.random() * span;
+        ctx.fillStyle = `hsl(${18 + Math.random() * 10}, ${22 + Math.random() * 14}%, ${l}%)`;
         const off = r % 2 ? 64 : 0;
         ctx.fillRect(c * 128 + off + 1, r * 64 + 1, 126, 62);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillStyle = 'rgba(48, 32, 36, 0.18)';
         for (let g = 0; g < 4; g++) {
           const y = r * 64 + Math.random() * 64;
           ctx.fillRect(c * 128 + off + 1, y, 126, 1);
@@ -62,11 +64,11 @@ function woodFloorTex() {
       }
     }
     // grit / scuffs so the floor reads dusty, not a flat fill
-    ctx.fillStyle = 'rgba(52, 42, 36, 0.28)';
+    ctx.fillStyle = 'rgba(88, 70, 62, 0.32)';
     for (let i = 0; i < 420; i++) {
       ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + (Math.random() > 0.85 ? 2 : 0), 1);
     }
-    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillStyle = 'rgba(20, 12, 18, 0.12)';
     for (let i = 0; i < 18; i++) {
       ctx.fillRect(Math.random() * 512, Math.random() * 512, 40 + Math.random() * 80, 1);
     }
@@ -77,27 +79,35 @@ function cityTex(skyColor: number) {
   const sky = new THREE.Color(skyColor);
   return canvasTex(512, 384, (ctx) => {
     const top = sky.clone();
-    const bot = sky.clone().lerp(new THREE.Color(0x2a1848), 0.32);
+    const bot = sky.clone().lerp(new THREE.Color(NIGHT_SURFACE.cityBot), 0.62);
+    const mid = sky.clone().lerp(new THREE.Color(0x6a3060), 0.28);
     const grad = ctx.createLinearGradient(0, 0, 0, 384);
     grad.addColorStop(0, `#${top.getHexString()}`);
+    grad.addColorStop(0.42, `#${mid.getHexString()}`);
     grad.addColorStop(1, `#${bot.getHexString()}`);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 384);
-    // distant buildings — silhouettes, not a glowing skybox
+    // distant buildings — indigo silhouettes, not a crushed cave
     for (let i = 0; i < 16; i++) {
       const bw = 28 + Math.random() * 58;
       const bh = 70 + Math.random() * 160;
       const x = Math.random() * 512;
-      ctx.fillStyle = `rgba(6, 4, 14, ${0.72 + Math.random() * 0.26})`;
+      ctx.fillStyle = `rgba(42, 24, 68, ${0.5 + Math.random() * 0.32})`;
       ctx.fillRect(x, 384 - bh, bw, bh);
     }
     // city practicals: readable punctures, not bloom bokeh soup
-    for (let i = 0; i < 110; i++) {
-      const warm = Math.random() < 0.62;
-      ctx.fillStyle = warm ? 'rgba(255, 196, 130, 0.82)' : 'rgba(186, 176, 220, 0.55)';
-      ctx.shadowColor = warm ? '#ffc282' : '#b0a8dc';
-      ctx.shadowBlur = 2 + Math.random() * 5;
-      const r = 0.6 + Math.random() * 1.7;
+    for (let i = 0; i < 130; i++) {
+      const roll = Math.random();
+      const warm = roll < 0.55;
+      const mag = roll > 0.82;
+      ctx.fillStyle = mag
+        ? 'rgba(220, 120, 180, 0.7)'
+        : warm
+          ? 'rgba(255, 196, 130, 0.88)'
+          : 'rgba(186, 176, 220, 0.65)';
+      ctx.shadowColor = mag ? '#dc78b4' : warm ? '#ffc282' : '#b0a8dc';
+      ctx.shadowBlur = 1 + Math.random() * 2.5;
+      const r = 0.7 + Math.random() * 1.6;
       ctx.beginPath();
       ctx.arc(Math.random() * 512, 200 + Math.random() * 180, r, 0, 7);
       ctx.fill();
@@ -112,7 +122,7 @@ function cityTex(skyColor: number) {
       for (let c = 0; c < cols; c++) {
         for (let r = 0; r < rows; r++) {
           if (Math.random() < 0.35) continue;
-          ctx.fillStyle = Math.random() < 0.7 ? 'rgba(255, 190, 120, 0.7)' : 'rgba(170, 160, 210, 0.45)';
+          ctx.fillStyle = Math.random() < 0.7 ? 'rgba(255, 190, 120, 0.82)' : 'rgba(190, 150, 220, 0.6)';
           ctx.fillRect(bx + c * 5, by + r * 6, 2, 3);
         }
       }
@@ -136,8 +146,8 @@ function cityTex(skyColor: number) {
 function posterTex(hue: number) {
   return canvasTex(128, 160, (ctx) => {
     const g = ctx.createLinearGradient(0, 0, 128, 160);
-    g.addColorStop(0, `hsl(${hue}, 45%, 18%)`);
-    g.addColorStop(1, `hsl(${(hue + 40) % 360}, 55%, 8%)`);
+    g.addColorStop(0, `hsl(${hue}, 45%, 28%)`);
+    g.addColorStop(1, `hsl(${(hue + 40) % 360}, 55%, 16%)`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 128, 160);
     ctx.strokeStyle = `hsla(${hue}, 70%, 70%, 0.8)`;
@@ -202,7 +212,7 @@ export class Apartment {
     g.add(floor);
 
     // walls — plaster with a mottled trowel finish
-    const wallMat = surfaceMat(plasterSurface(0x241a30), [5, 1.6]);
+    const wallMat = surfaceMat(plasterSurface(NIGHT_SURFACE.shellWall), [5, 1.6]);
     const back = new THREE.Mesh(new THREE.PlaneGeometry(15, 4.4), wallMat);
     back.position.set(0, 2.2, -3.4);
     back.receiveShadow = true;
@@ -220,11 +230,11 @@ export class Apartment {
     // window (back wall, right side) — frame + city view + sill
     const winG = new THREE.Group();
     winG.position.set(2.9, 2.05, -3.38);
-    this.cityMat = new THREE.MeshBasicNodeMaterial({ map: cityTex(0x1a1030) });
+    this.cityMat = new THREE.MeshBasicNodeMaterial({ map: cityTex(0x4a2860) });
     const view = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.9), this.cityMat);
     view.position.z = -0.15;
     winG.add(view);
-    const frameMat = roomMat(0x141018, { rough: 0.6 });
+    const frameMat = roomMat(NIGHT_SURFACE.shellFrame, { rough: 0.6 });
     const mkBar = (w: number, h: number, x: number, y: number) => {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), frameMat);
       bar.position.set(x, y, 0);
@@ -269,8 +279,8 @@ export class Apartment {
     // couch
     const couchG = new THREE.Group();
     couchG.position.copy(this.couchPos);
-    const couchMat = surfaceMat(fabricSurface(0x5a3a52), [3, 1.2]);
-    const seatMat = surfaceMat(fabricSurface(0x6b4662), [2, 1.4]);
+    const couchMat = surfaceMat(fabricSurface(0x7a5470), [3, 1.2]);
+    const seatMat = surfaceMat(fabricSurface(0x8a6480), [2, 1.4]);
     const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.42, 0.95), couchMat);
     base.position.y = 0.24;
     const backRest = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.75, 0.28), couchMat);
@@ -303,7 +313,7 @@ export class Apartment {
     // rug
     const rug = new THREE.Mesh(
       new THREE.CircleGeometry(1.9, 28),
-      surfaceMat(rugSurface(0x2e1c2e, 0x53384e)),
+      surfaceMat(rugSurface(NIGHT_SURFACE.shellRug, NIGHT_SURFACE.shellRugAccent)),
     );
     rug.rotation.x = -Math.PI / 2;
     rug.position.set(-1.2, 0.005, -0.9);
@@ -313,7 +323,7 @@ export class Apartment {
     // floor lamp (right side)
     const lampG = new THREE.Group();
     lampG.position.set(3.6, 0, -1.4);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.05, 1.65, 8), roomMat(0x2a2422, { metal: 0.6, rough: 0.4 }));
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.05, 1.65, 8), roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }));
     pole.position.y = 0.82;
     const shade = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.3, 14, 1, true), roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }));
     shade.position.y = 1.7;
@@ -356,7 +366,7 @@ export class Apartment {
     // bookshelf silhouette (left)
     const shelf = new THREE.Group();
     shelf.position.set(-5.6, 0, -3.1);
-    const shelfMat = roomMat(0x1e1618, { rough: 0.9 });
+    const shelfMat = roomMat(NIGHT_SURFACE.shellShelf, { rough: 0.9 });
     for (let i = 0; i < 3; i++) {
       const board = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.3), shelfMat);
       board.position.set(0, 0.6 + i * 0.5, 0);
@@ -386,7 +396,7 @@ export class Apartment {
     pot.position.y = 0.17;
     plantG.add(pot);
     for (let i = 0; i < 5; i++) {
-      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.8 + Math.random() * 0.5, 6), roomMat(0x2a4a2e, { rough: 0.95 }));
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.8 + Math.random() * 0.5, 6), roomMat(NIGHT_SURFACE.shellLeaf, { rough: 0.95 }));
       leaf.position.set((Math.random() - 0.5) * 0.25, 0.7 + Math.random() * 0.3, (Math.random() - 0.5) * 0.25);
       leaf.rotation.z = (Math.random() - 0.5) * 0.7;
       plantG.add(leaf);
@@ -434,8 +444,8 @@ export class Apartment {
 
     this.scene.add(g);
     toonify(g);
-    this.scene.fog = new THREE.FogExp2(0x0e0818, NIGHT_RIG.fogDensity);
-    this.scene.background = new THREE.Color(0x070410);
+    this.scene.fog = new THREE.FogExp2(0x2a2038, NIGHT_RIG.fogDensity);
+    this.scene.background = new THREE.Color(0x2a2038).multiplyScalar(NIGHT_SURFACE.bgMul);
   }
 
   // ── per-level setup ───────────────────────────────────────────────────────
@@ -486,7 +496,7 @@ export class Apartment {
       toonify(wall);
     }
     this.scene.fog = new THREE.FogExp2(level.fogColor, NIGHT_RIG.fogDensity);
-    this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(0.55);
+    this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(NIGHT_SURFACE.bgMul);
     // Night-family BASE (intensities, hemi/moon, rim position). Per-level
     // key/fill/lamp are accents on that family and retarget the play slab.
     const mood = levelMood(level);
@@ -538,7 +548,10 @@ export class Apartment {
     // groove so the two halves of the furniture no longer share one flat fill.
     const veinHex = new THREE.Color(level.counterColor).multiplyScalar(1.18).getHex();
     const topMat = surfaceMat(marbleSurface(level.counterColor, veinHex, level.surface.length * 13), [2.4, 1.2]);
-    const bodyHex = new THREE.Color(level.counterColor).multiplyScalar(0.48).getHex();
+    const bodyHex = liftLuma(
+      new THREE.Color(level.counterColor).multiplyScalar(NIGHT_SURFACE.cabinetMul).getHex(),
+      NIGHT_SURFACE.minWallLuma,
+    );
     const bodyMat = surfaceMat(panelSurface(bodyHex, level.surface.length * 7), [2, 1]);
 
     const slab = (ww: number, dd: number) => {
@@ -567,9 +580,9 @@ export class Apartment {
         cab.castShadow = true;
         lg.add(cab);
         // pendant lamp above
-        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.2, 6), roomMat(0x141014, { rough: 0.7 }));
+        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.2, 6), roomMat(NIGHT_SURFACE.shellRack, { rough: 0.7 }));
         cord.position.set(0, 3.4, cz);
-        const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.24, 16, 1, true), roomMat(0x2a2a32, { rough: 0.7, metal: 0.18, emissive: level.lampColor, emissiveIntensity: EMISSIVE.shade }));
+        const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.24, 16, 1, true), roomMat(NIGHT_SURFACE.shellPan, { rough: 0.7, metal: 0.18, emissive: level.lampColor, emissiveIntensity: EMISSIVE.shade }));
         shade.position.set(0, 2.75, cz);
         const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), roomMat(0xffe2b0, { emissive: level.lampColor, emissiveIntensity: EMISSIVE.bulb }));
         bulb.position.set(0, 2.68, cz);
@@ -739,15 +752,15 @@ export class Apartment {
       lg.add(m);
       return m;
     };
-    const darkWood = roomMat(0x2e211c, { rough: 0.8 });
-    const midWood = roomMat(0x4a3428, { rough: 0.75 });
-    const fabric = roomMat(0x5a4a5e, { rough: 0.95 });
+    const darkWood = roomMat(0x6a4a38, { rough: 0.8 });
+    const midWood = roomMat(0x7a5a42, { rough: 0.75 });
+    const fabric = roomMat(0x7a6480, { rough: 0.95 });
 
     switch (level.surface) {
       case 'kitchen': {
         // hanging pot rack over the island (in frame) + bar stools in the foreground
-        const rackMat = roomMat(0x2a2622, { metal: 0.6, rough: 0.4 });
-        const panMat = roomMat(0x3a3a40, { metal: 0.7, rough: 0.35 });
+        const rackMat = roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 });
+        const panMat = roomMat(NIGHT_SURFACE.shellPan, { metal: 0.16, rough: 0.5 });
         box(1.3, 0.03, 0.5, rackMat, -0.6, 2.15, 0.3);
         for (const [cx, cz2] of [[-1.15, 0.05], [-1.15, 0.55], [-0.05, 0.05], [-0.05, 0.55]] as const) {
           cyl(0.006, 1.3, rackMat, cx, 2.8, cz2, 6);
@@ -760,9 +773,9 @@ export class Apartment {
         }
         // bar stools
         for (const sx of [-0.9, 0.15]) {
-          cyl(0.19, 0.07, roomMat(0x6a4a3a, { rough: 0.6 }), sx, 0.62, 1.55);
-          cyl(0.03, 0.6, roomMat(0x2a2622, { metal: 0.6, rough: 0.4 }), sx, 0.3, 1.55);
-          cyl(0.14, 0.03, roomMat(0x2a2622, { metal: 0.6, rough: 0.4 }), sx, 0.02, 1.55);
+          cyl(0.19, 0.07, roomMat(0x8a6a52, { rough: 0.6 }), sx, 0.62, 1.55);
+          cyl(0.03, 0.6, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.3, 1.55);
+          cyl(0.14, 0.03, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.02, 1.55);
         }
         // herb pots on the window sill (visible near window)
         for (let i = 0; i < 2; i++) {

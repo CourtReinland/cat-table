@@ -31,8 +31,8 @@ describe('GS-CAM-OTS default + stamp', () => {
     assert.equal(DEFAULT_FP_CAM, false);
   });
 
-  it('visible stamp is BUILD 8', () => {
-    assert.match(BUILD_STAMP, /^BUILD 8\b/);
+  it('visible stamp is BUILD 9', () => {
+    assert.match(BUILD_STAMP, /^BUILD 9\b/);
   });
 
   it('keeps BUILD 3 steer tunables', () => {
