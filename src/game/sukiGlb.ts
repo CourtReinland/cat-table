@@ -79,3 +79,18 @@ export const PAW_MESH = {
   sitMinHipDeg: 4,
   lowYExclusiveMin: 0.85,
 } as const;
+
+/**
+ * Hero pink bow lives on Hunyuan skinned mesh `node_0`, 159 verts exclusive
+ * to bow / bow_L / bow_R at the nape (~3 cm). Default OTS (1.32 m behind)
+ * reads that as a collar thread. Runtime-scale the bones so loops + tails
+ * silhouette from the rear. Do not move the camera.
+ */
+export const SUKI_BOW = {
+  meshName: 'node_0',
+  bones: ['bow', 'bow_L', 'bow_R'] as const,
+  /** Loops + tails (bow_L / bow_R). */
+  loopScale: 3.2,
+  /** Knot (bow) — slightly less so the nape does not balloon into the skull. */
+  knotScale: 2.8,
+} as const;

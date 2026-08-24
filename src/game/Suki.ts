@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonifySukiCoat } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
-import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES } from './sukiGlb';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW } from './sukiGlb';
 
 export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
@@ -48,6 +48,7 @@ export class Suki {
   ready = false;
   private skeleton: THREE.Skeleton | null = null;
   private pawBones: THREE.Bone[] = [];
+  private bowBones: { bone: THREE.Bone; scale: number }[] = [];
   /** Skip a duplicate mixer tick when Game already advanced paws this frame. */
   private animAdvanced = false;
   private _pawWorld = [new THREE.Vector3(), new THREE.Vector3()];
@@ -85,10 +86,18 @@ export class Suki {
         if (sk.isSkinnedMesh && sk.skeleton) {
           this.skeleton = sk.skeleton;
           this.pawBones = [];
+          this.bowBones = [];
           for (const name of SUKI_PAW_BONES) {
             const bone = sk.skeleton.bones.find((b) => b.name === name);
             if (bone) this.pawBones.push(bone);
           }
+          for (const name of SUKI_BOW.bones) {
+            const bone = sk.skeleton.bones.find((b) => b.name === name);
+            if (!bone) continue;
+            const scale = name === 'bow' ? SUKI_BOW.knotScale : SUKI_BOW.loopScale;
+            this.bowBones.push({ bone, scale });
+          }
+          this.applyHeroBow();
         }
       });
 
@@ -129,6 +138,7 @@ export class Suki {
     if (this.useGlb) {
       if (this.mixer && !this.animAdvanced) {
         this.mixer.update(dt);
+        this.applyHeroBow();
         this.animAdvanced = true;
       }
     } else {
@@ -144,6 +154,13 @@ export class Suki {
       return this.pawBones.map((b, i) => b.getWorldPosition(this._pawWorld[i] ?? new THREE.Vector3()));
     }
     return this.cat.getPawTips(this._pawWorld);
+  }
+
+  /** Scale nape bow loops/tails after mixer so clips cannot shrink them. */
+  private applyHeroBow() {
+    for (const { bone, scale } of this.bowBones) {
+      bone.scale.setScalar(scale);
+    }
   }
 
   private play(name: string, fade = 0.22, once = false) {
@@ -281,6 +298,7 @@ export class Suki {
     }
 
     if (this.mixer && !this.animAdvanced) this.mixer.update(dt);
+    this.applyHeroBow();
     this.animAdvanced = false;
     this.group.rotation.y = this.yaw;
     // Light bank on the mesh — group yaw stays the gameplay heading so

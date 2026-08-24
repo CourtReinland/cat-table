@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   CLIP,
   GLB_SCALE,
@@ -9,6 +12,7 @@ import {
   SUKI_PAW_BONES,
   PAW_HIT_RADIUS,
   PAW_MESH,
+  SUKI_BOW,
 } from './sukiGlb.ts';
 
 describe('GS-SUKI-IN Hunyuan play mesh', () => {
@@ -45,5 +49,16 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.deepEqual([...PAW_MESH.exclusiveBones], ['paw_FL', 'paw_FR', 'paw_HL', 'paw_HR']);
     assert.ok(PAW_MESH.swipeMaxDeltaDeg <= 28);
     assert.ok(PAW_MESH.hitMaxDeltaDeg <= 14);
+  });
+
+  it('scales the nape hero bow so OTS can read loops and tails', () => {
+    assert.equal(SUKI_BOW.meshName, 'node_0');
+    assert.deepEqual([...SUKI_BOW.bones], ['bow', 'bow_L', 'bow_R']);
+    assert.ok(SUKI_BOW.loopScale >= 3, `loopScale ${SUKI_BOW.loopScale} still a throat thread`);
+    assert.ok(SUKI_BOW.knotScale >= 2.5 && SUKI_BOW.knotScale <= SUKI_BOW.loopScale);
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
+    assert.match(src, /applyHeroBow/);
+    assert.match(src, /SUKI_BOW\.loopScale/);
+    assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
   });
 });

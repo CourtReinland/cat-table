@@ -22,14 +22,15 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     /SUKI_FLUFF_GRADIENT = \[\s*(\d+),\s*(\d+),\s*(\d+),\s*255,\s*(\d+),\s*(\d+),\s*(\d+),\s*255,\s*(\d+),\s*(\d+),\s*(\d+),\s*255,?\s*\]/s,
   );
 
-  it('exports a cooler paper-white coat, not cream 0xf4f1ee', () => {
+  it('exports a cooler paper-white coat, not cream 0xf4f1ee or dusty 0xf8f8fb', () => {
     assert.ok(hexMatch, 'SUKI_FLUFF_HEX missing');
     const hex = Number(hexMatch![1]);
     const { r, g, b } = hexRgb(hex);
     assert.notEqual(hex, 0xf4f1ee);
-    assert.ok(b >= r, `FLUFF ${hexMatch![1]} is still warm cream (R=${r} B=${b})`);
-    assert.ok(luma(r, g, b) >= 240, `FLUFF luma ${luma(r, g, b).toFixed(1)} is graphite, not paper`);
-    assert.ok(r >= 240 && g >= 240 && b >= 240, 'paper white must stay high-value');
+    assert.notEqual(hex, 0xf8f8fb);
+    assert.ok(b > r, `FLUFF ${hexMatch![1]} is still warm cream (R=${r} B=${b})`);
+    assert.ok(luma(r, g, b) >= 248, `FLUFF luma ${luma(r, g, b).toFixed(1)} is graphite, not paper`);
+    assert.ok(r >= 248 && g >= 248 && b >= 250, 'paper white must stay high-value and cool');
   });
 
   it('raises fluff gradient shadow/mid so night bands stay white, not grey-lavender', () => {
@@ -37,12 +38,14 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     const nums = gradMatch!.slice(1, 10).map(Number);
     const [sr, sg, sb, mr, mg, mb, lr, lg, lb] = nums;
     // BUILD 6 miss: 176,174,180 — too dark + B-heavy lavender under the lamp
+    // BUILD 10 first lift: 224,225,230 — still dusty pink under Hana bounce
     assert.ok(sr !== 176 || sg !== 174 || sb !== 180);
-    assert.ok(sr >= 210 && sg >= 210 && sb >= 210, `shadow ${sr},${sg},${sb} still grey-lavender`);
-    assert.ok(sb >= sr, `shadow ${sr},${sg},${sb} leans peach`);
-    assert.ok(mr >= 230 && mg >= 230 && mb >= 230, `mid ${mr},${mg},${mb} too dark`);
-    assert.ok(lr >= 245 && lg >= 245 && lb >= 245, `lit ${lr},${lg},${lb} not paper`);
-    assert.ok(luma(sr, sg, sb) >= 210, `shadow luma ${luma(sr, sg, sb).toFixed(1)}`);
+    assert.ok(sr !== 224 || sg !== 225 || sb !== 230);
+    assert.ok(sr >= 232 && sg >= 232 && sb >= 240, `shadow ${sr},${sg},${sb} still grey-lavender`);
+    assert.ok(sb >= sr + 6, `shadow ${sr},${sg},${sb} not cool enough to kill lamp peach`);
+    assert.ok(mr >= 240 && mg >= 240 && mb >= 248, `mid ${mr},${mg},${mb} too dark`);
+    assert.ok(lr >= 250 && lg >= 250 && lb >= 250, `lit ${lr},${lg},${lb} not paper`);
+    assert.ok(luma(sr, sg, sb) >= 230, `shadow luma ${luma(sr, sg, sb).toFixed(1)}`);
     assert.ok(luma(sr, sg, sb) < luma(lr, lg, lb), 'need a real band, not a flat sheet');
   });
 
@@ -55,9 +58,11 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     const coatFn = toon.slice(toon.indexOf('export function toonifySukiCoat'), toon.indexOf('const outlineMats'));
     assert.match(fluffFn, /step\(float\(0\.14\), chroma\)/);
     assert.match(fluffFn, /step\(float\(0\.28\), luma\)/);
-    assert.match(fluffFn, /mix\(tslColor\(FLUFF\), rgb, ident\)/);
+    assert.match(fluffFn, /mix\(paper, rgb, ident\)/);
     assert.match(fluffFn, /Never assign Hunyuan maps/);
+    assert.match(fluffFn, /MeshBasicNodeMaterial/);
     assert.doesNotMatch(fluffFn, /m\.map\s*=/);
+    assert.doesNotMatch(fluffFn, /MeshToonNodeMaterial/);
     assert.doesNotMatch(coatFn, /outlineCharacter\(/);
   });
 });

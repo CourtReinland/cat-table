@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { positionLocal, normalLocal, attribute, vec3, color as tslColor, texture, mix, float, max, min, step } from 'three/tsl';
+import { positionLocal, normalLocal, attribute, vec2, vec3, color as tslColor, texture, mix, float, max, min, step } from 'three/tsl';
 
 /**
  * Cel-shading pass for the whole game:
@@ -121,17 +121,19 @@ export function toonify(root: THREE.Object3D, opts: ToonifyOpts = {}) {
  * Do not assign the hatch/AO/normal albedo as `map`. Identity (sapphire / pink bow / dark
  * nose) is a chroma+luma mask sampled in the color node only.
  *
- * GS-PLAY-ART: 0xf4f1ee + shadow 176,174,180 read cream / grey-lavender once Hana
- * lifted the night room (BUILD 9). Isolation studio stills of the GLB are already
- * white — this path is the live miss. Cooler paper white, raised cool shadow/mid.
+ * MeshToonNodeMaterial's ToonLightingModel samples only gradientMap.r, then
+ * multiplies scene `lightColor`. Hana night hemi (0x43384c) + lamp (0xffb46a)
+ * therefore peach/lavender any MeshToon coat, no matter how cool the gradient
+ * B channel is. 0xf8f8fb + 224,225,230 still failed on play OTS stills.
+ * Coat is MeshBasic: HEX × gradient RGB are the on-screen paper, unlit.
  */
-export const SUKI_FLUFF_HEX = 0xf8f8fb;
+export const SUKI_FLUFF_HEX = 0xfbfdff;
 
-/** RGB+A, 3 nearest-filter stops: shadow → mid → lit. Not graphite, not peach. */
+/** RGB+A, 3 nearest-filter stops: shadow → mid → lit. Cool paper, not peach. */
 export const SUKI_FLUFF_GRADIENT = [
-  224, 225, 230, 255,
-  240, 240, 244, 255,
-  252, 252, 254, 255,
+  238, 242, 252, 255,
+  248, 250, 255, 255,
+  255, 255, 255, 255,
 ] as const;
 
 const FLUFF = new THREE.Color(SUKI_FLUFF_HEX);
@@ -151,11 +153,14 @@ function sukiFluffGradient(): THREE.DataTexture {
 }
 
 function sukiFluffMaterial(src: any) {
-  const m = new THREE.MeshToonNodeMaterial({
+  // Unlit paper — MeshToon would multiply Hana lightColor (purple hemi +
+  // peach lamp) and ignore gradient G/B. HEX × cool stops are the pixels.
+  const m = new THREE.MeshBasicNodeMaterial({
     color: FLUFF,
-    gradientMap: sukiFluffGradient(),
     side: THREE.FrontSide,
   });
+  const band = vec3(texture(sukiFluffGradient(), vec2(float(0.78), float(0.5))));
+  const paper = band.mul(tslColor(FLUFF));
   const albedo = src?.map as THREE.Texture | undefined;
   if (albedo) {
     const rgb = vec3(texture(albedo));
@@ -165,7 +170,9 @@ function sukiFluffMaterial(src: any) {
     const luma = rgb.dot(vec3(0.299, 0.587, 0.114));
     // Hard mask: keep saturated eyes/bow and dark features; coat becomes flat white.
     const ident = max(step(float(0.14), chroma), float(1).sub(step(float(0.28), luma)));
-    m.colorNode = mix(tslColor(FLUFF), rgb, ident);
+    m.colorNode = mix(paper, rgb, ident);
+  } else {
+    m.colorNode = paper;
   }
   // Never assign Hunyuan maps — that was the scribble path.
   return m;
