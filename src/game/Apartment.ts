@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { roomMat, buildProp } from './Props';
 import { Suki } from './Suki';
 import { Boyfriend } from './BoyGlb';
+import { boyPlayPlacement } from './boyfriendPlay';
 import { Body, Physics, type SurfaceRect } from './Physics';
 import { PROP_LIBRARY, getBoyfriend, type LevelDef, type PropKind } from '../data/content';
 import { toonify } from './Toon';
@@ -520,11 +521,14 @@ export class Apartment {
     this.cat.yaw = Math.PI * 0.5;
     this.cat.group.visible = true;
 
-    // boyfriend on the couch
+    // boyfriend: kitchen date sits the island stool (in the play OTS). Other
+    // rooms keep the living-room couch until those cameras are framed.
     const def = getBoyfriend(level.boyfriendId);
     this.boyfriend = new Boyfriend(def);
-    this.boyfriend.group.position.set(this.couchPos.x + 0.35, 0, this.couchPos.z + 0.3);
-    this.boyfriend.group.rotation.y = 0.35;
+    const place = boyPlayPlacement(level.surface, this.couchPos, this.catSpawn);
+    this.boyfriend.group.position.set(place.pos.x, place.pos.y, place.pos.z);
+    this.boyfriend.group.rotation.y = place.rotY;
+    this.boyfriend.setPose(place.pose, 0.01);
     this.scene.add(this.boyfriend.group);
 
     this.cuddleSpot.set(0.4, 0, cz + d / 2 + 0.55);

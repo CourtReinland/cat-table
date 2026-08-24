@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { toonify, outlineCharacter } from './Toon';
 import type { BoyDef } from '../data/content';
+import { boyGlbUrl, findHeadBone, remapMixamoRig } from './boyfriendPlay';
 
 type PoseName = 'sit' | 'stand' | 'walk' | 'kneel' | 'cuddle';
 
@@ -14,7 +15,7 @@ export async function preloadBoys(ids: string[]) {
     ids.map(async (id) => {
       if (gltfCache.has(id)) return;
       try {
-        const gltf = await loader.loadAsync(`assets/models/boy-${id}.glb`);
+        const gltf = await loader.loadAsync(boyGlbUrl(id));
         gltfCache.set(id, gltf);
       } catch (err) {
         console.warn(`[bf] boy-${id}.glb unavailable`, err);
@@ -40,7 +41,9 @@ function exclaimTexture() {
 }
 let exclaimTex: THREE.CanvasTexture | null = null;
 
-/** GLB boyfriend: Blender-built rig, clip-driven poses + procedural head look-at. */
+/** GLB boyfriend: clip-driven poses + procedural head look-at.
+ *  Mixamo Eli TODO lives on boyfriendPlay.ts — do not fake a Mixamo mesh here.
+ */
 export class Boyfriend {
   group = new THREE.Group();
   def: BoyDef;
@@ -67,6 +70,8 @@ export class Boyfriend {
         if (m.isMesh) m.castShadow = true;
       });
       this.group.add(inner);
+      // Mixamo drop-in: mixamorig:Head → Head so look-at survives. Clay names are unchanged.
+      remapMixamoRig(inner, src.animations ?? []);
       toonify(inner);
       // warmer outline for the boys — separates them from Suki (dark plum)
       // and reads as "romance lead" rim light
@@ -83,7 +88,7 @@ export class Boyfriend {
         // NLA track names come through clean: Idle_Sit, Walk, Cuddle…
         this.actions.set(clip.name, this.mixer.clipAction(clip));
       }
-      this.headBone = inner.getObjectByName('Head') ?? null;
+      this.headBone = findHeadBone(inner);
       this.ready = true;
     } else {
       console.warn(`[bf] no glb for ${def.id}; boyfriend invisible this level`);
