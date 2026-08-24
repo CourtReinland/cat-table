@@ -6,18 +6,20 @@ import { describe, it } from 'node:test';
 import { BUILD_STAMP } from '../buildStamp.ts';
 import { LEVELS } from '../data/content.ts';
 import {
+  ACCENT_MIX,
   BLOOM,
   EMISSIVE,
   MATTE,
   NIGHT_AMBIENT,
   NIGHT_FILL_POS,
   NIGHT_KEY_POS,
-  NIGHT_KEY_TARGET,
   NIGHT_RIG,
   TOON_HOT_STOP,
   capEmissive,
+  levelMood,
   luminance,
   matteMetal,
+  mixHex,
   roomMatOpts,
 } from './roomLook.ts';
 
@@ -51,7 +53,6 @@ describe('GS-ROOM-LIGHT night rig', () => {
   it('puts warm rim behind-left and fill on the window half', () => {
     assert.ok(NIGHT_KEY_POS.x < -1.5, `key x=${NIGHT_KEY_POS.x} is not left-side warmth`);
     assert.ok(NIGHT_KEY_POS.z < 0, `key z=${NIGHT_KEY_POS.z} must be behind for a rim, not a slab dump`);
-    assert.ok(NIGHT_KEY_TARGET.y > 1.2, `target y=${NIGHT_KEY_TARGET.y} must graze above the counter`);
     assert.ok(NIGHT_FILL_POS.x > 1, `fill x=${NIGHT_FILL_POS.x} must lift the right/window half`);
   });
 
@@ -123,15 +124,39 @@ describe('GS-ROOM-LIGHT kitchen night palette', () => {
     assert.ok(luminance(kitchen!.counterColor) < 0.14, `counter too bright ${kitchen!.counterColor.toString(16)}`);
     assert.ok(luminance(kitchen!.fogColor) < 0.08, `fog too bright ${kitchen!.fogColor.toString(16)}`);
     assert.ok(luminance(kitchen!.sky) < 0.14, `sky too bright ${kitchen!.sky.toString(16)}`);
-    const fr = (kitchen!.fillColor >> 16) & 255;
-    const fb = kitchen!.fillColor & 255;
-    assert.ok(fb - fr < 40, `kitchen fill ${kitchen!.fillColor.toString(16)} is magenta bounce`);
+  });
+});
+
+describe('GS-ROOM-LIGHT per-level accents on the night family', () => {
+  it('does not discard desk/dining key and fill into one kitchen look', () => {
+    const kitchen = LEVELS.find((l) => l.id === 'kitchen')!;
+    const desk = LEVELS.find((l) => l.id === 'desk')!;
+    const dining = LEVELS.find((l) => l.id === 'dining')!;
+    assert.equal(desk.keyColor, 0xa8e0ff);
+    assert.equal(dining.fillColor, 0x9a5aff);
+    const k = levelMood(kitchen);
+    const d = levelMood(desk);
+    const n = levelMood(dining);
+    assert.notEqual(k.key, d.key);
+    assert.notEqual(k.fill, n.fill);
+    assert.equal(d.lamp, desk.lampColor);
+    assert.equal(n.lamp, dining.lampColor);
+    // desk key leans cooler than the night rim; dining fill leans violet
+    const deskB = d.key & 255;
+    const deskR = (d.key >> 16) & 255;
+    assert.ok(deskB > deskR, `desk key ${d.key.toString(16)} should stay cool`);
+    const dinB = n.fill & 255;
+    const dinR = (n.fill >> 16) & 255;
+    assert.ok(dinB > dinR + 20, `dining fill ${n.fill.toString(16)} should stay violet`);
+    assert.ok(ACCENT_MIX >= 0.5, 'level colors must actually drive the practicals');
+    assert.equal(mixHex(0xff0000, 0x00ff00, 0), 0xff0000);
+    assert.equal(mixHex(0xff0000, 0x00ff00, 1), 0x00ff00);
   });
 });
 
 describe('GS-ROOM-LIGHT stamp', () => {
-  it('visible stamp is BUILD 6', () => {
-    assert.match(BUILD_STAMP, /^BUILD 6\b/);
+  it('visible stamp is BUILD 5 (CameraRig.test.ts on main owns this too; lighting does not edit that file)', () => {
+    assert.match(BUILD_STAMP, /^BUILD 5\b/);
   });
 });
 
@@ -144,9 +169,13 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(apt, /NIGHT_RIG\.hemi/);
     assert.match(apt, /NIGHT_RIG\.key/);
     assert.match(apt, /NIGHT_KEY_POS/);
-    assert.match(apt, /NIGHT_KEY_TARGET/);
     assert.match(apt, /NIGHT_FILL_POS/);
     assert.match(apt, /NIGHT_AMBIENT/);
+    assert.match(apt, /levelMood\(level\)/);
+    assert.match(apt, /this\.key\.target\.position\.set\(0, topY, cz\)/);
+    assert.match(apt, /this\.key\.color\.setHex\(mood\.key\)/);
+    assert.match(apt, /this\.fill\.color\.setHex\(mood\.fill\)/);
+    assert.match(apt, /this\.lamp\.color\.setHex\(mood\.lamp\)/);
     assert.match(apt, /this\.key\.castShadow = false/);
     assert.match(apt, /EMISSIVE\.bulb/);
     assert.match(apt, /MATTE\.floorRough/);

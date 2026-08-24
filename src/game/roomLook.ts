@@ -120,5 +120,30 @@ export function luminance(hex: number): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** Mix two 0xRRGGBB colors. `t` is the weight of `b`. */
+export function mixHex(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 255;
+  const ag = (a >> 8) & 255;
+  const ab = a & 255;
+  const br = (b >> 16) & 255;
+  const bg = (b >> 8) & 255;
+  const bb = b & 255;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+/** How much a level's key/fill tints the night-family practicals. */
+export const ACCENT_MIX = 0.65;
+
+export function levelMood(level: { keyColor: number; fillColor: number; lampColor: number }) {
+  return {
+    key: mixHex(NIGHT_AMBIENT.rim, level.keyColor, ACCENT_MIX),
+    fill: mixHex(NIGHT_AMBIENT.fill, level.fillColor, ACCENT_MIX),
+    lamp: level.lampColor,
+  };
+}
+
 /** Toon gradient hot stop in Toon.ts — bloom must sit above this. */
 export const TOON_HOT_STOP = 238 / 255;

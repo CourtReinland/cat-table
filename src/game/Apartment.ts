@@ -13,7 +13,7 @@ import {
   panelSurface,
   surfaceMat,
 } from './Textures';
-import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG } from './roomLook';
+import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG, levelMood } from './roomLook';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -478,21 +478,24 @@ export class Apartment {
     }
     this.scene.fog = new THREE.FogExp2(level.fogColor, NIGHT_RIG.fogDensity);
     this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(0.55);
+    // Night-family BASE (intensities, hemi/moon, rim position). Per-level
+    // key/fill/lamp are accents on that family and retarget the play slab.
+    const mood = levelMood(level);
     this.hemi.color.setHex(NIGHT_AMBIENT.sky);
     this.hemi.groundColor.setHex(NIGHT_AMBIENT.ground);
     this.hemi.intensity = NIGHT_RIG.hemi;
-    this.key.color.setHex(NIGHT_AMBIENT.rim);
-    this.key.intensity = NIGHT_RIG.key;
-    this.key.position.set(NIGHT_KEY_POS.x, NIGHT_KEY_POS.y, NIGHT_KEY_POS.z);
-    this.key.target.position.set(NIGHT_KEY_TARGET.x, NIGHT_KEY_TARGET.y, NIGHT_KEY_TARGET.z);
-    this.key.castShadow = false;
-    this.lamp.color.setHex(level.lampColor);
-    this.lamp.intensity = NIGHT_RIG.lamp;
-    this.fill.color.setHex(NIGHT_AMBIENT.fill).lerp(new THREE.Color(level.fillColor), 0.22);
-    this.fill.intensity = NIGHT_RIG.fill;
-    this.fill.position.set(NIGHT_FILL_POS.x, NIGHT_FILL_POS.y, NIGHT_FILL_POS.z);
     this.moon.color.setHex(NIGHT_AMBIENT.moon);
     this.moon.intensity = NIGHT_RIG.moon;
+    this.key.color.setHex(mood.key);
+    this.key.intensity = NIGHT_RIG.key;
+    this.key.position.set(NIGHT_KEY_POS.x, NIGHT_KEY_POS.y, NIGHT_KEY_POS.z);
+    this.key.target.position.set(0, topY, cz);
+    this.key.castShadow = false;
+    this.fill.color.setHex(mood.fill);
+    this.fill.intensity = NIGHT_RIG.fill;
+    this.fill.position.set(NIGHT_FILL_POS.x, topY + 0.7, NIGHT_FILL_POS.z);
+    this.lamp.color.setHex(mood.lamp);
+    this.lamp.intensity = NIGHT_RIG.lamp;
     if (this.cityMat) {
       this.cityMat.map?.dispose();
       this.cityMat.map = cityTex(level.sky);
