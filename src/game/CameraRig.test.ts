@@ -189,6 +189,8 @@ describe('GS-PLAY-ART stills portrait camera', () => {
     assert.ok(PORTRAIT.lookHeight > OTS.lookHeight, 'portrait looks at the face, OTS at the chest');
     assert.ok(pose.look.y > cat.y + 0.2, 'look sits on the muzzle / eyes');
     assert.ok(PORTRAIT.fov < OTS.fov, 'tighter fov so eyes fill the frame');
+    assert.ok(PORTRAIT.front >= 0.45, `front ${PORTRAIT.front} is the 0.34 one-eye dolly`);
+    assert.ok(PORTRAIT.fov >= 34 && PORTRAIT.fov <= 44, `fov ${PORTRAIT.fov} not a wider 3/4`);
     assert.notEqual(PORTRAIT.front, OTS.back);
   });
 
@@ -211,12 +213,24 @@ describe('GS-PLAY-ART stills portrait camera', () => {
     ];
     const cam = new THREE.PerspectiveCamera(PORTRAIT.fov, 16 / 9, PORTRAIT.near, PORTRAIT.far);
     applyPortraitPose(cam, cat, yaw);
-    assert.ok(pointsInView(cam, eyes, 0.88), 'eyes leave the portrait frame');
+    assert.ok(pointsInView(cam, eyes, 0.75), 'eyes leave the wider 3/4 portrait');
     const n0 = ndcOf(cam, eyes[0]);
     const n1 = ndcOf(cam, eyes[1]);
     const span = Math.hypot(n0.x - n1.x, n0.y - n1.y);
-    assert.ok(span > 0.12, `eyes too small in portrait NDC span=${span}`);
+    assert.ok(span > 0.08, `eyes too small in portrait NDC span=${span}`);
+    assert.ok(span < 0.55, `eyes still a one-eye crop, NDC span=${span}`);
     assert.ok(Math.abs(n0.y) < 0.55 && Math.abs(n1.y) < 0.55, 'eyes not vertically in the portrait');
+    const muzzle = new THREE.Vector3(
+      cat.x + fwd.x * 0.14,
+      cat.y + 0.18,
+      cat.z + fwd.z * 0.14,
+    );
+    const bowHint = new THREE.Vector3(
+      cat.x + fwd.x * 0.02,
+      cat.y + 0.11,
+      cat.z + fwd.z * 0.02,
+    );
+    assert.ok(pointsInView(cam, [muzzle, bowHint], 0.95), 'muzzle / neck-bow hint cropped out');
   });
 
   it('does not change default OTS when computing a portrait pose', () => {

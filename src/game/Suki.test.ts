@@ -108,12 +108,19 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.ok(SUKI_FACE.headLocal.y >= 0.04, `headLocal.y ${SUKI_FACE.headLocal.y} still inside the skull`);
     assert.ok(SUKI_FACE.headLocal.x <= -0.015, `headLocal.x ${SUKI_FACE.headLocal.x} sits on the +X cheek, not the face`);
     assert.ok(SUKI_FACE.lashLen >= 0.015, `lashLen ${SUKI_FACE.lashLen} papers out in portrait`);
-    assert.ok(SUKI_FACE.blushRadius >= 0.016, `blushRadius ${SUKI_FACE.blushRadius} papers out in portrait`);
-    const { r: br, b: bb } = {
+    assert.equal(SUKI_FACE.blushOverlay, false, 'MeshBasic blush spheres were the hard magenta cheek');
+    assert.equal(SUKI_FACE.blushRadius, 0);
+    assert.ok(SUKI_FACE.sat <= 1.7, `sat ${SUKI_FACE.sat} still punches Hunyuan blush into a decal`);
+    assert.ok(SUKI_FACE.lift <= 1.25, `lift ${SUKI_FACE.lift} still punches Hunyuan blush into a decal`);
+    const { r: br, g: bg, b: bb } = {
       r: (SUKI_FACE.blush >> 16) & 255,
+      g: (SUKI_FACE.blush >> 8) & 255,
       b: SUKI_FACE.blush & 255,
     };
-    assert.ok(br > bb + 40, 'blush must stay pink, not grey paper');
+    assert.ok(br > bb, 'blush must stay warm, not grey paper');
+    assert.ok(bg >= 160 && br - bg < 80, `blush ${SUKI_FACE.blush.toString(16)} is magenta, not approved-sit peach`);
+    assert.doesNotMatch(src, /blushRadius/);
+    assert.match(src, /No MeshBasic blush sphere/);
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
     const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
     assert.match(toon, /MeshBasicNodeMaterial/);

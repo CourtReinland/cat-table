@@ -118,26 +118,30 @@ export const SUKI_FACE = {
   /** Face verts: pale blush (~0.06 chroma) and grey lashes (~0.38 luma). */
   faceChroma: 0.055,
   faceLuma: 0.42,
-  /** Saturate identity rgb (unlit albedo is dusty). */
-  sat: 2.2,
-  /** Lift lit identity; ink stays crushed. */
-  lift: 1.45,
+  /** Saturate identity rgb. 2.2 punched Hunyuan blush into a hard magenta decal. */
+  sat: 1.55,
+  /** Lift lit identity; ink stays crushed. 1.45 was the magenta punch. */
+  lift: 1.18,
   inkMul: 0.7,
   /**
    * Hunyuan iris islands are a few millimetres — chroma keep still reads as a
    * blue dot. Same nape-mesh idea as HeroBow: MeshBasic furniture on `head`.
+   * Overlay is eyes / lashes / nose only. Blush is a shader wash, not a sphere.
    */
   overlay: true,
   parentBone: 'head' as const,
   sapphire: 0x1e5ad8,
   lash: 0x1a1422,
-  blush: 0xf45a92,
+  /** Approved-sit peach wash, not overlay magenta 0xf45a92. */
+  blush: 0xf2c4b6,
   nose: 0xf24a96,
   highlight: 0xffffff,
   eyeRadius: 0.016,
   /** Portrait-readable ink strokes; too short papers into the white coat. */
   lashLen: 0.018,
-  blushRadius: 0.018,
+  /** Hard MeshBasic spheres read as magenta rectangles. Shader wash only. */
+  blushOverlay: false,
+  blushRadius: 0,
   /** Head AABB is −X-heavy; sit overlay on the muzzle, not the +X cheek. */
   headLocal: { x: -0.028, y: 0.048, z: -0.008 },
 } as const;

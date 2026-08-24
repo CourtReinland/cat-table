@@ -62,7 +62,11 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     assert.match(fluffFn, /faceChroma/);
     assert.match(fluffFn, /identRgb/);
     assert.match(fluffFn, /sapphire/);
-    assert.match(fluffFn, /mix\(paper, identRgb, ident\)/);
+    assert.match(fluffFn, /peach/);
+    assert.match(fluffFn, /coatPink/);
+    assert.match(fluffFn, /mix\(paper, identRgb, keep\)/);
+    assert.doesNotMatch(fluffFn, /vec3\(1\.0,\s*0\.5,\s*0\.66\)/);
+    assert.doesNotMatch(fluffFn, /mix\(paper, identRgb, ident\)/);
     assert.equal(SUKI_FACE.coatChroma, 0.14);
     assert.ok(SUKI_FACE.faceChroma < SUKI_FACE.coatChroma);
     assert.ok(SUKI_FACE.faceLuma > SUKI_FACE.coatLuma);

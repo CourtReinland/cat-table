@@ -20,16 +20,15 @@ export const DEFAULT_FP_CAM = false;
  */
 export const PORTRAIT = {
   /** Cat-local: +X right, +Y up, +Z forward. Negative side = 3/4 from the left. */
-  side: -0.12,
-  /** Eye line on the 0.40 m Hunyuan (feet origin). */
-  height: 0.26,
-  /** Metres in front of the feet origin along heading — in FRONT of the muzzle. */
-  front: 0.34,
-  /** Look at the face, not the OTS chest (0.15). */
-  lookHeight: 0.235,
-  lookAhead: 0.11,
-  fov: 32,
-  near: 0.025,
+  side: -0.09,
+  /** Slightly below eye line so muzzle + a hint of the neck bow stay in frame. */
+  height: 0.24,
+  /** Pulled back from 0.34 — that dolly was a one-eye crop. */
+  front: 0.52,
+  lookHeight: 0.215,
+  lookAhead: 0.09,
+  fov: 38,
+  near: 0.04,
   far: 80,
 } as const;
 

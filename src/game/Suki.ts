@@ -53,7 +53,6 @@ function faceMat(hex: number) {
 function addEye(root: THREE.Group, sign: number) {
   const sap = faceMat(SUKI_FACE.sapphire);
   const ink = faceMat(SUKI_FACE.lash);
-  const blushM = faceMat(SUKI_FACE.blush);
   const hi = faceMat(SUKI_FACE.highlight);
   // Head +Y = muzzle-forward, +Z = down the face, +X = cat-right.
   const x = sign * 0.016;
@@ -89,15 +88,10 @@ function addEye(root: THREE.Group, sign: number) {
     root.add(lash);
   }
 
-  const blush = new THREE.Mesh(new THREE.SphereGeometry(SUKI_FACE.blushRadius, 10, 8), blushM);
-  blush.name = sign > 0 ? 'BlushL' : 'BlushR';
-  blush.scale.set(1.3, 0.52, 0.82);
-  blush.position.set(x + sign * 0.006, y - 0.004, z + 0.02);
-  blush.frustumCulled = false;
-  root.add(blush);
+  // No MeshBasic blush sphere — that was the hard magenta cheek rectangle.
 }
 
-/** Sapphire eyes + lashes + blush + nose, sized to read vs approved sit. */
+/** Sapphire eyes + lashes + nose. Blush is a shader wash, not overlay spheres. */
 export function buildHeroFaceMesh() {
   const root = new THREE.Group();
   root.name = 'HeroFace';
