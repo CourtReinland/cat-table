@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import * as THREE from 'three';
 import { BUILD_STAMP } from '../buildStamp.ts';
 import { LEVELS } from '../data/content.ts';
-import { applyOtsPose, makeOtsCamera } from './CameraRig.ts';
+import { applyOtsPose, makeOtsCamera, OTS, otsPose } from './CameraRig.ts';
 import {
   BOY_CLIPS,
   boyGlbUrl,
@@ -16,6 +16,7 @@ import {
   findHeadBone,
   kitchenCatSpawn,
   kitchenIslandBoyPlacement,
+  LEVEL_SURFACE_CZ,
   remapMixamoRig,
   remapMixamoTrackName,
   stripMixamoPrefix,
@@ -74,8 +75,8 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
     }
   });
 
-  it('visible stamp is BUILD 9', () => {
-    assert.match(BUILD_STAMP, /^BUILD 9\b/);
+  it('visible stamp is BUILD 10', () => {
+    assert.match(BUILD_STAMP, /^BUILD 10\b/);
   });
 });
 
@@ -112,20 +113,61 @@ describe('GS-HUMAN-SCOUT Mixamo Head remap', () => {
   });
 });
 
+describe('GS-HUMAN-SCOUT labeled spawn/OTS hypothesis (main 0b7856d)', () => {
+  const cat = kitchenCatSpawn(KITCHEN.counterSize, KITCHEN.counterHeight);
+  const yaw = Math.PI * 0.5;
+  const [w, d] = KITCHEN.counterSize;
+  const pose = otsPose(cat, yaw, 0);
+
+  it('confirms kitchen AABB, Suki spawn, boot OTS, and couch sit coords', () => {
+    assert.equal(LEVEL_SURFACE_CZ, 0.3);
+    assert.deepEqual(KITCHEN.counterSize, [4.2, 1.9]);
+    assert.equal(KITCHEN.counterHeight, 1);
+    assert.equal(-w / 2, -2.1);
+    assert.equal(w / 2, 2.1);
+    assert.equal(+(LEVEL_SURFACE_CZ - d / 2).toFixed(2), -0.65);
+    assert.equal(LEVEL_SURFACE_CZ + d / 2, 1.25);
+    assert.deepEqual(
+      { x: +cat.x.toFixed(2), y: +cat.y.toFixed(2), z: +cat.z.toFixed(2) },
+      { x: -1.75, y: 1, z: 0.97 },
+    );
+    assert.equal(yaw, Math.PI / 2);
+    assert.deepEqual(pose.pos.toArray().map((n) => +n.toFixed(2)), [-3.07, 1.5, 0.79]);
+    assert.deepEqual(pose.look.toArray().map((n) => +n.toFixed(2)), [-1.67, 1.15, 0.97]);
+    const couch = couchBoyPlacement(COUCH);
+    assert.deepEqual(couch.pos, { x: -2.25, y: 0, z: -1.7 });
+    assert.equal(couch.rotY, 0.35);
+    assert.equal(couch.pose, 'sit');
+  });
+
+  it('does not retarget OTS at the couch — close cat framing stays', () => {
+    assert.equal(OTS.side, 0.18);
+    assert.equal(OTS.height, 0.5);
+    assert.equal(OTS.back, 1.32);
+    assert.equal(OTS.lookAhead, 0.08);
+    assert.equal(OTS.fov, 52);
+    const rig = src('CameraRig.ts');
+    assert.doesNotMatch(rig, /couchPos|boyfriend|eli/i);
+  });
+});
+
 describe('GS-HUMAN-SCOUT kitchen OTS sees Eli, couch does not', () => {
   const cat = kitchenCatSpawn(KITCHEN.counterSize, KITCHEN.counterHeight);
   const yaw = Math.PI * 0.5;
+  const width = KITCHEN.counterSize[0];
 
-  it('Kitchen Island is Eli; other rooms keep clay boys on the couch', () => {
+  it('Kitchen Island is Eli at the far +X lip; other rooms keep the couch', () => {
     assert.equal(KITCHEN.id, 'kitchen');
     assert.equal(KITCHEN.boyfriendId, 'eli');
     assert.equal(KITCHEN.surface, 'kitchen');
-    const kitchen = boyPlayPlacement('kitchen', COUCH, cat);
-    const island = kitchenIslandBoyPlacement(cat);
+    const kitchen = boyPlayPlacement('kitchen', COUCH, cat, width);
+    const island = kitchenIslandBoyPlacement(cat, width);
+    assert.deepEqual(kitchen.pos, { x: 2.25, y: 0, z: 0.97 });
     assert.deepEqual(kitchen.pos, island.pos);
+    assert.equal(kitchen.rotY, -Math.PI / 2);
     assert.equal(kitchen.pose, 'sit');
     for (const surface of ['coffee', 'desk', 'dresser', 'dining']) {
-      assert.deepEqual(boyPlayPlacement(surface, COUCH, cat), couchBoyPlacement(COUCH));
+      assert.deepEqual(boyPlayPlacement(surface, COUCH, cat, width), couchBoyPlacement(COUCH));
     }
   });
 
@@ -143,8 +185,8 @@ describe('GS-HUMAN-SCOUT kitchen OTS sees Eli, couch does not', () => {
     }
   });
 
-  it('island stool spawn puts Eli head + chest in the play camera', () => {
-    const place = boyPlayPlacement('kitchen', COUCH, cat);
+  it('far-end island sit puts Eli head + chest in the play camera', () => {
+    const place = boyPlayPlacement('kitchen', COUCH, cat, width);
     const head = boyMarkerWorld(place, 'head');
     const chest = boyMarkerWorld(place, 'chest');
     for (const aspect of [16 / 9, 9 / 16]) {
@@ -164,7 +206,7 @@ describe('GS-HUMAN-SCOUT kitchen OTS sees Eli, couch does not', () => {
 
   it('Apartment wires boyPlayPlacement and does not force the couch for kitchen', () => {
     const apt = src('Apartment.ts');
-    assert.match(apt, /boyPlayPlacement\(level\.surface/);
+    assert.match(apt, /boyPlayPlacement\(level\.surface, this\.couchPos, this\.catSpawn, w\)/);
     assert.doesNotMatch(
       apt.slice(apt.indexOf('// boyfriend')),
       /boyfriend\.group\.position\.set\(this\.couchPos/,

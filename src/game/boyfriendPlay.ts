@@ -31,11 +31,13 @@ export type BoyPlayPlacement = {
 export const LEVEL_SURFACE_CZ = 0.3;
 
 /**
- * Kitchen bar-stool already dressed in Apartment.dressRoom.
- * Idle_Sit drops the clay Root by 0.42 m (pelvis ~0.50 at y=0). Stool seat
- * center is 0.62 m, so group.y = 0.12 sits him on the stool.
+ * Far +X end of the kitchen island, just outside the slab.
+ * Confirmed (not the labeled 72°/2° paste): couch sit is ~79° camera-right
+ * of boot OTS look and out of frustum. This slot is ~5.3 m ahead, ~5.4° off
+ * look, same z as Suki spawn — in desktop and phone OTS without retargeting
+ * the camera. Idle_Sit at y=0; yaw −π/2 faces the cat (−X).
  */
-export const KITCHEN_ISLAND_STOOL = { x: 0.15, y: 0.12, z: 1.55 } as const;
+export const KITCHEN_ISLAND_END_PAD = 0.15;
 
 /** Clay Idle_Sit offsets from group origin (metres). Mixamo bind may differ. */
 export const CLAY_SIT_HEAD_Y = 1.11;
@@ -55,16 +57,14 @@ export function couchBoyPlacement(couchPos: { x: number; z: number }): BoyPlayPl
   };
 }
 
-/** Sit the player-side island stool, facing the cat. Date at the island. */
-export function kitchenIslandBoyPlacement(catSpawn: { x: number; z: number }): BoyPlayPlacement {
-  const pos = {
-    x: KITCHEN_ISLAND_STOOL.x,
-    y: KITCHEN_ISLAND_STOOL.y,
-    z: KITCHEN_ISLAND_STOOL.z,
-  };
+/** Sit just past the island's +X lip, facing the cat. Date at the island. */
+export function kitchenIslandBoyPlacement(
+  catSpawn: { x: number; z: number },
+  counterWidth: number,
+): BoyPlayPlacement {
   return {
-    pos,
-    rotY: Math.atan2(catSpawn.x - pos.x, catSpawn.z - pos.z),
+    pos: { x: counterWidth / 2 + KITCHEN_ISLAND_END_PAD, y: 0, z: catSpawn.z },
+    rotY: -Math.PI / 2,
     pose: 'sit',
   };
 }
@@ -73,8 +73,9 @@ export function boyPlayPlacement(
   surface: string,
   couchPos: { x: number; z: number },
   catSpawn: { x: number; z: number },
+  counterWidth: number,
 ): BoyPlayPlacement {
-  if (surface === 'kitchen') return kitchenIslandBoyPlacement(catSpawn);
+  if (surface === 'kitchen') return kitchenIslandBoyPlacement(catSpawn, counterWidth);
   return couchBoyPlacement(couchPos);
 }
 

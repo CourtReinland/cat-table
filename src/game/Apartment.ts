@@ -521,11 +521,11 @@ export class Apartment {
     this.cat.yaw = Math.PI * 0.5;
     this.cat.group.visible = true;
 
-    // boyfriend: kitchen date sits the island stool (in the play OTS). Other
-    // rooms keep the living-room couch until those cameras are framed.
+    // boyfriend: kitchen date sits the far +X island lip (in the play OTS).
+    // Do not retarget OTS at the couch. Other rooms keep the living-room sit.
     const def = getBoyfriend(level.boyfriendId);
     this.boyfriend = new Boyfriend(def);
-    const place = boyPlayPlacement(level.surface, this.couchPos, this.catSpawn);
+    const place = boyPlayPlacement(level.surface, this.couchPos, this.catSpawn, w);
     this.boyfriend.group.position.set(place.pos.x, place.pos.y, place.pos.z);
     this.boyfriend.group.rotation.y = place.rotY;
     this.boyfriend.setPose(place.pose, 0.01);

@@ -79,10 +79,10 @@ describe('GS-PROP-PHYS smashables stay dynamic', () => {
     assert.equal(pawHitsProp({ x: 0, z: 0 }, { x: 0.6, z: 0 }, 0.132, PAW_HIT_RADIUS), false);
   });
 
-  it('keeps OTS + rest default and BUILD 9 (sibling polish-stop took 8)', () => {
+  it('keeps OTS + rest default and BUILD 10 (sibling polish-stop took 9)', () => {
     assert.equal(DEFAULT_FP_CAM, false);
     assert.equal(STEER.yawRatePlanted, 1.4);
     assert.equal(STEER.yawRateMoving, 2.2);
-    assert.match(BUILD_STAMP, /^BUILD 9\b/);
+    assert.match(BUILD_STAMP, /^BUILD 10\b/);
   });
 });
