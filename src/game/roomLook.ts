@@ -1,10 +1,10 @@
 /**
- * Night apartment look contracts (GS-ROOM-LIGHT).
+ * Night apartment look contracts (GS-ROOM-LIGHT + GS-ROOM-COLOR).
  *
  * Title key art (`public/assets/ui/title-keyart.jpg`) is the color script:
- * dusty lived-in night kitchen, readable silhouettes, deep purple/black with
- * warm practicals (window city, lamp, left-side warmth), punchy matte hero
- * objects — not bloom soup or PBR chrome.
+ * dusty lived-in night kitchen, readable silhouettes, deep purple/indigo
+ * with warm practicals (window city, lamp, left-side warmth), punchy matte
+ * hero objects — not a crushed-black cave, bloom soup, or PBR chrome.
  *
  * Shared by Apartment, Props, Textures, Engine, and tests. Pure numbers —
  * no three.js — so node tests can lock the contracts without WebGPU.
@@ -33,10 +33,11 @@ export const NIGHT_RIG = {
   fogDensity: 0.022,
 } as const;
 
-/** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white. */
+/** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white.
+ *  Ground is a tinted shadow, not a black hole under the hemi. */
 export const NIGHT_AMBIENT = {
   sky: 0x43384c,
-  ground: 0x1a1412,
+  ground: 0x221a24,
   fill: 0x4e4258,
   rim: 0xffc08a,
   moon: 0x8890b4,
@@ -79,9 +80,45 @@ export const MATTE = {
   fabricRough: 0.98,
   panelRough: 0.8,
   tileRough: 0.55,
-  stoneVein: 0.18,
-  stoneNormal: 0.22,
+  stoneVein: 0.30,
+  stoneNormal: 0.34,
   ceramicRough: 0.9,
+} as const;
+
+/**
+ * Night-readable local color. Toon multiplies albedo by ~0.28 in shadow and
+ * ~0.93 at the hot stop, so a 0x161218 counter stays a black slab even when
+ * fully lit. These floors keep hue on the table and off-table furniture
+ * without flattening per-level lamp accents.
+ */
+export const NIGHT_SURFACE = {
+  minWallLuma: 0.16,
+  minCounterLuma: 0.20,
+  minSkyLuma: 0.12,
+  minFogLuma: 0.055,
+  maxWallLuma: 0.34,
+  maxCounterLuma: 0.42,
+  maxSkyLuma: 0.28,
+  maxFogLuma: 0.14,
+  /** Painted map pixels (marble / plaster) after stain + grain. */
+  minMapLuma: 0.16,
+  /** Granite flecks: mix toward pale grey / charcoal purple. */
+  stonePale: 0.28,
+  stoneChar: 0.18,
+  /** Cabinet body vs slab — dark wood, not a 0.48 crush into the floor. */
+  cabinetMul: 0.78,
+  /** Fog → scene background. 0.55 made the void behind the window. */
+  bgMul: 0.82,
+  floorLightMin: 22,
+  floorLightMax: 40,
+  /** Purple-red foot of the city gradient (title key art window). */
+  cityBot: 0x5a2848,
+  shellWall: 0x3a2a42,
+  shellRug: 0x3a2438,
+  shellRugAccent: 0x6a4860,
+  shellShelf: 0x3a2c2a,
+  shellFrame: 0x322830,
+  shellLeaf: 0x3a6a40,
 } as const;
 
 export type RoomMatOpts = {
@@ -118,6 +155,18 @@ export function luminance(hex: number): number {
   const g = ((hex >> 8) & 255) / 255;
   const b = (hex & 255) / 255;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Scale a hex toward a brighter twin of itself, preserving hue. */
+export function liftLuma(hex: number, minLuma: number): number {
+  const L = luminance(hex);
+  if (L >= minLuma) return hex;
+  if (L < 1e-5) return mixHex(0x3a2a3a, 0x5a4c56, Math.min(1, minLuma / 0.28));
+  const s = minLuma / L;
+  const r = Math.min(255, Math.round(((hex >> 16) & 255) * s));
+  const g = Math.min(255, Math.round(((hex >> 8) & 255) * s));
+  const b = Math.min(255, Math.round((hex & 255) * s));
+  return (r << 16) | (g << 8) | b;
 }
 
 /** Mix two 0xRRGGBB colors. `t` is the weight of `b`. */
