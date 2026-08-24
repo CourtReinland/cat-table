@@ -473,8 +473,16 @@ export class Apartment {
       plasterSurface(level.wallColor, level.surface.length * 5),
       [5, 1.6],
     );
+    // buildRoom already toonify(roomGroup). A raw surfaceMat swap leaves
+    // MeshStandardNodeMaterial on the walls (toonify(lg) never sees them),
+    // and PBR can clip past BLOOM.threshold. Retint, then toonify each wall.
     for (const i of [1, 2, 3]) {
-      (this.roomGroup.children[i] as THREE.Mesh).material = wallPlaster;
+      const wall = this.roomGroup.children[i] as THREE.Mesh;
+      const prev = wall.material as { map?: THREE.Texture | null; normalMap?: THREE.Texture | null };
+      prev.map?.dispose();
+      prev.normalMap?.dispose();
+      wall.material = wallPlaster;
+      toonify(wall);
     }
     this.scene.fog = new THREE.FogExp2(level.fogColor, NIGHT_RIG.fogDensity);
     this.scene.background = new THREE.Color(level.fogColor).multiplyScalar(0.55);
