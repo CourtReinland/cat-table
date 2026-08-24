@@ -539,6 +539,96 @@ unassigned, frac, maxw = count_unassigned(obj)
 weight_notes.append(f"After smooth: unassigned={unassigned} assigned_frac={frac:.3f} max_total_w={maxw:.3f}")
 log(weight_notes[-1])
 
+# GS-PAW-MESH: nearest-bone smears Hunyuan paw shells across both forearms
+# (and limb cards onto the spine). Exclusive paw bind + distal limb isolation.
+PAW_BONE_NAMES = ("paw_FL", "paw_FR", "paw_HL", "paw_HR")
+LIMB_CHAINS = {
+    "FL": ("shoulder_L", "upper_FL", "lower_FL", "paw_FL"),
+    "FR": ("shoulder_R", "upper_FR", "lower_FR", "paw_FR"),
+    "HL": ("hip_L", "thigh_L", "shin_L", "paw_HL"),
+    "HR": ("hip_R", "thigh_R", "shin_R", "paw_HR"),
+}
+DISTAL_TO_PAW = {
+    "paw_FL": "paw_FL", "lower_FL": "paw_FL",
+    "paw_FR": "paw_FR", "lower_FR": "paw_FR",
+    "paw_HL": "paw_HL", "shin_L": "paw_HL",
+    "paw_HR": "paw_HR", "shin_R": "paw_HR",
+}
+
+
+def lock_paw_and_limb_cards(mesh_obj, arm_obj):
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.context.view_layer.objects.active = arm_obj
+    bpy.ops.object.mode_set(mode="EDIT")
+    segs = []
+    for b in arm_obj.data.edit_bones:
+        if not b.use_deform:
+            continue
+        segs.append((b.name, Vector(b.head), Vector(b.tail)))
+    bpy.ops.object.mode_set(mode="OBJECT")
+    name_set = {n for n, _, _ in segs}
+    paw_heads = {n: a for n, a, _ in segs if n in PAW_BONE_NAMES}
+    vg = {g.name: g for g in mesh_obj.vertex_groups}
+    mw = mesh_obj.matrix_world
+    paw_locked = 0
+    limb_isolated = 0
+    for v in mesh_obj.data.vertices:
+        p = mw @ v.co
+        best_n, best_d = None, 1e9
+        for n, a, b in segs:
+            d = dist_point_seg(p, a, b)
+            if d < best_d:
+                best_n, best_d = n, d
+        exclusive = None
+        if best_n in PAW_BONE_NAMES and best_d < 0.048:
+            exclusive = best_n
+        elif p.z < 0.058 and best_n in DISTAL_TO_PAW:
+            nearest_paw = DISTAL_TO_PAW[best_n]
+            xz = (p.x - paw_heads[nearest_paw].x, p.y - paw_heads[nearest_paw].y)
+            if (xz[0] ** 2 + xz[1] ** 2) ** 0.5 < 0.055:
+                exclusive = nearest_paw
+        if exclusive and exclusive in vg:
+            for g in list(v.groups):
+                mesh_obj.vertex_groups[g.group].remove([v.index])
+            vg[exclusive].add([v.index], 1.0, "REPLACE")
+            paw_locked += 1
+            continue
+        chain = None
+        for _side, bones in LIMB_CHAINS.items():
+            if best_n in bones and best_n not in ("shoulder_L", "shoulder_R", "hip_L", "hip_R"):
+                chain = bones
+                break
+        if chain:
+            allow = set(chain) & name_set
+            kept = []
+            for g in v.groups:
+                gn = mesh_obj.vertex_groups[g.group].name
+                if gn in allow and g.weight > 1e-4:
+                    kept.append((gn, g.weight))
+            for g in list(v.groups):
+                mesh_obj.vertex_groups[g.group].remove([v.index])
+            if not kept:
+                kept = [(best_n, 1.0)] if best_n in vg else []
+            tot = sum(w for _, w in kept) or 1.0
+            for gn, w in kept:
+                if gn in vg:
+                    vg[gn].add([v.index], w / tot, "REPLACE")
+            limb_isolated += 1
+    return paw_locked, limb_isolated
+
+
+paw_locked, limb_isolated = lock_paw_and_limb_cards(obj, arm)
+try:
+    bpy.ops.object.vertex_group_normalize_all(lock_active=False)
+except Exception:
+    pass
+unassigned, frac, maxw = count_unassigned(obj)
+weight_notes.append(
+    f"GS-PAW-MESH lock: paw_exclusive={paw_locked} limb_isolated={limb_isolated} "
+    f"unassigned={unassigned} assigned_frac={frac:.3f}"
+)
+log(weight_notes[-1])
+
 # Deform test
 bpy.context.view_layer.objects.active = arm
 bpy.ops.object.mode_set(mode="POSE")
@@ -701,15 +791,16 @@ def pose_run_still():
 
 
 def pose_swipe():
+    """GS-PAW-MESH: travel matches walk, not a 60° forearm whip."""
     zero_pose()
-    set_e("spine_03", z=-8)
-    set_e("neck", z=-10)
-    set_e("head", z=8, x=6)
-    set_e("shoulder_L", x=-40, z=10)
-    set_e("upper_FL", x=-55)
-    set_e("lower_FL", x=-20)
-    set_e("paw_FL", x=20, z=15)
-    set_e("tail_02", z=12)
+    set_e("spine_03", z=-5)
+    set_e("neck", z=-6)
+    set_e("head", z=5, x=3)
+    set_e("shoulder_L", x=-22, z=4)
+    set_e("upper_FL", x=-22)
+    set_e("lower_FL", x=-8)
+    set_e("paw_FL", x=8, z=5)
+    set_e("tail_02", z=8)
 
 
 def pose_cuddle():
@@ -734,17 +825,18 @@ def pose_cuddle():
 
 
 def pose_hit():
+    """GS-PAW-MESH: Heather grab — small flinch, not a spine fold that tubes limbs."""
     zero_pose()
-    set_e("spine_01", x=8, z=-10)
-    set_e("spine_02", z=-8)
-    set_e("neck", x=16, z=-12)
-    set_e("head", x=-8, z=-10)
-    set_e("ear_L", y=20)
-    set_e("ear_R", y=-20)
-    set_e("tail_01", x=16, z=-20)
-    set_e("tail_02", z=-16)
+    set_e("spine_01", x=4, z=-5)
+    set_e("spine_02", z=-4)
+    set_e("neck", x=8, z=-6)
+    set_e("head", x=-4, z=-5)
+    set_e("ear_L", y=12)
+    set_e("ear_R", y=-12)
+    set_e("tail_01", x=8, z=-10)
+    set_e("tail_02", z=-8)
     if "root" in arm.pose.bones:
-        arm.pose.bones["root"].location = (0.008, 0.01, 0)
+        arm.pose.bones["root"].location = (0.003, 0.004, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -916,27 +1008,28 @@ def run_frame(f, n):
 
 
 def swipe_frame(f, n):
+    """GS-PAW-MESH: keep forearm/wrist inside walk-scale travel (~22°/8°)."""
     t = (f - 1) / max(1, n - 1)
     zero_pose()
     if t < 0.25:
         k = ease(t / 0.25)
-        set_e("shoulder_L", x=-20 * k, z=8 * k)
-        set_e("upper_FL", x=-15 * k)
-        set_e("head", z=6 * k)
+        set_e("shoulder_L", x=-10 * k, z=4 * k)
+        set_e("upper_FL", x=-8 * k)
+        set_e("head", z=4 * k)
     elif t < 0.55:
         k = ease((t - 0.25) / 0.30)
-        set_e("shoulder_L", x=-20 + -35 * k, z=8)
-        set_e("upper_FL", x=-15 + -45 * k)
-        set_e("lower_FL", x=-22 * k)
-        set_e("paw_FL", x=18 * k, z=12 * k)
-        set_e("spine_03", z=-10 * k)
-        set_e("head", z=8, x=6 * k)
+        set_e("shoulder_L", x=-10 + -12 * k, z=4)
+        set_e("upper_FL", x=-8 + -14 * k)
+        set_e("lower_FL", x=-8 * k)
+        set_e("paw_FL", x=8 * k, z=5 * k)
+        set_e("spine_03", z=-5 * k)
+        set_e("head", z=5, x=3 * k)
     else:
         k = 1.0 - ease((t - 0.55) / 0.45)
-        set_e("shoulder_L", x=-55 * k)
-        set_e("upper_FL", x=-60 * k)
-        set_e("lower_FL", x=-22 * k)
-        set_e("spine_03", z=-10 * k)
+        set_e("shoulder_L", x=-22 * k)
+        set_e("upper_FL", x=-22 * k)
+        set_e("lower_FL", x=-8 * k)
+        set_e("spine_03", z=-5 * k)
 
 
 def sit_frame(f, n):
@@ -985,18 +1078,19 @@ def cuddle_frame(f, n):
 
 
 def hit_frame(f, n):
+    """GS-PAW-MESH: tame grab flinch so Hunyuan limb cards stay on the limbs."""
     t = (f - 1) / max(1, n - 1)
     if t < 0.35:
         k = ease(t / 0.35)
     else:
         k = 1.0 - ease((t - 0.35) / 0.65)
     zero_pose()
-    set_e("spine_01", x=8 * k, z=-10 * k)
-    set_e("neck", x=16 * k, z=-12 * k)
-    set_e("head", x=-8 * k, z=-10 * k)
-    set_e("tail_01", x=16 * k, z=-20 * k)
+    set_e("spine_01", x=4 * k, z=-5 * k)
+    set_e("neck", x=8 * k, z=-6 * k)
+    set_e("head", x=-4 * k, z=-5 * k)
+    set_e("tail_01", x=8 * k, z=-10 * k)
     if "root" in arm.pose.bones:
-        arm.pose.bones["root"].location = (0.008 * k, 0.01 * k, 0)
+        arm.pose.bones["root"].location = (0.003 * k, 0.004 * k, 0)
 
 
 log("")

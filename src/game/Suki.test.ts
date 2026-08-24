@@ -8,6 +8,7 @@ import {
   SUKI_COAT,
   SUKI_PAW_BONES,
   PAW_HIT_RADIUS,
+  PAW_MESH,
 } from './sukiGlb.ts';
 
 describe('GS-SUKI-IN Hunyuan play mesh', () => {
@@ -38,5 +39,11 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
   it('samples front paw bones for swipe contact', () => {
     assert.deepEqual([...SUKI_PAW_BONES], ['paw_FL', 'paw_FR']);
     assert.ok(PAW_HIT_RADIUS > 0.05 && PAW_HIT_RADIUS < 0.2);
+  });
+
+  it('caps Swipe/Hit bone travel so paw shells cannot tube', () => {
+    assert.deepEqual([...PAW_MESH.exclusiveBones], ['paw_FL', 'paw_FR', 'paw_HL', 'paw_HR']);
+    assert.ok(PAW_MESH.swipeMaxDeltaDeg <= 28);
+    assert.ok(PAW_MESH.hitMaxDeltaDeg <= 14);
   });
 });

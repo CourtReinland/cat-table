@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit && node --experimental-strip-types --test src/game/Steer.test.ts src/game/CameraRig.test.ts src/game/Suki.test.ts src/game/RoomLook.test.ts src/game/ground.test.ts src/game/pawHit.test.ts src/game/propPhys.test.ts",
+    "test": "tsc --noEmit && node --experimental-strip-types --test src/game/Steer.test.ts src/game/CameraRig.test.ts src/game/Suki.test.ts src/game/RoomLook.test.ts src/game/ground.test.ts src/game/pawHit.test.ts src/game/propPhys.test.ts src/game/pawMesh.test.ts",
     "shot": "node tools/shot.mjs",
     "gen:assets": "node tools/gen-assets.mjs"
   },

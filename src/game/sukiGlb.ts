@@ -55,3 +55,20 @@ export const SUKI_PAW_BONES = ['paw_FL', 'paw_FR'] as const;
 
 /** Hit sphere around each visible front paw (metres). */
 export const PAW_HIT_RADIUS = 0.11;
+
+/**
+ * GS-PAW-MESH — Hunyuan fur-card shells tube when Swipe over-rotates the
+ * forearm and nearest-bone weights smear a paw across both wrists / the chest.
+ * Play GLB is patched in place (tools/character-pipe/tame_paw_mesh.py): paw
+ * verts exclusive-bind to paw_* bones, Swipe/Hit travel is slerped toward rest.
+ * Do not remake Hunyuan.
+ */
+export const PAW_MESH = {
+  exclusiveBones: ['paw_FL', 'paw_FR', 'paw_HL', 'paw_HR'] as const,
+  swipeTameBones: ['upper_FL', 'lower_FL', 'paw_FL', 'shoulder_L'] as const,
+  /** Walk-scale. Pre-fix Swipe upper_FL was ~59°. */
+  swipeMaxDeltaDeg: 28,
+  hitTameBones: ['spine_01', 'neck', 'head', 'tail_01'] as const,
+  hitMaxDeltaDeg: 14,
+  lowYExclusiveMin: 0.85,
+} as const;
