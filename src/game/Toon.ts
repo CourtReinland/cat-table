@@ -120,19 +120,27 @@ export function toonify(root: THREE.Object3D, opts: ToonifyOpts = {}) {
  * White cel fluff for Suki — a different material path than room MeshToon + Hunyuan maps.
  * Do not assign the hatch/AO/normal albedo as `map`. Identity (sapphire / pink bow / dark
  * nose) is a chroma+luma mask sampled in the color node only.
+ *
+ * GS-PLAY-ART: 0xf4f1ee + shadow 176,174,180 read cream / grey-lavender once Hana
+ * lifted the night room (BUILD 9). Isolation studio stills of the GLB are already
+ * white — this path is the live miss. Cooler paper white, raised cool shadow/mid.
  */
-const FLUFF = new THREE.Color(0xf4f1ee);
+export const SUKI_FLUFF_HEX = 0xf8f8fb;
+
+/** RGB+A, 3 nearest-filter stops: shadow → mid → lit. Not graphite, not peach. */
+export const SUKI_FLUFF_GRADIENT = [
+  224, 225, 230, 255,
+  240, 240, 244, 255,
+  252, 252, 254, 255,
+] as const;
+
+const FLUFF = new THREE.Color(SUKI_FLUFF_HEX);
 
 let fluffGrad: THREE.DataTexture | null = null;
 
 function sukiFluffGradient(): THREE.DataTexture {
   if (!fluffGrad) {
-    // 3 bright steps — no dark graphite bands on white fur
-    const data = new Uint8Array([
-      176, 174, 180, 255,
-      216, 214, 218, 255,
-      244, 242, 246, 255,
-    ]);
+    const data = new Uint8Array(SUKI_FLUFF_GRADIENT);
     fluffGrad = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
     fluffGrad.minFilter = THREE.NearestFilter;
     fluffGrad.magFilter = THREE.NearestFilter;
