@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonifySukiCoat } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
-import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW, SUKI_TAIL } from './sukiGlb';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW, SUKI_TAIL, SUKI_FACE } from './sukiGlb';
 
 export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
@@ -19,7 +19,6 @@ export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGl
  * be forced with `?suki=proc` for a quick A/B.
  */
 
-const _euler = new THREE.Euler();
 const _tailNudgeQ = new Map<string, THREE.Quaternion>();
 
 function tailNudgeQuat(name: keyof typeof SUKI_TAIL.nudge) {
@@ -45,6 +44,73 @@ function heroBowMaterial() {
     side: THREE.DoubleSide,
   });
   return m;
+}
+
+function faceMat(hex: number) {
+  return new THREE.MeshBasicNodeMaterial({ color: hex, side: THREE.DoubleSide });
+}
+
+function addEye(root: THREE.Group, sign: number) {
+  const sap = faceMat(SUKI_FACE.sapphire);
+  const ink = faceMat(SUKI_FACE.lash);
+  const blushM = faceMat(SUKI_FACE.blush);
+  const hi = faceMat(SUKI_FACE.highlight);
+  // Head +Y = muzzle-forward, +Z = down the face, +X = cat-right.
+  const x = sign * 0.02;
+  const y = 0.004;
+  const z = -0.004;
+  const r = SUKI_FACE.eyeRadius;
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 12), sap);
+  iris.name = sign > 0 ? 'EyeL' : 'EyeR';
+  iris.scale.set(1, 0.52, 0.9);
+  iris.position.set(x, y, z);
+  iris.frustumCulled = false;
+  root.add(iris);
+
+  const pupil = new THREE.Mesh(new THREE.SphereGeometry(r * 0.38, 10, 8), ink);
+  pupil.name = iris.name + 'Pupil';
+  pupil.position.set(x, y + r * 0.42, z);
+  pupil.frustumCulled = false;
+  root.add(pupil);
+
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(r * 0.2, 8, 6), hi);
+  glint.name = iris.name + 'Glint';
+  glint.position.set(x + sign * 0.004, y + r * 0.55, z - 0.006);
+  glint.frustumCulled = false;
+  root.add(glint);
+
+  for (let i = 0; i < 3; i++) {
+    const lash = new THREE.Mesh(new THREE.ConeGeometry(0.002, 0.011, 5), ink);
+    lash.name = iris.name + 'Lash' + i;
+    lash.position.set(x + sign * (0.006 + i * 0.0035), y + 0.002, z - 0.011 - i * 0.001);
+    lash.rotation.x = 0.85;
+    lash.rotation.z = sign * (0.28 + i * 0.22);
+    lash.frustumCulled = false;
+    root.add(lash);
+  }
+
+  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), blushM);
+  blush.name = sign > 0 ? 'BlushL' : 'BlushR';
+  blush.scale.set(1.2, 0.45, 0.7);
+  blush.position.set(x + sign * 0.003, y - 0.002, z + 0.016);
+  blush.frustumCulled = false;
+  root.add(blush);
+}
+
+/** Sapphire eyes + lashes + blush + nose, sized to read vs approved sit. */
+export function buildHeroFaceMesh() {
+  const root = new THREE.Group();
+  root.name = 'HeroFace';
+  addEye(root, 1);
+  addEye(root, -1);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), faceMat(SUKI_FACE.nose));
+  nose.name = 'Nose';
+  nose.scale.set(1.15, 0.65, 0.75);
+  nose.position.set(0, 0.014, 0.01);
+  nose.frustumCulled = false;
+  root.add(nose);
+  root.position.set(SUKI_FACE.headLocal.x, SUKI_FACE.headLocal.y, SUKI_FACE.headLocal.z);
+  return root;
 }
 
 /** Two loops + knot + tails, sized to read from default OTS. */
@@ -124,6 +190,7 @@ export class Suki {
   private skeleton: THREE.Skeleton | null = null;
   private pawBones: THREE.Bone[] = [];
   private heroBow: THREE.Group | null = null;
+  private heroFace: THREE.Group | null = null;
   /** Skip a duplicate mixer tick when Game already advanced paws this frame. */
   private animAdvanced = false;
   private _pawWorld = [new THREE.Vector3(), new THREE.Vector3()];
@@ -166,6 +233,7 @@ export class Suki {
             if (bone) this.pawBones.push(bone);
           }
           this.attachHeroBow(sk.skeleton);
+          this.attachHeroFace(sk.skeleton);
         }
       });
 
@@ -181,7 +249,12 @@ export class Suki {
       this.useGlb = true;
       this.play(CLIP.idle);
       this.ready = true;
-      console.info('[suki] Hunyuan GLB loaded —', gltf.animations.length, 'clips');
+      console.info(
+        '[suki] Hunyuan GLB loaded —',
+        gltf.animations.length,
+        'clips; tail nudge',
+        SUKI_TAIL.nudge.tail_01,
+      );
     } catch (err) {
       console.warn('[suki] glb unavailable, falling back to procedural cat', err);
       this.ready = true;
@@ -217,15 +290,17 @@ export class Suki {
   }
 
   /**
-   * Idle/rest plume sits in front of the OTS-left HeroBow loop. Mixer owns
-   * the clip; this is a rest-relative XYZ bias so the wag never covers the
-   * nape bow. Do not bind Sit as rest.
+   * Idle/rest plume sits on the OTS-left HeroBow loop (loopL). Mixer owns
+   * the clip; a fixed local quaternion is post-multiplied so Idle still wags
+   * around the bias. Do not euler-add (tail_01 rest is gimbal-locked). Do
+   * not bind Sit as rest.
    */
   private applyTailNudge() {
     if (!this.skeleton) return;
     for (const name of SUKI_TAIL.bones) {
       const bone = this.skeleton.bones.find((b) => b.name === name);
-      if (!bone) continue;
+      const n = SUKI_TAIL.nudge[name];
+      if (!bone || !n) continue;
       bone.quaternion.multiply(tailNudgeQuat(name));
     }
   }
@@ -245,6 +320,15 @@ export class Suki {
     if (!bone) return;
     this.heroBow = buildHeroBowMesh();
     bone.add(this.heroBow);
+  }
+
+  /** Face furniture on `head` — Hunyuan iris islands stay a blue dot from play cameras. */
+  private attachHeroFace(skeleton: THREE.Skeleton) {
+    if (this.heroFace || !SUKI_FACE.overlay) return;
+    const bone = skeleton.bones.find((b) => b.name === SUKI_FACE.parentBone);
+    if (!bone) return;
+    this.heroFace = buildHeroFaceMesh();
+    bone.add(this.heroFace);
   }
 
   private play(name: string, fade = 0.22, once = false) {

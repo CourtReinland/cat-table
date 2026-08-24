@@ -98,7 +98,7 @@ export const SUKI_BOW = {
   /** Saturated hero pink; MeshBasic so night bounce cannot lavender it. */
   pink: 0xf24a96,
   /** Bone-local metres. +Y up the nape, −Z toward the tail / OTS camera. */
-  napeLocal: { x: 0, y: 0.028, z: -0.042 },
+  napeLocal: { x: 0, y: 0.055, z: -0.072 },
   loopRadius: 0.04,
   tailLength: 0.06,
 } as const;
@@ -123,18 +123,37 @@ export const SUKI_FACE = {
   /** Lift lit identity; ink stays crushed. */
   lift: 1.45,
   inkMul: 0.7,
+  /**
+   * Hunyuan iris islands are a few millimetres — chroma keep still reads as a
+   * blue dot. Same nape-mesh idea as HeroBow: MeshBasic furniture on `head`.
+   */
+  overlay: true,
+  parentBone: 'head' as const,
+  sapphire: 0x1e5ad8,
+  lash: 0x1a1422,
+  blush: 0xf090a8,
+  nose: 0xf24a96,
+  highlight: 0xffffff,
+  eyeRadius: 0.018,
+  /** Head +Y is muzzle-forward. Sit the overlay on the face, not inside the skull. */
+  headLocal: { x: 0, y: 0.062, z: -0.006 },
 } as const;
 
 /**
- * Idle/rest tail sits in front of the OTS-left HeroBow loop (cat +X plume).
- * Extra bone XYZ after the mixer; Idle still wags around this bias.
+ * Idle/rest tail sits on the OTS-left HeroBow loop (loopL, cat +X / screen-left).
+ * Fixed local quaternion after the mixer; Idle still wags around this bias.
  * Do not bind Sit as rest. Do not move default OTS.
  */
 export const SUKI_TAIL = {
-  bones: ['tail_01', 'tail_02'] as const,
+  bones: ['tail_01', 'tail_02', 'tail_03'] as const,
   nudge: {
-    /** −X lowers/back; −Z swings the plume outboard of the left loop. */
-    tail_01: { x: -14, y: 0, z: -20 },
-    tail_02: { x: -6, y: 0, z: -10 },
+    /**
+     * Local post-multiply after Idle (not euler-add — tail_01 rest is ~−88° X, gimbal).
+     * −X drops the plume under the nape; −Z swings it screen-left of OTS loopL.
+     * Keep enough +Y height that the plume is still a kitten tail, not a drag.
+     */
+    tail_01: { x: -16, y: -8, z: -22 },
+    tail_02: { x: -8, y: -3, z: -10 },
+    tail_03: { x: -4, y: -2, z: -6 },
   },
 } as const;

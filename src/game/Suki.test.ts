@@ -59,8 +59,8 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.equal(SUKI_BOW.meshName, 'node_0');
     assert.ok(SUKI_BOW.loopRadius >= 0.035, `loopRadius ${SUKI_BOW.loopRadius} still a thread at 1.32 m`);
     assert.ok(SUKI_BOW.tailLength >= 0.05, `tailLength ${SUKI_BOW.tailLength}`);
-    assert.ok(SUKI_BOW.napeLocal.z < -0.02, 'nape mesh must sit toward the tail / OTS');
-    assert.ok(SUKI_BOW.napeLocal.y > 0.015, 'nape mesh must sit up the ruff');
+    assert.ok(SUKI_BOW.napeLocal.z < -0.05, 'nape mesh must sit toward the tail / OTS, above rump fur');
+    assert.ok(SUKI_BOW.napeLocal.y > 0.04, 'nape mesh must sit up the ruff, clear of the idle plume');
     const { r, g, b } = {
       r: (SUKI_BOW.pink >> 16) & 255,
       g: (SUKI_BOW.pink >> 8) & 255,
@@ -85,14 +85,27 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.ok(SUKI_FACE.faceChroma <= 0.06, `faceChroma ${SUKI_FACE.faceChroma} still papers pale blush`);
     assert.ok(SUKI_FACE.faceLuma >= 0.38, `faceLuma ${SUKI_FACE.faceLuma} still papers grey lashes`);
     assert.ok(SUKI_FACE.coatLuma <= 0.24, 'coat luma gate must stay tight or hatch returns');
-    assert.ok(SUKI_FACE.sat >= 1.8, 'unlit identity needs a saturate or the iris is a blue dot');
-    assert.deepEqual([...SUKI_TAIL.bones], ['tail_01', 'tail_02']);
-    assert.ok(SUKI_TAIL.nudge.tail_01.z <= -16, `tail_01 z ${SUKI_TAIL.nudge.tail_01.z} does not clear the left loop`);
-    assert.ok(SUKI_TAIL.nudge.tail_01.x <= -10, `tail_01 x ${SUKI_TAIL.nudge.tail_01.x} still climbs the nape`);
+    assert.ok(SUKI_FACE.overlay, 'Hunyuan iris islands need head furniture like the nape bow');
+    assert.equal(SUKI_FACE.parentBone, 'head');
+    assert.ok(SUKI_FACE.eyeRadius >= 0.014, `eyeRadius ${SUKI_FACE.eyeRadius} still a blue dot`);
+    const { r: sr, b: sb } = {
+      r: (SUKI_FACE.sapphire >> 16) & 255,
+      b: SUKI_FACE.sapphire & 255,
+    };
+    assert.ok(sb > sr + 40, 'overlay iris must be sapphire, not grey');
+    assert.deepEqual([...SUKI_TAIL.bones], ['tail_01', 'tail_02', 'tail_03']);
+    assert.ok(SUKI_TAIL.nudge.tail_01.z <= -18, `tail_01 z ${SUKI_TAIL.nudge.tail_01.z} does not clear the left loop`);
+    assert.ok(SUKI_TAIL.nudge.tail_01.x <= -12, `tail_01 x ${SUKI_TAIL.nudge.tail_01.x} still climbs the nape`);
+    assert.ok(SUKI_TAIL.nudge.tail_01.x >= -22, `tail_01 x ${SUKI_TAIL.nudge.tail_01.x} drags the plume`);
     assert.equal(USE_SIT_FOR_LONG_IDLE, false);
     const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
     assert.match(src, /applyTailNudge/);
     assert.match(src, /SUKI_TAIL\.bones/);
+    assert.match(src, /quaternion\.multiply\(tailNudgeQuat/);
+    assert.doesNotMatch(src, /setFromEuler\(_nudgeEuler\)/);
+    assert.match(src, /buildHeroFaceMesh/);
+    assert.match(src, /HeroFace/);
+    assert.ok(SUKI_FACE.headLocal.y >= 0.05, `headLocal.y ${SUKI_FACE.headLocal.y} still inside the skull`);
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
     const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
     assert.match(toon, /MeshBasicNodeMaterial/);

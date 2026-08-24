@@ -213,10 +213,11 @@ function sukiFluffMaterial(src: any) {
     const sapphire = vec3(float(0.13), float(0.40), float(0.88));
     const withEye = mix(lifted, mix(lifted, sapphire, float(0.38)), isBlue);
     const isPink = step(rgb.z, rgb.x)
-      .mul(step(float(0.05), chroma))
-      .mul(step(float(0.25), faceW));
+      .mul(step(float(0.09), chroma))
+      .mul(step(float(0.25), faceW))
+      .mul(float(1).sub(step(float(0.92), luma)));
     const blush = vec3(float(1.0), float(0.5), float(0.66));
-    const identRgb = mix(withEye, mix(withEye, blush, float(0.3)), isPink);
+    const identRgb = mix(withEye, mix(withEye, blush, float(0.18)), isPink);
     m.colorNode = mix(paper, identRgb, ident);
   } else {
     m.colorNode = paper;
