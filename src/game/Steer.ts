@@ -9,7 +9,7 @@
  * Autopilot feeds world-space axes and must skip this remap.
  *
  * Feel (live ea73f93 failed playtest): yaw is a capped body rate, not an
- * exponential turret catch, and release is a slide-to-stop scrape.
+ * exponential turret catch. Input-up zeros translation (no Stray scrape).
  */
 
 export type XZ = { x: number; z: number };
@@ -253,8 +253,8 @@ export function stepProwl(
   const targetZ = fz * targetSpd;
 
   // Accel for in-gait heading catch while input is live and speed is not
-  // actually dropping (90° / reverse while W is held). Scrape only on
-  // release, analog ease, or sprint→walk — when commit lowers speed.
+  // actually dropping (90° / reverse while W is held). Analog ease and
+  // sprint→walk still scrape. Full input-up returned above — no slide.
   const catchHeading = desiredSpd > STEER.yawDeadzone && targetSpd >= spd - 0.02;
   const rate = catchHeading ? STEER.accel : decelForSpeed(spd);
   const a = 1 - Math.exp(-rate * dt);

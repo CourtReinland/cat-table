@@ -26,6 +26,11 @@ export const OTS = {
   fov: 52,
   near: 0.08,
   far: 80,
+  /**
+   * Unused. BUILD 6 left exponential catch-up here (10 / 14). After catVel
+   * already halted, that leftover still slid props in the OTS frame for
+   * ~the lag tail. Follow is pose-locked — stop on a dime.
+   */
   posDamp: 10,
   lookDamp: 14,
 } as const;
@@ -137,7 +142,7 @@ export function applyOtsPose(
   return pose;
 }
 
-/** Damped close-OTS follow. Writes into Game's camPos / camLook. */
+/** Pose-locked close-OTS follow. Writes into Game's camPos / camLook. */
 export class CameraRig {
   pos = new THREE.Vector3(0, 3.2, 4.5);
   look = new THREE.Vector3(0, 1, 0);
@@ -157,13 +162,16 @@ export class CameraRig {
     this.punch.z += (Math.random() - 0.5) * 0.06 * strength;
   }
 
+  /**
+   * Pose-lock the close OTS rig to the cat. BUILD 6 halted catVel on
+   * input-up but left posDamp/lookDamp catch-up — that was the leftover
+   * ~1s of props sliding in the OTS frame after W release.
+   */
   follow(dt: number, catPos: Vec3, yaw: number, catVel: Vec3) {
     const speed = Math.hypot(catVel.x, catVel.z);
     const pose = otsPose(catPos, yaw, speed);
-    const aPos = 1 - Math.exp(-OTS.posDamp * dt);
-    const aLook = 1 - Math.exp(-OTS.lookDamp * dt);
-    this.pos.lerp(pose.pos, aPos);
-    this.look.lerp(pose.look, aLook);
+    this.pos.copy(pose.pos);
+    this.look.copy(pose.look);
     this.punch.multiplyScalar(Math.exp(-8 * dt));
   }
 

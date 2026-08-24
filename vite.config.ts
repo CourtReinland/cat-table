@@ -10,7 +10,7 @@ function gitShort(): string {
 }
 
 /** GS-STEER-STAMP — baked into HUD / title so a phone hard-refresh is unambiguous. */
-export const BUILD_STAMP = `BUILD 6 ${gitShort()}`;
+export const BUILD_STAMP = `BUILD 7 ${gitShort()}`;
 
 export default defineConfig({
   base: './',

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { BUILD_STAMP } from '../buildStamp.ts';
 import {
   CAT_FRAME,
+  CameraRig,
   DEFAULT_FP_CAM,
   OTS,
   applyOtsPose,
@@ -30,8 +31,8 @@ describe('GS-CAM-OTS default + stamp', () => {
     assert.equal(DEFAULT_FP_CAM, false);
   });
 
-  it('visible stamp is BUILD 6', () => {
-    assert.match(BUILD_STAMP, /^BUILD 6\b/);
+  it('visible stamp is BUILD 7', () => {
+    assert.match(BUILD_STAMP, /^BUILD 7\b/);
   });
 
   it('keeps BUILD 3 steer tunables', () => {
@@ -96,5 +97,63 @@ describe('GS-CAM-OTS close over-the-shoulder', () => {
   it('OTS fov is a close third-person, not FP 62', () => {
     assert.ok(OTS.fov >= 46 && OTS.fov <= 54);
     assert.notEqual(OTS.fov, 62);
+  });
+});
+
+describe('GS-SUKI-POLISH leftover: OTS follow lag after W release', () => {
+  const DT = 1 / 60;
+  const WALK = { x: 0, y: 0, z: 1.35 };
+
+  it('pose-locks — after input-up the camera does not keep travelling', () => {
+    const rig = new CameraRig();
+    const cat = new THREE.Vector3(0, 1.12, 0);
+    const yaw = 0;
+    rig.snap(cat, yaw, 1.35);
+    for (let i = 0; i < 60; i++) {
+      cat.z += WALK.z * DT;
+      rig.follow(DT, cat, yaw, WALK);
+    }
+    const halted = { x: 0, y: 0, z: 0 };
+    rig.follow(DT, cat, yaw, halted);
+    const pose = otsPose(cat, yaw, 0);
+    assert.ok(rig.pos.distanceTo(pose.pos) < 1e-9, 'first halt frame must sit on the pose');
+    assert.ok(rig.look.distanceTo(pose.look) < 1e-9);
+
+    const cam0 = rig.pos.clone();
+    const look0 = rig.look.clone();
+    for (let i = 0; i < 90; i++) {
+      rig.follow(DT, cat, yaw, halted);
+    }
+    const travel = rig.pos.distanceTo(cam0);
+    const lookTravel = rig.look.distanceTo(look0);
+    assert.ok(travel < 1e-9, `1.5s after keyup camera still travelled ${travel}`);
+    assert.ok(lookTravel < 1e-9, `1.5s after keyup look still travelled ${lookTravel}`);
+  });
+
+  it('world-fixed props stay put in the OTS frame after keyup', () => {
+    const rig = new CameraRig();
+    const cat = new THREE.Vector3(0, 1.12, 0);
+    const yaw = 0;
+    rig.snap(cat, yaw, 1.35);
+    for (let i = 0; i < 60; i++) {
+      cat.z += WALK.z * DT;
+      rig.follow(DT, cat, yaw, WALK);
+    }
+    const mug = new THREE.Vector3(0.35, 1.12, cat.z + 0.7);
+    const cam = makeOtsCamera(16 / 9);
+    const halted = { x: 0, y: 0, z: 0 };
+    rig.follow(DT, cat, yaw, halted);
+    rig.applyTo(cam);
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+    const ndc0 = mug.clone().project(cam);
+
+    for (let i = 0; i < 90; i++) rig.follow(DT, cat, yaw, halted);
+    rig.applyTo(cam);
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+    const ndc = mug.clone().project(cam);
+    assert.ok(Math.abs(ndc.x - ndc0.x) < 1e-6, `prop NDC x drifted ${ndc.x - ndc0.x}`);
+    assert.ok(Math.abs(ndc.y - ndc0.y) < 1e-6, `prop NDC y drifted ${ndc.y - ndc0.y}`);
   });
 });
