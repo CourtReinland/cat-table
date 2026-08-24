@@ -51,14 +51,28 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.ok(PAW_MESH.hitMaxDeltaDeg <= 14);
   });
 
-  it('scales the nape hero bow so OTS can read loops and tails', () => {
+  it('parents a nape hero bow mesh so OTS can read loops and tails', () => {
+    assert.equal(SUKI_BOW.napeMesh, true);
+    assert.equal(SUKI_BOW.parentBone, 'bow');
     assert.equal(SUKI_BOW.meshName, 'node_0');
-    assert.deepEqual([...SUKI_BOW.bones], ['bow', 'bow_L', 'bow_R']);
-    assert.ok(SUKI_BOW.loopScale >= 3, `loopScale ${SUKI_BOW.loopScale} still a throat thread`);
-    assert.ok(SUKI_BOW.knotScale >= 2.5 && SUKI_BOW.knotScale <= SUKI_BOW.loopScale);
+    assert.ok(SUKI_BOW.loopRadius >= 0.035, `loopRadius ${SUKI_BOW.loopRadius} still a thread at 1.32 m`);
+    assert.ok(SUKI_BOW.tailLength >= 0.05, `tailLength ${SUKI_BOW.tailLength}`);
+    assert.ok(SUKI_BOW.napeLocal.z < -0.02, 'nape mesh must sit toward the tail / OTS');
+    assert.ok(SUKI_BOW.napeLocal.y > 0.015, 'nape mesh must sit up the ruff');
+    const { r, g, b } = {
+      r: (SUKI_BOW.pink >> 16) & 255,
+      g: (SUKI_BOW.pink >> 8) & 255,
+      b: SUKI_BOW.pink & 255,
+    };
+    assert.ok(r >= 200 && r > b, `hero pink ${SUKI_BOW.pink.toString(16)} is not saturated`);
     const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
-    assert.match(src, /applyHeroBow/);
-    assert.match(src, /SUKI_BOW\.loopScale/);
+    assert.match(src, /buildHeroBowMesh/);
+    assert.match(src, /BowLoopL/);
+    assert.match(src, /BowLoopR/);
+    assert.match(src, /BowTailL/);
+    assert.match(src, /BowTailR/);
+    assert.match(src, /MeshBasicNodeMaterial/);
+    assert.match(src, /SUKI_BOW\.parentBone/);
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
   });
 });

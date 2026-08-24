@@ -21,6 +21,63 @@ export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGl
 
 const _euler = new THREE.Euler();
 
+function heroBowMaterial() {
+  const m = new THREE.MeshBasicNodeMaterial({
+    color: SUKI_BOW.pink,
+    side: THREE.DoubleSide,
+  });
+  return m;
+}
+
+/** Two loops + knot + tails, sized to read from default OTS. */
+export function buildHeroBowMesh() {
+  const mat = heroBowMaterial();
+  const root = new THREE.Group();
+  root.name = 'HeroBow';
+
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), mat);
+  knot.name = 'BowKnot';
+  root.add(knot);
+
+  const r = SUKI_BOW.loopRadius;
+  const loopL = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), mat);
+  loopL.name = 'BowLoopL';
+  loopL.scale.set(r, r * 0.55, r * 0.72);
+  loopL.position.set(r + 0.006, 0.008, 0.002);
+  loopL.rotation.z = 0.42;
+  loopL.rotation.y = 0.28;
+  loopL.frustumCulled = false;
+  root.add(loopL);
+
+  const loopR = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), mat);
+  loopR.name = 'BowLoopR';
+  loopR.scale.set(r, r * 0.55, r * 0.72);
+  loopR.position.set(-(r + 0.006), 0.008, 0.002);
+  loopR.rotation.z = -0.42;
+  loopR.rotation.y = -0.28;
+  loopR.frustumCulled = false;
+  root.add(loopR);
+
+  const tailL = new THREE.Mesh(new THREE.ConeGeometry(0.011, SUKI_BOW.tailLength, 8), mat);
+  tailL.name = 'BowTailL';
+  tailL.position.set(0.016, -0.03, -0.024);
+  tailL.rotation.x = Math.PI * 0.72;
+  tailL.rotation.z = 0.38;
+  tailL.frustumCulled = false;
+  root.add(tailL);
+
+  const tailR = new THREE.Mesh(new THREE.ConeGeometry(0.011, SUKI_BOW.tailLength, 8), mat);
+  tailR.name = 'BowTailR';
+  tailR.position.set(-0.016, -0.03, -0.024);
+  tailR.rotation.x = Math.PI * 0.72;
+  tailR.rotation.z = -0.38;
+  tailR.frustumCulled = false;
+  root.add(tailR);
+  knot.frustumCulled = false;
+  root.position.set(SUKI_BOW.napeLocal.x, SUKI_BOW.napeLocal.y, SUKI_BOW.napeLocal.z);
+  return root;
+}
+
 export class Suki {
   group = new THREE.Group();
   yaw = 0;
@@ -48,7 +105,7 @@ export class Suki {
   ready = false;
   private skeleton: THREE.Skeleton | null = null;
   private pawBones: THREE.Bone[] = [];
-  private bowBones: { bone: THREE.Bone; scale: number }[] = [];
+  private heroBow: THREE.Group | null = null;
   /** Skip a duplicate mixer tick when Game already advanced paws this frame. */
   private animAdvanced = false;
   private _pawWorld = [new THREE.Vector3(), new THREE.Vector3()];
@@ -86,18 +143,11 @@ export class Suki {
         if (sk.isSkinnedMesh && sk.skeleton) {
           this.skeleton = sk.skeleton;
           this.pawBones = [];
-          this.bowBones = [];
           for (const name of SUKI_PAW_BONES) {
             const bone = sk.skeleton.bones.find((b) => b.name === name);
             if (bone) this.pawBones.push(bone);
           }
-          for (const name of SUKI_BOW.bones) {
-            const bone = sk.skeleton.bones.find((b) => b.name === name);
-            if (!bone) continue;
-            const scale = name === 'bow' ? SUKI_BOW.knotScale : SUKI_BOW.loopScale;
-            this.bowBones.push({ bone, scale });
-          }
-          this.applyHeroBow();
+          this.attachHeroBow(sk.skeleton);
         }
       });
 
@@ -138,7 +188,6 @@ export class Suki {
     if (this.useGlb) {
       if (this.mixer && !this.animAdvanced) {
         this.mixer.update(dt);
-        this.applyHeroBow();
         this.animAdvanced = true;
       }
     } else {
@@ -156,11 +205,13 @@ export class Suki {
     return this.cat.getPawTips(this._pawWorld);
   }
 
-  /** Scale nape bow loops/tails after mixer so clips cannot shrink them. */
-  private applyHeroBow() {
-    for (const { bone, scale } of this.bowBones) {
-      bone.scale.setScalar(scale);
-    }
+  /** Nape overlay parented to `bow` — Hunyuan strip cannot silhouette from OTS. */
+  private attachHeroBow(skeleton: THREE.Skeleton) {
+    if (this.heroBow || !SUKI_BOW.napeMesh) return;
+    const bone = skeleton.bones.find((b) => b.name === SUKI_BOW.parentBone);
+    if (!bone) return;
+    this.heroBow = buildHeroBowMesh();
+    bone.add(this.heroBow);
   }
 
   private play(name: string, fade = 0.22, once = false) {
@@ -298,7 +349,6 @@ export class Suki {
     }
 
     if (this.mixer && !this.animAdvanced) this.mixer.update(dt);
-    this.applyHeroBow();
     this.animAdvanced = false;
     this.group.rotation.y = this.yaw;
     // Light bank on the mesh — group yaw stays the gameplay heading so

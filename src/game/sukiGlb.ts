@@ -81,16 +81,24 @@ export const PAW_MESH = {
 } as const;
 
 /**
- * Hero pink bow lives on Hunyuan skinned mesh `node_0`, 159 verts exclusive
- * to bow / bow_L / bow_R at the nape (~3 cm). Default OTS (1.32 m behind)
- * reads that as a collar thread. Runtime-scale the bones so loops + tails
- * silhouette from the rear. Do not move the camera.
+ * Hero pink bow. Hunyuan `node_0` only has 159 verts on bow / bow_L / bow_R
+ * — a ~3 cm throat strip. Bone scale 3.2 did not silhouette from default
+ * OTS (1.32 m behind). A three.js nape mesh (two loops + tails) is parented
+ * to `bow`, offset up and toward the tail. Do not move the camera. Keep the
+ * Hunyuan skull. Do not inflate the chest strip.
  */
 export const SUKI_BOW = {
   meshName: 'node_0',
+  parentBone: 'bow' as const,
   bones: ['bow', 'bow_L', 'bow_R'] as const,
-  /** Loops + tails (bow_L / bow_R). */
-  loopScale: 3.2,
-  /** Knot (bow) — slightly less so the nape does not balloon into the skull. */
-  knotScale: 2.8,
+  /** Throat-strip scale — left at 1 so the chest thread does not smear. */
+  loopScale: 1,
+  knotScale: 1,
+  napeMesh: true,
+  /** Saturated hero pink; MeshBasic so night bounce cannot lavender it. */
+  pink: 0xf24a96,
+  /** Bone-local metres. +Y up the nape, −Z toward the tail / OTS camera. */
+  napeLocal: { x: 0, y: 0.028, z: -0.042 },
+  loopRadius: 0.04,
+  tailLength: 0.06,
 } as const;
