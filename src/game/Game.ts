@@ -23,7 +23,9 @@ import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
-import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, type PlantLock } from './Steer';
+import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
+import { pawHitsProp } from './pawHit';
+import { PAW_HIT_RADIUS } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS } from './CameraRig';
 
 type Phase =
@@ -452,12 +454,22 @@ export class Game {
       push = auto.push && this.pushCooldown <= 0;
     }
 
+    // Input-up: halt translation immediately. Do not coast a Stray slide.
+    // Leave knockVel alone while tumbling — the roll owns that shove.
+    if (!rolling && axes.x === 0 && axes.z === 0) {
+      this.catVel.set(0, 0, 0);
+      cat.knockVel.x = 0;
+      cat.knockVel.z = 0;
+    }
+
     const speed = this.input.sprint ? 2.2 : 1.35;
     // Autopilot already emits world XZ toward props. Player WASD + stick
     // share camera-local axes and must go through the same camera basis.
     const worldAxes = this.autopilot ? axes : this.playerWorldAxes(axes);
     const desired = { x: worldAxes.x * speed, z: worldAxes.z * speed };
-    const stepped = stepProwl(dt, this.catVel, cat.yaw, desired);
+    const spdNow = this.catVel.length();
+    const yawOnly = !this.autopilot && spdNow < STEER.plantSpeed && isPlantTurn(axes);
+    const stepped = stepProwl(dt, this.catVel, cat.yaw, desired, yawOnly);
     this.catVel.set(stepped.x, 0, stepped.z);
     cat.yaw = stepped.yaw;
     cat.yawRate = stepped.yawRate;
@@ -510,16 +522,21 @@ export class Game {
       if (u > 0.16 && u < 0.66) {
         const phase = Math.sin(((u - 0.16) / 0.5) * Math.PI); // 0→1→0
         const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
-        // paw tip sweeps out ahead of the body
-        const pawReach = 0.42 + 0.18 * phase;
+        cat.preparePaws(dt);
+        const paws = cat.getPawTips();
         for (const b of this.apartment.physics.bodies) {
           if (b.state === 'gone' || b.state === 'falling') continue;
+          let hit = false;
+          for (const paw of paws) {
+            if (pawHitsProp({ x: paw.x, z: paw.z }, { x: b.pos.x, z: b.pos.z }, b.radiusXZ, PAW_HIT_RADIUS)) {
+              hit = true;
+              break;
+            }
+          }
+          if (!hit) continue;
           const to = new THREE.Vector3().subVectors(b.pos, catPos);
           to.y = 0;
-          const dist = to.length();
-          if (dist > pawReach + b.radiusXZ) continue;
-          const dir = to.clone().normalize();
-          if (dir.dot(facing) < 0.2) continue; // behind the paw plane
+          const dir = to.lengthSq() > 1e-8 ? to.normalize() : facing.clone();
           if (b.immovable) {
             this.swipeBlocked = true;
             continue;
@@ -527,12 +544,15 @@ export class Game {
           this.apartment.physics.contactShove(b, facing.clone().add(dir.multiplyScalar(0.3)).normalize(), phase, dt);
           this.swipeHit = true;
         }
-        // paw tip position for the FP camera / future FX
-        this.pawTip.set(
-          catPos.x + facing.x * pawReach,
-          s.topY + 0.16 + 0.05 * phase,
-          catPos.z + facing.z * pawReach,
-        );
+        const tip = paws[1] ?? paws[0];
+        if (tip) this.pawTip.copy(tip);
+        else {
+          this.pawTip.set(
+            catPos.x + facing.x * 0.28,
+            s.topY + 0.08,
+            catPos.z + facing.z * 0.28,
+          );
+        }
       }
       if (this.swipeT === 0 && prev > 0) {
         // swipe finished — resolve feedback once
@@ -745,6 +765,12 @@ export class Game {
     cam.getWorldDirection(this.lookDir);
     const camDir = lookToCamDir(this.lookDir, this.apartment.cat.yaw);
     if (!this.fpCam) {
+      this.fpPlantLock = null;
+      return cameraRelativeMove(axes, camDir);
+    }
+    // Planted A/D is tank yaw, not turn-then-walk. Skip the FP lock so
+    // holding A keeps yaws 90° off facing with zero translation (yawOnly).
+    if (isPlantTurn(axes)) {
       this.fpPlantLock = null;
       return cameraRelativeMove(axes, camDir);
     }

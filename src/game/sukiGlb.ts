@@ -35,3 +35,23 @@ export const GLB_YAW_OFFSET = 0;
  * (stand). Sit remains on the GLB for tools; gameplay must not rest into it.
  */
 export const USE_SIT_FOR_LONG_IDLE = false;
+
+/**
+ * GS-SUKI-POLISH coat policy (playtest bar 2).
+ * Do not feed Hunyuan albedo/normal/AO into the room MeshToon path — that
+ * hatch map is the graphite. White toon fluff shader; chroma/luma identity
+ * only (sapphire / pink bow). No inverted hull. Do not remake the mesh.
+ */
+export const SUKI_COAT = {
+  keepAlbedo: false,
+  useFluffShader: true,
+  identityFromAlbedo: true,
+  skipOutline: true,
+  forceFrontSide: true,
+} as const;
+
+/** Front paw bones on the standing Hunyuan bind (glTF +Y-up names). */
+export const SUKI_PAW_BONES = ['paw_FL', 'paw_FR'] as const;
+
+/** Hit sphere around each visible front paw (metres). */
+export const PAW_HIT_RADIUS = 0.11;

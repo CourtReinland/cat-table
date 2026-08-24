@@ -12,6 +12,7 @@ import {
   stepProwl,
   yawRateForSpeed,
   isPlantStrafe,
+  isPlantTurn,
   resolvePlantLock,
   type PlantLock,
   type XZ,
@@ -36,13 +37,13 @@ function keysOf(...codes: string[]) {
   return (code: string) => set.has(code);
 }
 
-function stepFor(n: number, vel: XZ, yaw: number, desired: XZ) {
+function stepFor(n: number, vel: XZ, yaw: number, desired: XZ, yawOnly = false) {
   let v = { ...vel };
   let y = yaw;
   const pos = { x: 0, z: 0 };
-  let last = stepProwl(DT, v, y, desired);
+  let last = stepProwl(DT, v, y, desired, yawOnly);
   for (let i = 0; i < n; i++) {
-    last = stepProwl(DT, v, y, desired);
+    last = stepProwl(DT, v, y, desired, yawOnly);
     v = { x: last.x, z: last.z };
     y = last.yaw;
     pos.x += v.x * DT;
@@ -127,7 +128,7 @@ describe('GS-STEER-01 camera-relative axes', () => {
   });
 });
 
-describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
+describe('GS-STEER-FEEL planted pivot + halt-on-release', () => {
   it('yaw rate is a capped body turn, punched past the main 2.6 / 4.2 hover-puck', () => {
     assert.ok(STEER.yawRatePlanted >= 1.3 && STEER.yawRatePlanted <= 1.6, `planted ${STEER.yawRatePlanted} should be a ~2s 180`);
     assert.ok(STEER.yawRateMoving < 3, `moving ${STEER.yawRateMoving} should be slower than main 4.2`);
@@ -144,7 +145,7 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const camDir = lookToCamDir(LOOK_NEG_Z, 0);
     const dir = cameraRelativeMove(AXES_A, camDir);
     const desired = { x: dir.x * WALK, z: dir.z * WALK };
-    const early = stepFor(12, { x: 0, z: 0 }, 0, desired); // 0.2s
+    const early = stepFor(12, { x: 0, z: 0 }, 0, desired, true); // 0.2s
     const dist = Math.hypot(early.pos.x, early.pos.z);
     assert.ok(dist < 0.05, `planted 0.2s travel ${dist} should keep the feet still`);
     assert.ok(early.yaw < 0, 'A should yaw toward camera-left');
@@ -194,24 +195,17 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     assert.ok(kicked > 0.15 && kicked < 1.0, `first-frame accel ${kicked} should be partial`);
   });
 
-  it('release is a Stray slide-to-stop, not a hover-puck brake', () => {
-    assert.ok(STEER.decelSlide >= 1.0 && STEER.decelSlide <= 1.4, `slide ${STEER.decelSlide} should outlast main 2.2`);
+  it('release halts on a dime — no Stray slide', () => {
+    assert.ok(STEER.decelSlide >= 1.0 && STEER.decelSlide <= 1.4, `constant ${STEER.decelSlide} kept, unused on release`);
     assert.ok(STEER.decelSettle < STEER.accel);
-    assert.ok(decelForSpeed(WALK) < 2, 'at walk speed, friction should be the long slide');
     const coast = stepProwl(DT, { x: 0, z: WALK }, 0, { x: 0, z: 0 });
-    assert.ok(Math.hypot(coast.x, coast.z) > 1.2, 'one frame of slide must leave almost all speed');
+    almost(coast.x, 0);
+    almost(coast.z, 0);
+    almost(coast.yawRate, 0);
 
     const mid = stepFor(36, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 0.6s
-    const midSpd = Math.hypot(mid.vel.x, mid.vel.z);
-    assert.ok(midSpd > 0.55, `0.6s after release she should still be sliding (${midSpd})`);
-
-    const still = stepFor(90, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 1.5s
-    const stillSpd = Math.hypot(still.vel.x, still.vel.z);
-    assert.ok(stillSpd > 0.04, `1.5s of the long slide should not already be a dead stop (${stillSpd})`);
-
-    const late = stepFor(180, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 3s
-    const lateSpd = Math.hypot(late.vel.x, late.vel.z);
-    assert.ok(lateSpd < 0.08, `3s should scrape to a stop (${lateSpd})`);
+    almost(Math.hypot(mid.vel.x, mid.vel.z), 0);
+    almost(Math.hypot(mid.pos.x, mid.pos.z), 0);
   });
 
   it('turns at a lower speed deadzone than the live 0.15 puck', () => {
@@ -225,10 +219,13 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     const camDir = lookToCamDir(LOOK_NEG_Z, 0);
     const desiredDir = cameraRelativeMove(AXES_A, camDir);
     const desired = { x: desiredDir.x * WALK, z: desiredDir.z * WALK };
-    const s = stepFor(90, { x: 0, z: 0 }, 0, desired);
+    const s = stepFor(90, { x: 0, z: 0 }, 0, desired, true);
     assert.ok(Math.abs(shortestAngle(s.yaw, -Math.PI / 2)) < 0.2, `yaw ${s.yaw} should face camera-left`);
-    const facingDot = Math.sin(s.yaw) * s.vel.x + Math.cos(s.yaw) * s.vel.z;
-    assert.ok(facingDot > 0.5, `once facing, she should walk into it (${facingDot})`);
+    const spd = Math.hypot(s.vel.x, s.vel.z);
+    assert.ok(spd < 0.02, `planted A must not sneak forward (${spd})`);
+    assert.ok(Math.hypot(s.pos.x, s.pos.z) < 0.02, `planted A travel ${Math.hypot(s.pos.x, s.pos.z)} must stay planted`);
+    assert.equal(isPlantTurn(AXES_A), true);
+    assert.equal(isPlantTurn(AXES_W), false);
   });
 
   it('lean banks against yaw rate so the body is not a rigid spin', () => {
@@ -268,42 +265,26 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
     assert.ok(dropped < sprint);
   });
 
-  it('body-locked FP A/D/S world-locks a heading so she does not tank-spin forever', () => {
-    // Lens is Suki: camDir = current yaw every frame (updateFirstPersonCam).
+  it('planted FP A/D is yaw-only — Game skips the walk lock so turn does not sneak forward', () => {
+    // Lens is Suki: camDir = current yaw every frame. Game skips resolvePlantLock
+    // when isPlantTurn, and stepProwl(..., yawOnly) zeros translation.
     const facing = (yaw: number): XZ => ({ x: Math.sin(yaw), z: Math.cos(yaw) });
 
     let yaw = 0;
     let vel: XZ = { x: 0, z: 0 };
-    let lock: PlantLock | null = null;
     const pos = { x: 0, z: 0 };
     for (let i = 0; i < 120; i++) {
-      const r = resolvePlantLock(AXES_A, facing(yaw), Math.hypot(vel.x, vel.z), lock);
-      lock = r.lock;
-      const desired = { x: r.move.x * WALK, z: r.move.z * WALK };
-      const s = stepProwl(DT, vel, yaw, desired);
+      assert.equal(isPlantTurn(AXES_A), true);
+      const live = cameraRelativeMove(AXES_A, facing(yaw));
+      const s = stepProwl(DT, vel, yaw, { x: live.x * WALK, z: live.z * WALK }, true);
       vel = { x: s.x, z: s.z };
       yaw = s.yaw;
       pos.x += vel.x * DT;
       pos.z += vel.z * DT;
     }
-    assert.ok(lock, 'planted A should snapshot a world heading');
-    // yaw=0 FP looking +Z → camera-left A is +X
-    assert.ok(Math.abs(shortestAngle(yaw, Math.PI / 2)) < 0.25, `locked A should finish facing original camera-left (yaw ${yaw})`);
-    const along = Math.sin(yaw) * vel.x + Math.cos(yaw) * vel.z;
-    assert.ok(along > 0.5, `after the pivot she should walk the locked heading (${along})`);
-    assert.ok(pos.x > 0.15, `should have committed world +X travel (${pos.x}), not spun in place`);
-
-    // Without the lock, live remap keeps A at 90° and plantCommit never clears.
-    yaw = 0;
-    vel = { x: 0, z: 0 };
-    for (let i = 0; i < 120; i++) {
-      const live = cameraRelativeMove(AXES_A, facing(yaw));
-      const s = stepProwl(DT, vel, yaw, { x: live.x * WALK, z: live.z * WALK });
-      vel = { x: s.x, z: s.z };
-      yaw = s.yaw;
-    }
-    assert.ok(Math.hypot(vel.x, vel.z) < 0.08, 'live body-locked A must not gain walk speed');
-    assert.ok(Math.abs(yaw) > 2.2, `should have tank-spun well past 90° (yaw ${yaw})`);
+    assert.ok(Math.hypot(vel.x, vel.z) < 0.02, `planted A must not translate (${Math.hypot(vel.x, vel.z)})`);
+    assert.ok(Math.hypot(pos.x, pos.z) < 0.02, `planted A travel ${Math.hypot(pos.x, pos.z)} must stay planted`);
+    assert.ok(Math.abs(yaw) > 2.2, `held A should keep yawing in place (yaw ${yaw})`);
   });
 
   it('body-locked W stays live and commits; in-gait A does not start a lock', () => {
@@ -351,10 +332,15 @@ describe('GS-STEER-FEEL planted pivot + slide-to-stop', () => {
 
     const desired = { x: analog.move.x * WALK, z: analog.move.z * WALK };
     const coasting = { x: full.move.x * WALK, z: full.move.z * WALK };
-    const eased = stepProwl(DT, coasting, Math.atan2(full.lock.world.x, full.lock.world.z), desired);
-    const a = 1 - Math.exp(-decelForSpeed(WALK) * DT);
-    const expect = WALK + (0.3 * WALK - WALK) * a;
-    almost(Math.hypot(eased.x, eased.z), expect, 1e-3);
+    // Analog A is a plant turn: yaw only, even with a leftover walk vector.
+    const eased = stepProwl(
+      DT,
+      coasting,
+      Math.atan2(full.lock.world.x, full.lock.world.z),
+      desired,
+      true,
+    );
+    almost(Math.hypot(eased.x, eased.z), 0);
   });
 });
 
