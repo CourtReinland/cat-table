@@ -89,10 +89,10 @@ function addEye(root: THREE.Group, sign: number) {
     root.add(lash);
   }
 
-  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), blushM);
+  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), blushM);
   blush.name = sign > 0 ? 'BlushL' : 'BlushR';
-  blush.scale.set(1.2, 0.45, 0.7);
-  blush.position.set(x + sign * 0.003, y - 0.002, z + 0.016);
+  blush.scale.set(1.25, 0.5, 0.78);
+  blush.position.set(x + sign * 0.004, y - 0.004, z + 0.018);
   blush.frustumCulled = false;
   root.add(blush);
 }

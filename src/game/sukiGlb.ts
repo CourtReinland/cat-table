@@ -131,7 +131,7 @@ export const SUKI_FACE = {
   parentBone: 'head' as const,
   sapphire: 0x1e5ad8,
   lash: 0x1a1422,
-  blush: 0xf090a8,
+  blush: 0xf278a0,
   nose: 0xf24a96,
   highlight: 0xffffff,
   eyeRadius: 0.016,
