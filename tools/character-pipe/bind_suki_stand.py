@@ -2,11 +2,20 @@
 """Standing-quad bind for Suki Hunyuan. Clips + stills + walk shred QC.
 
 Never binds sit-rest GLBs. No metaball / remesh of hero.
+Rest is diagnosed via rest_pose_check.diagnose (not hardcoded STAND).
+WALK GATE is computed before any shippable BOUND write; sit or walk FAIL
+refuses the export and exits non-zero (same sit refuse as bind_quad.py).
 """
 import bpy
 import math
 import os
+import sys
 from mathutils import Vector
+
+_PIPE = os.path.dirname(os.path.abspath(__file__))
+if _PIPE not in sys.path:
+    sys.path.insert(0, _PIPE)
+from rest_pose_check import diagnose
 
 SRC = "/workspace/suki-canon/suki-hunyuan-tpose.glb"
 OUT_DIR = "/workspace/suki-canon"
@@ -25,6 +34,13 @@ notes = []
 def log(s=""):
     print(s, flush=True)
     notes.append(s)
+
+
+def write_report():
+    os.makedirs(os.path.dirname(os.path.abspath(REPORT)) or ".", exist_ok=True)
+    with open(REPORT, "w") as f:
+        f.write("\n".join(notes) + "\n")
+    log(f"Report: {REPORT}")
 
 
 def ensure_world():
@@ -86,8 +102,8 @@ log("=== IN-BIND REPORT: Suki standing quadruped ===")
 log("Blender: 4.3.2")
 log(f"Input: {SRC}")
 log(f"Imported mesh objects: {[m.name for m in meshes]}")
-log("Hunyuan attempts used this bind: existing suki-hunyuan-tpose.glb (attempt 1, rest STAND PASS).")
-log("Old sit-rest GLBs not bound.")
+log("Hunyuan attempts used this bind: existing suki-hunyuan-tpose.glb.")
+log("Old sit-rest GLBs not bound. Rest is live-diagnosed; sit refuses the bind.")
 
 if len(meshes) > 1:
     bpy.ops.object.select_all(action="DESELECT")
@@ -108,12 +124,22 @@ coords0 = mesh_world_coords(obj)
 mn0, mx0 = bbox_of(coords0)
 size0 = mx0 - mn0
 log("")
-log("=== REST-POSE (pre-scale) ===")
+log("=== REST-POSE GATE (pre-scale) ===")
 log(f"verts={len(obj.data.vertices)} faces={len(obj.data.polygons)}")
 log(f"bbox min={tuple(round(x,4) for x in mn0)} max={tuple(round(x,4) for x in mx0)}")
 log(f"size=({size0.x:.4f},{size0.y:.4f},{size0.z:.4f})")
-log("Diagnosis: REST POSE IS STAND (pipe rest_pose_check sit=0 stand=6).")
-log("Four paw clusters, backline moderate-high, tail off ground. Bind from this rest.")
+rest_qc = diagnose(obj)
+for line in rest_qc["notes"]:
+    log(line)
+if rest_qc["pose"] != "STAND" or rest_qc["verdict"] != "PASS":
+    log(
+        f"REFUSE BIND: rest pose is {rest_qc['pose']} "
+        f"(sit={rest_qc['sit_score']} stand={rest_qc['stand_score']}). "
+        "Never bind a sit. Re-imagine / re-mesh."
+    )
+    write_report()
+    sys.exit(2 if rest_qc["pose"] == "SIT" else 1)
+log("REST GATE PASS: four-on-floor stand. Bind from this rest.")
 log("Facing: -Y forward, +Z up, +X character left.")
 log("Part split: skipped (whole-body stand; bow/paws readable, not mush).")
 
@@ -1106,7 +1132,34 @@ zero_pose()
 bpy.ops.object.mode_set(mode="OBJECT")
 
 # ---------------------------------------------------------------------------
-# Export bound + clips
+# WALK GATE before any shippable BOUND write
+# ---------------------------------------------------------------------------
+clips = ["Idle", "Idle_Look", "Walk", "Run", "Swipe", "Sit", "Cuddle", "Hit"]
+shred_fail = bool(walk_shred.get("shred") or walk_shred_still.get("shred"))
+walk_pass = bool(deform_real) and (not shred_fail)
+log("")
+log("=== GATE ===")
+log(
+    f"Rest diagnosis: {rest_qc['pose']} {rest_qc['verdict']} "
+    f"sit={rest_qc['sit_score']} stand={rest_qc['stand_score']}"
+)
+log(f"Real deform: {deform_real} max_delta={max_delta:.5f}m")
+log(f"Walk shred (cycle): {walk_shred}")
+log(f"Walk shred (still): {walk_shred_still}")
+log(f"WALK GATE: {'PASS' if walk_pass else 'FAIL'}")
+log(f"Clips: {', '.join(clips)}")
+log("Spring: tail_01-04 + bow/bow_L/bow_R keyed in Idle/Walk")
+log("Toon: EEVEE + roughness lift; PBR maps kept")
+log("FAIL loop: weights first, then new Hunyuan. No sit-rest bind.")
+log("Play drop-in (PASS only): public/assets/models/suki.glb")
+
+if not walk_pass:
+    log("REFUSE EXPORT: WALK GATE FAIL. Do not overwrite shippable BOUND GLB.")
+    write_report()
+    sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# Export bound + clips (shippable only on rest STAND + walk PASS)
 # ---------------------------------------------------------------------------
 if arm.animation_data:
     arm.animation_data.action = bpy.data.actions.get("Idle")
@@ -1160,21 +1213,7 @@ log(f"Bound GLB: {BOUND} exists={export_ok} bytes={os.path.getsize(BOUND) if exp
 if export_err:
     log(f"export notes: {export_err}")
 
-clips = ["Idle", "Idle_Look", "Walk", "Run", "Swipe", "Sit", "Cuddle", "Hit"]
-shred_fail = bool(walk_shred.get("shred") or walk_shred_still.get("shred"))
-walk_pass = bool(deform_real) and (not shred_fail)
-log("")
-log("=== GATE ===")
-log(f"Rest diagnosis: STAND PASS (bind source)")
-log(f"Real deform: {deform_real} max_delta={max_delta:.5f}m")
-log(f"Walk shred (cycle): {walk_shred}")
-log(f"Walk shred (still): {walk_shred_still}")
-log(f"WALK GATE: {'PASS' if walk_pass else 'FAIL'}")
-log(f"Clips: {', '.join(clips)}")
-log("Spring: tail_01-04 + bow/bow_L/bow_R keyed in Idle/Walk")
-log("Toon: EEVEE + roughness lift; PBR maps kept")
-log("FAIL loop: weights first, then new Hunyuan. No sit-rest bind.")
-
-with open(REPORT, "w") as f:
-    f.write("\n".join(notes) + "\n")
-log(f"Report: {REPORT}")
+write_report()
+if not export_ok:
+    log("REFUSE: export did not write BOUND.")
+    sys.exit(1)
