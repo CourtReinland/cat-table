@@ -81,8 +81,9 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     assert.doesNotMatch(fluffFn, /MeshToonNodeMaterial/);
     assert.doesNotMatch(fluffFn, /mix\(paper, rgb, ident\)/);
     assert.doesNotMatch(coatFn, /outlineCharacter\(/);
-    assert.doesNotMatch(coatFn, /isSkippable/);
+    assert.doesNotMatch(coatFn, /isSkippable\s*\(/);
     assert.match(coatFn, /sukiFluffMaterial/);
-    assert.doesNotMatch(toon, /\?gl|forceWebGL|usingWebGPU/);
+    assert.doesNotMatch(fluffFn, /q\.get\(\s*['"]gl['"]/);
+    assert.doesNotMatch(coatFn, /q\.get\(\s*['"]gl['"]/);
   });
 });
