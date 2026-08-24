@@ -66,8 +66,12 @@ describe('GS-ROOM-LIGHT night rig', () => {
     assert.ok(b - r < 30, `fill ${fill.toString(16)} is magenta bounce`);
     assert.ok(luminance(fill) < 0.32, `fill too bright`);
     assert.ok(luminance(NIGHT_AMBIENT.ground) < 0.12);
-    assert.ok(luminance(NIGHT_AMBIENT.ground) >= 0.08, 'hemi ground must carry hue, not a black hole');
     assert.ok(luminance(NIGHT_AMBIENT.rim) > 0.45, 'rim should read warm peach');
+    // captain-owned: do not retune hemi/fog/sky/ground on a surface-color ticket
+    assert.equal(NIGHT_RIG.hemi, 0.52);
+    assert.equal(NIGHT_RIG.fogDensity, 0.022);
+    assert.equal(NIGHT_AMBIENT.sky, 0x43384c);
+    assert.equal(NIGHT_AMBIENT.ground, 0x1a1412);
   });
 });
 
@@ -272,6 +276,16 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(apt, /NIGHT_SURFACE\.floorLightMin/);
     assert.match(apt, /NIGHT_SURFACE\.shellPan/);
     assert.match(apt, /NIGHT_SURFACE\.shellRack/);
+    assert.match(apt, /const pole =[\s\S]*?NIGHT_SURFACE\.shellRack/);
+    assert.match(apt, /const cord =[\s\S]*?NIGHT_SURFACE\.shellRack/);
+    assert.match(
+      apt,
+      /roomMat\(NIGHT_SURFACE\.shellPan, \{ rough: 0\.7, metal: 0\.18, emissive: level\.lampColor, emissiveIntensity: EMISSIVE\.shade \}/,
+    );
+    assert.match(apt, /roomMat\(0xf5e0b8[\s\S]*?EMISSIVE\.shade/);
+    assert.doesNotMatch(apt, /roomMat\(0x2a2a32/);
+    assert.doesNotMatch(apt, /roomMat\(0x141014/);
+    assert.doesNotMatch(apt, /roomMat\(0x2a2422/);
     assert.match(apt, /liftLuma\(/);
     assert.doesNotMatch(apt, /multiplyScalar\(0\.48\)/);
     assert.doesNotMatch(apt, /rgba\(6, 4, 14/);

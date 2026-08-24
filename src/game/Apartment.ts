@@ -323,7 +323,7 @@ export class Apartment {
     // floor lamp (right side)
     const lampG = new THREE.Group();
     lampG.position.set(3.6, 0, -1.4);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.05, 1.65, 8), roomMat(0x2a2422, { metal: 0.6, rough: 0.4 }));
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.05, 1.65, 8), roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }));
     pole.position.y = 0.82;
     const shade = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.3, 14, 1, true), roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }));
     shade.position.y = 1.7;
@@ -580,9 +580,9 @@ export class Apartment {
         cab.castShadow = true;
         lg.add(cab);
         // pendant lamp above
-        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.2, 6), roomMat(0x141014, { rough: 0.7 }));
+        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.2, 6), roomMat(NIGHT_SURFACE.shellRack, { rough: 0.7 }));
         cord.position.set(0, 3.4, cz);
-        const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.24, 16, 1, true), roomMat(0x2a2a32, { rough: 0.7, metal: 0.18, emissive: level.lampColor, emissiveIntensity: EMISSIVE.shade }));
+        const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.24, 16, 1, true), roomMat(NIGHT_SURFACE.shellPan, { rough: 0.7, metal: 0.18, emissive: level.lampColor, emissiveIntensity: EMISSIVE.shade }));
         shade.position.set(0, 2.75, cz);
         const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), roomMat(0xffe2b0, { emissive: level.lampColor, emissiveIntensity: EMISSIVE.bulb }));
         bulb.position.set(0, 2.68, cz);

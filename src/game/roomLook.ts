@@ -20,10 +20,9 @@ export const BLOOM = {
 } as const;
 
 /** Shared apartment rig. Peak is the rim, not a counter pool; hemi/fill
- *  keep cabinets from falling into a black cliff. Hemi is the ambient
- *  that lets off-table surfaces hit a toon band above pure shadow. */
+ *  keep cabinets from falling into a black cliff. */
 export const NIGHT_RIG = {
-  hemi: 0.58,
+  hemi: 0.52,
   moon: 0.58,
   key: 4.8,
   lamp: 9.5,
@@ -31,14 +30,13 @@ export const NIGHT_RIG = {
   pendant: 3.6,
   tvGlow: 2.2,
   chandelier: 6,
-  fogDensity: 0.016,
+  fogDensity: 0.022,
 } as const;
 
-/** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white.
- *  Ground is a tinted shadow, not a black hole under the hemi. */
+/** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white. */
 export const NIGHT_AMBIENT = {
-  sky: 0x564860,
-  ground: 0x221a24,
+  sky: 0x43384c,
+  ground: 0x1a1412,
   fill: 0x4e4258,
   rim: 0xffc08a,
   moon: 0x8890b4,
