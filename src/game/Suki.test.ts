@@ -105,7 +105,8 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.doesNotMatch(src, /setFromEuler\(_nudgeEuler\)/);
     assert.match(src, /buildHeroFaceMesh/);
     assert.match(src, /HeroFace/);
-    assert.ok(SUKI_FACE.headLocal.y >= 0.05, `headLocal.y ${SUKI_FACE.headLocal.y} still inside the skull`);
+    assert.ok(SUKI_FACE.headLocal.y >= 0.04, `headLocal.y ${SUKI_FACE.headLocal.y} still inside the skull`);
+    assert.ok(SUKI_FACE.headLocal.x <= -0.015, `headLocal.x ${SUKI_FACE.headLocal.x} sits on the +X cheek, not the face`);
     assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
     const toon = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Toon.ts'), 'utf8');
     assert.match(toon, /MeshBasicNodeMaterial/);

@@ -134,9 +134,9 @@ export const SUKI_FACE = {
   blush: 0xf090a8,
   nose: 0xf24a96,
   highlight: 0xffffff,
-  eyeRadius: 0.018,
-  /** Head +Y is muzzle-forward. Sit the overlay on the face, not inside the skull. */
-  headLocal: { x: 0, y: 0.062, z: -0.006 },
+  eyeRadius: 0.016,
+  /** Head AABB is −X-heavy; sit overlay on the muzzle, not the +X cheek. */
+  headLocal: { x: -0.028, y: 0.048, z: -0.008 },
 } as const;
 
 /**

@@ -56,7 +56,7 @@ function addEye(root: THREE.Group, sign: number) {
   const blushM = faceMat(SUKI_FACE.blush);
   const hi = faceMat(SUKI_FACE.highlight);
   // Head +Y = muzzle-forward, +Z = down the face, +X = cat-right.
-  const x = sign * 0.02;
+  const x = sign * 0.016;
   const y = 0.004;
   const z = -0.004;
   const r = SUKI_FACE.eyeRadius;
