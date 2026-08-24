@@ -26,7 +26,7 @@ export type ProwlStep = { x: number; z: number; yaw: number; yawRate: number };
 export const STEER = {
   /** Input present and facing the intent — onto the gait, not an ice-skate. */
   accel: 12,
-  /** Fast residual — long Stray slide, readable on a thumb-stick. */
+  /** Unused on release (halt-on-a-dime). Kept so BUILD 3 numbers stay in the file. */
   decelSlide: 1.15,
   /** Slow residual — scrape and plant. */
   decelSettle: 5.4,
@@ -140,6 +140,13 @@ export function quantizePlantAxes(axes: XZ): XZ {
   };
 }
 
+/** A/D or analog-X turn with no meaningful W/S. Planted = yaw only. */
+export function isPlantTurn(axes: XZ): boolean {
+  const ax = Math.abs(axes.x);
+  const az = Math.abs(axes.z);
+  return ax > PLANT_AXIS_DEAD && ax >= az * 1.5;
+}
+
 /** A/D or S (back). W-only is not a plant-strafe — it already faces the lens. */
 export function isPlantStrafe(axes: XZ): boolean {
   const q = quantizePlantAxes(axes);
@@ -200,14 +207,16 @@ export function resolvePlantLock(
  *
  * `desired` is already scaled by walk/sprint speed.
  *
- * Low-speed A/D is a planted pivot: feet stay until she faces the intent.
- * Release is a slide then scrape, not an exponential hover-puck halt.
+ * Low-speed A/D is a planted pivot: feet stay, body yaws. Pass `yawOnly`
+ * when input is A/D (or analog-X) so she never sneaks forward after facing.
+ * Input-up zeros translation immediately — no Stray slide.
  */
 export function stepProwl(
   dt: number,
   vel: XZ,
   yaw: number,
   desired: XZ,
+  yawOnly = false,
 ): ProwlStep {
   const desiredSpd = Math.hypot(desired.x, desired.z);
   const spd = Math.hypot(vel.x, vel.z);
@@ -224,13 +233,15 @@ export function stepProwl(
     yawRate = dt > 1e-8 ? step / dt : 0;
   }
 
+  // Halt on a dime: input-up or planted yaw. No residual translation.
+  if (yawOnly || desiredSpd <= STEER.yawDeadzone) {
+    return { x: 0, z: 0, yaw: nextYaw, yawRate };
+  }
+
   const fx = Math.sin(nextYaw);
   const fz = Math.cos(nextYaw);
 
-  // Planted: do not walk until the body faces the intent (feet stay).
   // Moving: keep committing along heading while the body yaws (a curve, not a crab).
-  // Body-locked FP must snapshot A/D/S (resolvePlantLock) or facingDot never
-  // clears plantAlign and she yaws in place forever.
   let commit = 1;
   if (desiredSpd > 1e-8) {
     const facingDot = (fx * desired.x + fz * desired.z) / desiredSpd;

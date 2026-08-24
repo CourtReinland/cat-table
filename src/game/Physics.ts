@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
 import type { ShatterKind } from '../data/content';
+import { counterRestY, hitCounter } from './ground';
 
 export interface ShatterEvent {
   kind: ShatterKind;
@@ -266,7 +267,7 @@ export class Physics {
       if (b.immovable) {
         // stay planted; soft visual jiggle only when "kicked" (vel written but ignored)
         b.vel.set(0, 0, 0);
-        b.pos.y = s.topY + b.halfH;
+        b.pos.y = counterRestY(s.topY);
         continue;
       }
 
@@ -277,7 +278,7 @@ export class Physics {
         b.vel.z *= friction;
         b.pos.x += b.vel.x * dt;
         b.pos.z += b.vel.z * dt;
-        b.pos.y = s.topY + b.halfH;
+        b.pos.y = counterRestY(s.topY);
 
         const speed = Math.hypot(b.vel.x, b.vel.z);
         const tilt = Math.min(0.18, speed * 0.1);
@@ -299,6 +300,7 @@ export class Physics {
         } else if (speed < 0.08) {
           b.vel.set(0, 0, 0);
           b.state = 'idle';
+          b.pos.y = counterRestY(s.topY);
           // settle back upright
           b.group.quaternion.slerp(new THREE.Quaternion(), 0.4);
         }
@@ -312,18 +314,18 @@ export class Physics {
         // landed back on the surface (didn't clear the edge)
         const onSurface =
           Math.abs(b.pos.x - s.cx) < s.halfW && Math.abs(b.pos.z - s.cz) < s.halfD;
-        if (onSurface && b.pos.y - b.halfH <= s.topY && b.vel.y < 0 && s.topY > 0.05) {
-          b.pos.y = s.topY + b.halfH;
+        if (onSurface && hitCounter(b.pos.y, s.topY, b.vel.y)) {
+          b.pos.y = counterRestY(s.topY);
           b.state = 'sliding';
           b.vel.y = 0;
           continue;
         }
 
         // floor impact
-        if (b.pos.y - b.halfH * 0.5 <= this.floorY && b.vel.y < 0) {
+        if (b.pos.y <= this.floorY && b.vel.y < 0) {
           const impact = Math.abs(b.vel.y) + Math.hypot(b.vel.x, b.vel.z) * 0.3;
           if (impact > 1.0 || b.bounces >= 1) {
-            b.pos.y = this.floorY + b.halfH * 0.5;
+            b.pos.y = this.floorY;
             this.shatter(b, impact);
           } else {
             b.bounces++;
@@ -332,6 +334,9 @@ export class Physics {
             b.vel.z *= 0.6;
           }
         }
+      } else {
+        // idle — stay on the counter plane (bottom-origin groups)
+        b.pos.y = counterRestY(s.topY);
       }
     }
     this.shards.update(dt);

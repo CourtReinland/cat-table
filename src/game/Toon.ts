@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { positionLocal, normalLocal, attribute, vec3, color as tslColor } from 'three/tsl';
+import { positionLocal, normalLocal, attribute, vec3, color as tslColor, texture, mix, float, max, min, step } from 'three/tsl';
 
 /**
  * Cel-shading pass for the whole game:
@@ -81,8 +81,22 @@ function isSkippable(mat: any): boolean {
   return false;
 }
 
+export type ToonifyOpts = {
+  /** Keep albedo map (Suki eyes / bow / fluff). Default true. */
+  map?: boolean;
+  /** Hunyuan coat normals hatch the toon bands — off for Suki. */
+  normalMap?: boolean;
+  vertexColors?: boolean;
+  forceFrontSide?: boolean;
+};
+
 /** Convert every lit material under root to stepped toon shading. */
-export function toonify(root: THREE.Object3D) {
+export function toonify(root: THREE.Object3D, opts: ToonifyOpts = {}) {
+  const useMap = opts.map !== false;
+  // Room surfaces keep normals (grain / grout). Suki coat opts out.
+  const useNormal = opts.normalMap !== false;
+  const useVC = opts.vertexColors !== false;
+  const front = opts.forceFrontSide === true;
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
@@ -91,13 +105,73 @@ export function toonify(root: THREE.Object3D) {
       if (isSkippable(m)) return m;
       return toonMaterialFor(
         m.color ?? new THREE.Color(0xcccccc),
-        m.map ?? null,
-        m.side ?? THREE.FrontSide,
-        // Suki's coat is baked into COLOR_0 — dropping it would flatten her to white
-        !!m.vertexColors,
-        m.normalMap ?? null,
-        m.normalScale ?? null,
+        useMap ? (m.map ?? null) : null,
+        front ? THREE.FrontSide : (m.side ?? THREE.FrontSide),
+        useVC && !!m.vertexColors,
+        useNormal ? (m.normalMap ?? null) : null,
+        useNormal ? (m.normalScale ?? null) : null,
       );
+    });
+    mesh.material = Array.isArray(mesh.material) ? converted : converted[0];
+  });
+}
+
+/**
+ * White cel fluff for Suki — a different material path than room MeshToon + Hunyuan maps.
+ * Do not assign the hatch/AO/normal albedo as `map`. Identity (sapphire / pink bow / dark
+ * nose) is a chroma+luma mask sampled in the color node only.
+ */
+const FLUFF = new THREE.Color(0xf4f1ee);
+
+let fluffGrad: THREE.DataTexture | null = null;
+
+function sukiFluffGradient(): THREE.DataTexture {
+  if (!fluffGrad) {
+    // 3 bright steps — no dark graphite bands on white fur
+    const data = new Uint8Array([
+      176, 174, 180, 255,
+      216, 214, 218, 255,
+      244, 242, 246, 255,
+    ]);
+    fluffGrad = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+    fluffGrad.minFilter = THREE.NearestFilter;
+    fluffGrad.magFilter = THREE.NearestFilter;
+    fluffGrad.generateMipmaps = false;
+    fluffGrad.needsUpdate = true;
+  }
+  return fluffGrad;
+}
+
+function sukiFluffMaterial(src: any) {
+  const m = new THREE.MeshToonNodeMaterial({
+    color: FLUFF,
+    gradientMap: sukiFluffGradient(),
+    side: THREE.FrontSide,
+  });
+  const albedo = src?.map as THREE.Texture | undefined;
+  if (albedo) {
+    const rgb = vec3(texture(albedo));
+    const cmax = max(rgb.x, max(rgb.y, rgb.z));
+    const cmin = min(rgb.x, min(rgb.y, rgb.z));
+    const chroma = cmax.sub(cmin);
+    const luma = rgb.dot(vec3(0.299, 0.587, 0.114));
+    // Hard mask: keep saturated eyes/bow and dark features; coat becomes flat white.
+    const ident = max(step(float(0.14), chroma), float(1).sub(step(float(0.28), luma)));
+    m.colorNode = mix(tslColor(FLUFF), rgb, ident);
+  }
+  // Never assign Hunyuan maps — that was the scribble path.
+  return m;
+}
+
+/** Suki coat: white toon fluff shader. Drops scribble/AO/hatch albedo. No ink hull. */
+export function toonifySukiCoat(root: THREE.Object3D) {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const converted = mats.map((m: any) => {
+      if (!m || isSkippable(m)) return m;
+      return sukiFluffMaterial(m);
     });
     mesh.material = Array.isArray(mesh.material) ? converted : converted[0];
   });

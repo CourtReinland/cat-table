@@ -1,9 +1,9 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
-import { toonify, outlineCharacter } from './Toon';
+import { toonifySukiCoat } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
-import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES } from './sukiGlb';
 
 export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
@@ -46,6 +46,11 @@ export class Suki {
   private useGlb = false;
   private loading: Promise<void>;
   ready = false;
+  private skeleton: THREE.Skeleton | null = null;
+  private pawBones: THREE.Bone[] = [];
+  /** Skip a duplicate mixer tick when Game already advanced paws this frame. */
+  private animAdvanced = false;
+  private _pawWorld = [new THREE.Vector3(), new THREE.Vector3()];
 
   constructor() {
     this.cat = new Cat();
@@ -73,8 +78,19 @@ export class Suki {
           m.frustumCulled = false; // skinned bounds go stale during big swipes
         }
       });
-      toonify(this.inner);
-      outlineCharacter(this.inner, 0x2a1c24, 0.004);
+      toonifySukiCoat(this.inner);
+      // No inverted-hull: 77k Hunyuan tris + noisy normals = black pencil scribble.
+      this.inner.traverse((o) => {
+        const sk = o as THREE.SkinnedMesh;
+        if (sk.isSkinnedMesh && sk.skeleton) {
+          this.skeleton = sk.skeleton;
+          this.pawBones = [];
+          for (const name of SUKI_PAW_BONES) {
+            const bone = sk.skeleton.bones.find((b) => b.name === name);
+            if (bone) this.pawBones.push(bone);
+          }
+        }
+      });
 
       this.mixer = new THREE.AnimationMixer(this.inner);
       for (const clip of gltf.animations) {
@@ -103,6 +119,31 @@ export class Suki {
   setVisible(v: boolean) {
     this.group.visible = v;
     this.cat.group.visible = v;
+  }
+
+  /**
+   * Advance the swipe pose before Game samples paw hit volumes, then skip
+   * the mixer tick in update() so clips do not double-speed.
+   */
+  preparePaws(dt: number) {
+    if (this.useGlb) {
+      if (this.mixer && !this.animAdvanced) {
+        this.mixer.update(dt);
+        this.animAdvanced = true;
+      }
+    } else {
+      this.cat.update(dt, 0);
+      this.animAdvanced = true;
+    }
+    this.group.updateMatrixWorld(true);
+  }
+
+  /** World-space front paw tips (GLB bones, or procedural paws). */
+  getPawTips(): THREE.Vector3[] {
+    if (this.useGlb && this.pawBones.length) {
+      return this.pawBones.map((b, i) => b.getWorldPosition(this._pawWorld[i] ?? new THREE.Vector3()));
+    }
+    return this.cat.getPawTips(this._pawWorld);
   }
 
   private play(name: string, fade = 0.22, once = false) {
@@ -207,6 +248,7 @@ export class Suki {
       this.cat.speed = this.speed;
       this.cat.update(dt, t);
       this.group.rotation.y = this.yaw;
+      this.animAdvanced = false;
       return;
     }
     if (!this.mixer) return;
@@ -238,7 +280,8 @@ export class Suki {
       this.current!.timeScale = 1;
     }
 
-    this.mixer.update(dt);
+    if (this.mixer && !this.animAdvanced) this.mixer.update(dt);
+    this.animAdvanced = false;
     this.group.rotation.y = this.yaw;
     // Light bank on the mesh — group yaw stays the gameplay heading so
     // first-person / camera math stay upright. Skip while a tumble owns inner.

@@ -5,6 +5,7 @@ import { Boyfriend } from './BoyGlb';
 import { Body, Physics, type SurfaceRect } from './Physics';
 import { PROP_LIBRARY, getBoyfriend, type LevelDef, type PropKind } from '../data/content';
 import { toonify } from './Toon';
+import { counterRestY } from './ground';
 import {
   marbleSurface,
   plasterSurface,
@@ -884,7 +885,7 @@ export class Apartment {
       const x = -xSpan / 2 + (xSpan * (col + 0.5)) / perRow + (Math.random() - 0.5) * 0.16;
       const zSpan = d - margin * 1.4;
       const z = this.surface.cz - zSpan / 2 + (zSpan * (row + 0.5)) / rows + (Math.random() - 0.5) * 0.12;
-      visual.group.position.set(x, this.surface.topY, z);
+      visual.group.position.set(x, counterRestY(this.surface.topY), z);
       visual.group.rotation.y = Math.random() * Math.PI * 2;
       lg.add(visual.group);
 

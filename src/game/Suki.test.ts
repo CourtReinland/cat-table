@@ -5,6 +5,9 @@ import {
   GLB_SCALE,
   GLB_YAW_OFFSET,
   USE_SIT_FOR_LONG_IDLE,
+  SUKI_COAT,
+  SUKI_PAW_BONES,
+  PAW_HIT_RADIUS,
 } from './sukiGlb.ts';
 
 describe('GS-SUKI-IN Hunyuan play mesh', () => {
@@ -23,5 +26,17 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.equal(CLIP.idle, 'Idle');
     assert.equal(CLIP.walk, 'Walk');
     assert.equal(CLIP.run, 'Run');
+  });
+
+  it('uses a fluff shader path — does not keep Hunyuan hatch albedo as coat map', () => {
+    assert.equal(SUKI_COAT.keepAlbedo, false);
+    assert.equal(SUKI_COAT.useFluffShader, true);
+    assert.equal(SUKI_COAT.identityFromAlbedo, true);
+    assert.equal(SUKI_COAT.skipOutline, true);
+  });
+
+  it('samples front paw bones for swipe contact', () => {
+    assert.deepEqual([...SUKI_PAW_BONES], ['paw_FL', 'paw_FR']);
+    assert.ok(PAW_HIT_RADIUS > 0.05 && PAW_HIT_RADIUS < 0.2);
   });
 });

@@ -183,6 +183,13 @@ export class Cat {
     this.pushTimer = this.pushDuration;
   }
 
+  /** World positions of the front paws (procedural fallback). */
+  getPawTips(out: THREE.Vector3[] = [new THREE.Vector3(), new THREE.Vector3()]): THREE.Vector3[] {
+    this.pawL.getWorldPosition(out[0] ?? new THREE.Vector3());
+    this.pawR.getWorldPosition(out[1] ?? new THREE.Vector3());
+    return out;
+  }
+
   update(dt: number, t: number) {
     const sp = this.speed;
     this.walkPhase += dt * (4 + sp * 9);
