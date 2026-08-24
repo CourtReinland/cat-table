@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonifySukiCoat } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
-import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW, SUKI_TAIL, SUKI_FACE } from './sukiGlb';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE, SUKI_PAW_BONES, SUKI_BOW, SUKI_TAIL, SUKI_FACE, sukiGlbUrl } from './sukiGlb';
 
 export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
@@ -43,11 +43,14 @@ function heroBowMaterial() {
     color: SUKI_BOW.pink,
     side: THREE.DoubleSide,
   });
+  m.toneMapped = false;
   return m;
 }
 
 function faceMat(hex: number) {
-  return new THREE.MeshBasicNodeMaterial({ color: hex, side: THREE.DoubleSide });
+  const m = new THREE.MeshBasicNodeMaterial({ color: hex, side: THREE.DoubleSide });
+  m.toneMapped = false;
+  return m;
 }
 
 function addEye(root: THREE.Group, sign: number) {
@@ -203,7 +206,7 @@ export class Suki {
       return;
     }
     try {
-      const gltf = await new GLTFLoader().loadAsync('assets/models/suki.glb');
+      const gltf = await new GLTFLoader().loadAsync(sukiGlbUrl());
       this.inner = gltf.scene as THREE.Group;
       this.inner.scale.setScalar(GLB_SCALE);
       this.inner.rotation.y = GLB_YAW_OFFSET;
