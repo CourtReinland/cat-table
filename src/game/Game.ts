@@ -638,7 +638,10 @@ export class Game {
     this.apartment.physics.update(dt);
 
     if (!this.fpCam) {
-      this.rig.follow(dt, catPos, cat.yaw, this.catVel);
+      // Pose-lock (CameraRig.follow no longer damps). Snap on halt so a
+      // leftover catch-up cannot slide props in the OTS frame after keyup.
+      if (spd < 1e-6) this.rig.snap(catPos, cat.yaw, 0);
+      else this.rig.follow(dt, catPos, cat.yaw, this.catVel);
       this.camPos.set(this.rig.pos.x, this.rig.pos.y, this.rig.pos.z);
       this.camLook.set(this.rig.look.x, this.rig.look.y, this.rig.look.z);
     }

@@ -206,6 +206,10 @@ describe('GS-STEER-FEEL planted pivot + halt-on-release', () => {
     const mid = stepFor(36, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 0.6s
     almost(Math.hypot(mid.vel.x, mid.vel.z), 0);
     almost(Math.hypot(mid.pos.x, mid.pos.z), 0);
+
+    const late = stepFor(90, { x: 0, z: WALK }, 0, { x: 0, z: 0 }); // 1.5s playtest window
+    almost(Math.hypot(late.vel.x, late.vel.z), 0);
+    almost(Math.hypot(late.pos.x, late.pos.z), 0);
   });
 
   it('turns at a lower speed deadzone than the live 0.15 puck', () => {
