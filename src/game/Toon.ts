@@ -218,12 +218,9 @@ function sukiFluffMaterial(src: any) {
       .mul(float(1).sub(step(float(0.90), luma)));
     // Approved sit: faint peach wash. Magenta vec3(1,0.5,0.66) was a hard decal.
     const peach = vec3(float(1.0), float(0.86), float(0.82));
-    const identRgb = mix(withEye, mix(withEye, peach, float(0.10)), isPink);
-    // Hunyuan throat bow is coat-weighted magenta. Paper it; HeroBow is the nape mesh.
-    const coatPink = step(rgb.z, rgb.x)
-      .mul(step(float(0.10), chroma))
-      .mul(float(1).sub(step(float(0.25), faceW)));
-    const keep = ident.mul(float(1).sub(coatPink));
+    const identRgb = mix(withEye, mix(withEye, peach, float(0.18)), isPink);
+    // Coat keeps sapphire only. Hunyuan throat bow is magenta paint; HeroBow is the nape mesh.
+    const keep = mix(ident.mul(isBlue), ident, step(float(0.25), faceW));
     m.colorNode = mix(paper, identRgb, keep);
   } else {
     m.colorNode = paper;

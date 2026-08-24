@@ -189,8 +189,9 @@ describe('GS-PLAY-ART stills portrait camera', () => {
     assert.ok(PORTRAIT.lookHeight > OTS.lookHeight, 'portrait looks at the face, OTS at the chest');
     assert.ok(pose.look.y > cat.y + 0.2, 'look sits on the muzzle / eyes');
     assert.ok(PORTRAIT.fov < OTS.fov, 'tighter fov so eyes fill the frame');
-    assert.ok(PORTRAIT.front >= 0.45, `front ${PORTRAIT.front} is the 0.34 one-eye dolly`);
-    assert.ok(PORTRAIT.fov >= 34 && PORTRAIT.fov <= 44, `fov ${PORTRAIT.fov} not a wider 3/4`);
+    assert.ok(PORTRAIT.front >= 0.38 && PORTRAIT.front < 0.50, `front ${PORTRAIT.front} is the 0.34 one-eye dolly or a full-body bust`);
+    assert.ok(PORTRAIT.fov >= 33 && PORTRAIT.fov <= 40, `fov ${PORTRAIT.fov} not a face 3/4`);
+    assert.ok(PORTRAIT.height >= 0.25, `height ${PORTRAIT.height} looks up the nape and hats the bow`);
     assert.notEqual(PORTRAIT.front, OTS.back);
   });
 
