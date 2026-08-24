@@ -61,7 +61,10 @@ export interface PropDef {
   mass: number;
   shatter: ShatterKind;
   points: number;
-  /** Anchors the table fantasy — won't slide or shatter from paw swipes. */
+  /**
+   * True scenery only. Former smashables (plant, laptop) must stay dynamic;
+   * use mass if they should be harder to shove.
+   */
   immovable?: boolean;
 }
 
@@ -397,7 +400,7 @@ export const PROP_LIBRARY: Record<PropKind, PropDef> = {
   glass: { color: 0xa8d8ea, size: [0.1, 0.22, 0.1], mass: 0.35, shatter: 'glass', points: 60 },
   wineglass: { color: 0xd8ecf4, size: [0.11, 0.26, 0.11], mass: 0.28, shatter: 'glass', points: 90 },
   plate: { color: 0xf0ece2, size: [0.3, 0.04, 0.3], mass: 0.7, shatter: 'ceramic', points: 70 },
-  plant: { color: 0x6b9b6e, size: [0.22, 0.32, 0.22], mass: 2.4, shatter: 'ceramic', points: 60, immovable: true },
+  plant: { color: 0x6b9b6e, size: [0.22, 0.32, 0.22], mass: 2.4, shatter: 'ceramic', points: 60 },
   book: { color: 0x8b5a4a, size: [0.26, 0.06, 0.2], mass: 0.65, shatter: 'soft', points: 40 },
   phone: { color: 0x2a2a32, size: [0.1, 0.02, 0.2], mass: 0.28, shatter: 'metal', points: 80 },
   candle: { color: 0xf5e6c8, size: [0.09, 0.2, 0.09], mass: 0.4, shatter: 'soft', points: 40 },
@@ -411,7 +414,7 @@ export const PROP_LIBRARY: Record<PropKind, PropDef> = {
   jewelrybox: { color: 0x7a4a5a, size: [0.2, 0.1, 0.14], mass: 1.1, shatter: 'metal', points: 100 },
   candelabra: { color: 0xd8b25a, size: [0.3, 0.36, 0.12], mass: 1.4, shatter: 'grand', points: 150 },
   teapot: { color: 0xd86a5a, size: [0.22, 0.18, 0.16], mass: 0.9, shatter: 'ceramic', points: 80 },
-  laptop: { color: 0x4a4e58, size: [0.34, 0.03, 0.24], mass: 3.2, shatter: 'metal', points: 120, immovable: true },
+  laptop: { color: 0x4a4e58, size: [0.34, 0.03, 0.24], mass: 3.2, shatter: 'metal', points: 120 },
 };
 
 /** Hits from Heather's hand or mouse bites before you get yeeted. */
@@ -456,7 +459,7 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x0e0818,
     wallColor: 0x1a0b2e,
     counterColor: 0x161218,
-    // plant is an immovable anchor — clears are earned around it
+    // plant is heavy (mass 2.4) but still smashable
     props: ['mug', 'plate', 'teapot', 'glass', 'bottle', 'jar', 'bowl', 'plant', 'mug', 'phone', 'plant'],
     rankScores: [550, 750, 950],
     difficulty: DIFFICULTY[1],
@@ -495,7 +498,7 @@ export const LEVELS: LevelDef[] = [
     fogColor: 0x060a12,
     wallColor: 0x141c28,
     counterColor: 0x2e2620,
-    // laptop is immovable (Heather's work stays put)
+    // laptop is heavy (mass 3.2) but still smashable
     props: ['laptop', 'book', 'phone', 'mug', 'frame', 'bottle', 'jar', 'plant', 'book', 'candle', 'glass'],
     rankScores: [620, 840, 1080],
     difficulty: DIFFICULTY[3],
