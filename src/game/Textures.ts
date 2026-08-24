@@ -167,10 +167,10 @@ function lumaRgb(c: [number, number, number]): number {
 }
 
 /** Keep painted pixels above the night floor so toon*shadow still shows hue. */
-function keepNightRgb(c: [number, number, number], minLuma = NIGHT_SURFACE.minMapLuma): [number, number, number] {
+function keepNightRgb(c: [number, number, number], minLuma: number = NIGHT_SURFACE.minMapLuma): [number, number, number] {
   const L = lumaRgb(c);
   if (L >= minLuma) return c;
-  if (L < 1e-5) return [0.28, 0.24, 0.32];
+  if (L < 1e-5) return [0.42, 0.38, 0.46];
   const s = minLuma / L;
   return [Math.min(1, c[0] * s), Math.min(1, c[1] * s), Math.min(1, c[2] * s)];
 }
@@ -182,29 +182,32 @@ export function marbleSurface(baseHex: number, veinHex: number, seed = 7, repeat
   return cached(`marble${baseHex}${veinHex}${seed}${repeat}`, () => {
     const base = rgb(baseHex);
     const vein = rgb(veinHex);
-    const pale: [number, number, number] = [0.58, 0.54, 0.52];
-    const charcoal: [number, number, number] = [0.22, 0.20, 0.24];
+    const pale: [number, number, number] = [0.78, 0.74, 0.70];
+    const charcoal: [number, number, number] = [0.32, 0.30, 0.36];
     const warp = fbm(seed, 4, 4);
     const grain = fbm(seed + 31, 5, 16);
+    const blotch = fbm(seed + 11, 3, 2);
     const stainN = fbm(seed + 67, 3, 3);
-    const s = paint(512, repeat, 1.15, (u, v) => {
+    const s = paint(512, repeat, 1.35, (u, v) => {
       const w = warp(u, v) - 0.5;
       const t = Math.sin((u * 1.1 + v * 0.7 + w * 1.6) * Math.PI * 2);
       const veinAmt = Math.pow(Math.max(0, 1 - Math.abs(t) * 7), 4);
       const dust = grain(u, v);
+      const blot = blotch(u * 0.7, v * 0.85);
       const stain = Math.max(0, stainN(u * 0.8, v * 1.1) - 0.58) ** 2;
-      const grit = dust > 0.72 ? (dust - 0.72) * 0.7 : dust < 0.22 ? (dust - 0.22) * 0.35 : 0;
-      const speck = (dust - 0.5) * 0.12;
+      const grit = dust > 0.68 ? (dust - 0.68) * 0.85 : dust < 0.28 ? (dust - 0.28) * 0.45 : 0;
+      const speck = (dust - 0.5) * 0.16;
       let c = mix(base, vein, veinAmt * MATTE.stoneVein);
-      if (dust > 0.68) c = mix(c, pale, NIGHT_SURFACE.stonePale * ((dust - 0.68) / 0.32));
-      else if (dust < 0.34) c = mix(c, charcoal, NIGHT_SURFACE.stoneChar * ((0.34 - dust) / 0.34));
-      const lived = mix(c, [c[0] * 0.85, c[1] * 0.86, c[2] * 0.9], stain * 0.45);
+      // Large blotches so grain survives 5-step toon + OTS distance, not just close speckle.
+      if (blot > 0.52) c = mix(c, pale, NIGHT_SURFACE.stonePale * ((blot - 0.52) / 0.48));
+      else if (blot < 0.44) c = mix(c, charcoal, NIGHT_SURFACE.stoneChar * ((0.44 - blot) / 0.44));
+      const lived = mix(c, [c[0] * 0.9, c[1] * 0.91, c[2] * 0.94], stain * 0.28);
       const out = keepNightRgb([
-        lived[0] + speck + grit * 0.14,
-        lived[1] + speck * 0.9 + grit * 0.1,
-        lived[2] + speck * 0.85 + grit * 0.08,
+        lived[0] + speck + grit * 0.18,
+        lived[1] + speck * 0.92 + grit * 0.14,
+        lived[2] + speck * 0.88 + grit * 0.1,
       ]);
-      return [out[0], out[1], out[2], dust * 0.45 + stain * 0.4 + Math.abs(grit) * 0.3];
+      return [out[0], out[1], out[2], blot * 0.55 + dust * 0.3 + stain * 0.2];
     });
     s.roughness = MATTE.stoneRough;
     s.metalness = MATTE.stoneMetal;
@@ -245,8 +248,8 @@ export function plasterSurface(baseHex: number, seed = 3, repeat = 3): Surface {
     const mottle = fbm(seed, 4, 3);
     const fine = fbm(seed + 91, 3, 24);
     const s = paint(256, repeat, 1.25, (u, v) => {
-      const m = (mottle(u, v) - 0.5) * 0.28;
-      const f = (fine(u, v) - 0.5) * 0.08;
+      const m = (mottle(u, v) - 0.5) * 0.34;
+      const f = (fine(u, v) - 0.5) * 0.1;
       // vertical water stain / dust fall — tinted mauve, not a black drip
       const streak = Math.max(0, mottle(u * 0.35, v * 0.12) - 0.62) * 0.28;
       const dustHi = Math.max(0, mottle(u, v) - 0.55) * 0.18;

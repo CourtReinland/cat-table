@@ -48,7 +48,7 @@ function woodFloorTex() {
   const lo = NIGHT_SURFACE.floorLightMin;
   const span = NIGHT_SURFACE.floorLightMax - NIGHT_SURFACE.floorLightMin;
   return canvasTex(512, 512, (ctx) => {
-    ctx.fillStyle = '#3a2a24';
+    ctx.fillStyle = '#5a4034';
     ctx.fillRect(0, 0, 512, 512);
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 4; c++) {
@@ -56,7 +56,7 @@ function woodFloorTex() {
         ctx.fillStyle = `hsl(${18 + Math.random() * 10}, ${22 + Math.random() * 14}%, ${l}%)`;
         const off = r % 2 ? 64 : 0;
         ctx.fillRect(c * 128 + off + 1, r * 64 + 1, 126, 62);
-        ctx.fillStyle = 'rgba(28, 18, 22, 0.22)';
+        ctx.fillStyle = 'rgba(48, 32, 36, 0.18)';
         for (let g = 0; g < 4; g++) {
           const y = r * 64 + Math.random() * 64;
           ctx.fillRect(c * 128 + off + 1, y, 126, 1);
@@ -230,7 +230,7 @@ export class Apartment {
     // window (back wall, right side) — frame + city view + sill
     const winG = new THREE.Group();
     winG.position.set(2.9, 2.05, -3.38);
-    this.cityMat = new THREE.MeshBasicNodeMaterial({ map: cityTex(0x3c1848) });
+    this.cityMat = new THREE.MeshBasicNodeMaterial({ map: cityTex(0x4a2860) });
     const view = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.9), this.cityMat);
     view.position.z = -0.15;
     winG.add(view);
@@ -279,8 +279,8 @@ export class Apartment {
     // couch
     const couchG = new THREE.Group();
     couchG.position.copy(this.couchPos);
-    const couchMat = surfaceMat(fabricSurface(0x5a3a52), [3, 1.2]);
-    const seatMat = surfaceMat(fabricSurface(0x6b4662), [2, 1.4]);
+    const couchMat = surfaceMat(fabricSurface(0x7a5470), [3, 1.2]);
+    const seatMat = surfaceMat(fabricSurface(0x8a6480), [2, 1.4]);
     const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.42, 0.95), couchMat);
     base.position.y = 0.24;
     const backRest = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.75, 0.28), couchMat);
@@ -444,8 +444,8 @@ export class Apartment {
 
     this.scene.add(g);
     toonify(g);
-    this.scene.fog = new THREE.FogExp2(0x181022, NIGHT_RIG.fogDensity);
-    this.scene.background = new THREE.Color(0x181022).multiplyScalar(NIGHT_SURFACE.bgMul);
+    this.scene.fog = new THREE.FogExp2(0x2a2038, NIGHT_RIG.fogDensity);
+    this.scene.background = new THREE.Color(0x2a2038).multiplyScalar(NIGHT_SURFACE.bgMul);
   }
 
   // ── per-level setup ───────────────────────────────────────────────────────
@@ -752,15 +752,15 @@ export class Apartment {
       lg.add(m);
       return m;
     };
-    const darkWood = roomMat(0x4a3428, { rough: 0.8 });
-    const midWood = roomMat(0x5a4234, { rough: 0.75 });
-    const fabric = roomMat(0x6a5468, { rough: 0.95 });
+    const darkWood = roomMat(0x6a4a38, { rough: 0.8 });
+    const midWood = roomMat(0x7a5a42, { rough: 0.75 });
+    const fabric = roomMat(0x7a6480, { rough: 0.95 });
 
     switch (level.surface) {
       case 'kitchen': {
         // hanging pot rack over the island (in frame) + bar stools in the foreground
-        const rackMat = roomMat(0x2a2622, { metal: 0.6, rough: 0.4 });
-        const panMat = roomMat(0x3a3a40, { metal: 0.7, rough: 0.35 });
+        const rackMat = roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 });
+        const panMat = roomMat(NIGHT_SURFACE.shellPan, { metal: 0.16, rough: 0.5 });
         box(1.3, 0.03, 0.5, rackMat, -0.6, 2.15, 0.3);
         for (const [cx, cz2] of [[-1.15, 0.05], [-1.15, 0.55], [-0.05, 0.05], [-0.05, 0.55]] as const) {
           cyl(0.006, 1.3, rackMat, cx, 2.8, cz2, 6);
@@ -773,9 +773,9 @@ export class Apartment {
         }
         // bar stools
         for (const sx of [-0.9, 0.15]) {
-          cyl(0.19, 0.07, roomMat(0x6a4a3a, { rough: 0.6 }), sx, 0.62, 1.55);
-          cyl(0.03, 0.6, roomMat(0x2a2622, { metal: 0.6, rough: 0.4 }), sx, 0.3, 1.55);
-          cyl(0.14, 0.03, roomMat(0x2a2622, { metal: 0.6, rough: 0.4 }), sx, 0.02, 1.55);
+          cyl(0.19, 0.07, roomMat(0x8a6a52, { rough: 0.6 }), sx, 0.62, 1.55);
+          cyl(0.03, 0.6, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.3, 1.55);
+          cyl(0.14, 0.03, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.02, 1.55);
         }
         // herb pots on the window sill (visible near window)
         for (let i = 0; i < 2; i++) {

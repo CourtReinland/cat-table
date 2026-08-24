@@ -16,6 +16,7 @@ import {
   NIGHT_RIG,
   NIGHT_SURFACE,
   TOON_HOT_STOP,
+  TOON_SHADOW_STOP,
   capEmissive,
   levelMood,
   liftLuma,
@@ -145,6 +146,10 @@ describe('GS-ROOM-COLOR night-readable surfaces', () => {
     assert.ok((wallColor & 255) > ((wallColor >> 16) & 255), `wall ${wallColor.toString(16)} should stay mauve`);
     assert.ok((sky & 255) > ((sky >> 16) & 255), `sky ${sky.toString(16)} should stay purple-red`);
     assert.ok(luminance(counterColor) * TOON_HOT_STOP >= 0.18, 'lit granite must survive the toon hot stop');
+    assert.ok(
+      luminance(counterColor) * TOON_SHADOW_STOP >= 0.12,
+      `table must keep hue in the toon shadow band (play shot was a black slab). luma*shadow=${(luminance(counterColor) * TOON_SHADOW_STOP).toFixed(3)}`,
+    );
   });
 
   it('lifts every level’s walls/counter/sky/fog into the night-readable band', () => {
@@ -174,7 +179,7 @@ describe('GS-ROOM-COLOR night-readable surfaces', () => {
   it('preserves hue when lifting a crushed black slab', () => {
     const lifted = liftLuma(0x161218, NIGHT_SURFACE.minCounterLuma);
     assert.ok(luminance(lifted) >= NIGHT_SURFACE.minCounterLuma - 0.001);
-    assert.ok(luminance(lifted) < 0.4, 'lift is not a daylight fill');
+    assert.ok(luminance(lifted) <= NIGHT_SURFACE.maxCounterLuma + 0.02, 'lift is not a daylight fill');
     const srcR = (0x4a2c3a >> 16) & 255;
     const srcB = 0x4a2c3a & 255;
     const out = liftLuma(0x4a2c3a, 0.22);
@@ -192,13 +197,16 @@ describe('GS-ROOM-COLOR night-readable surfaces', () => {
     assert.ok(NIGHT_SURFACE.stoneChar >= 0.12);
     assert.ok(NIGHT_SURFACE.cabinetMul >= 0.7 && NIGHT_SURFACE.cabinetMul < 1, 'cabinets darker than the slab, not crushed');
     assert.ok(NIGHT_SURFACE.bgMul >= 0.75, 'background must keep fog hue');
-    assert.ok(NIGHT_SURFACE.floorLightMin >= 20, 'floor boards too dark to show grain');
-    assert.ok(NIGHT_SURFACE.floorLightMax <= 48 && NIGHT_SURFACE.floorLightMax > NIGHT_SURFACE.floorLightMin);
+    assert.ok(NIGHT_SURFACE.floorLightMin >= 32, 'floor boards too dark to show grain');
+    assert.ok(NIGHT_SURFACE.floorLightMax <= 62 && NIGHT_SURFACE.floorLightMax > NIGHT_SURFACE.floorLightMin);
     assert.ok(luminance(NIGHT_SURFACE.cityBot) >= 0.14, 'window foot is a purple-red, not black');
     assert.ok(luminance(NIGHT_SURFACE.shellWall) >= NIGHT_SURFACE.minWallLuma);
     assert.ok(luminance(NIGHT_SURFACE.shellRug) >= NIGHT_SURFACE.minWallLuma);
     assert.ok(luminance(NIGHT_SURFACE.shellShelf) >= NIGHT_SURFACE.minWallLuma);
     assert.ok(luminance(NIGHT_SURFACE.shellFrame) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellPan) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(luminance(NIGHT_SURFACE.shellRack) >= NIGHT_SURFACE.minWallLuma);
+    assert.ok(TOON_SHADOW_STOP < 0.32 && TOON_SHADOW_STOP > 0.24);
   });
 });
 
@@ -262,10 +270,13 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(apt, /NIGHT_SURFACE\.bgMul/);
     assert.match(apt, /NIGHT_SURFACE\.cityBot/);
     assert.match(apt, /NIGHT_SURFACE\.floorLightMin/);
+    assert.match(apt, /NIGHT_SURFACE\.shellPan/);
+    assert.match(apt, /NIGHT_SURFACE\.shellRack/);
     assert.match(apt, /liftLuma\(/);
     assert.doesNotMatch(apt, /multiplyScalar\(0\.48\)/);
     assert.doesNotMatch(apt, /rgba\(6, 4, 14/);
     assert.doesNotMatch(apt, /#241811/);
+    assert.doesNotMatch(apt, /#3a2a24/);
 
     const props = src('Props.ts');
     assert.match(props, /export function roomMat/);
@@ -278,5 +289,6 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.match(textures, /keepNightRgb/);
     assert.match(textures, /NIGHT_SURFACE\.stonePale/);
     assert.match(textures, /NIGHT_SURFACE\.minMapLuma/);
+    assert.match(textures, /blotch/);
   });
 });
