@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
-import { positionLocal, normalLocal, attribute, vec3, color as tslColor, texture, mix, float, max, min, step } from 'three/tsl';
+import { positionLocal, normalLocal, attribute, vec2, vec3, color as tslColor, texture, mix, float, max, min, step, saturate } from 'three/tsl';
+import { SUKI_BOW, SUKI_FACE } from './sukiGlb';
 
 /**
  * Cel-shading pass for the whole game:
@@ -120,19 +121,29 @@ export function toonify(root: THREE.Object3D, opts: ToonifyOpts = {}) {
  * White cel fluff for Suki — a different material path than room MeshToon + Hunyuan maps.
  * Do not assign the hatch/AO/normal albedo as `map`. Identity (sapphire / pink bow / dark
  * nose) is a chroma+luma mask sampled in the color node only.
+ *
+ * MeshToonNodeMaterial's ToonLightingModel samples only gradientMap.r, then
+ * multiplies scene `lightColor`. Hana night hemi (0x43384c) + lamp (0xffb46a)
+ * therefore peach/lavender any MeshToon coat, no matter how cool the gradient
+ * B channel is. 0xf8f8fb + 224,225,230 still failed on play OTS stills.
+ * Coat is MeshBasic: HEX × gradient RGB are the on-screen paper, unlit.
  */
-const FLUFF = new THREE.Color(0xf4f1ee);
+export const SUKI_FLUFF_HEX = 0xfbfdff;
+
+/** RGB+A, 3 nearest-filter stops: shadow → mid → lit. Cool paper, not peach. */
+export const SUKI_FLUFF_GRADIENT = [
+  238, 242, 252, 255,
+  248, 250, 255, 255,
+  255, 255, 255, 255,
+] as const;
+
+const FLUFF = new THREE.Color(SUKI_FLUFF_HEX);
 
 let fluffGrad: THREE.DataTexture | null = null;
 
 function sukiFluffGradient(): THREE.DataTexture {
   if (!fluffGrad) {
-    // 3 bright steps — no dark graphite bands on white fur
-    const data = new Uint8Array([
-      176, 174, 180, 255,
-      216, 214, 218, 255,
-      244, 242, 246, 255,
-    ]);
+    const data = new Uint8Array(SUKI_FLUFF_GRADIENT);
     fluffGrad = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
     fluffGrad.minFilter = THREE.NearestFilter;
     fluffGrad.magFilter = THREE.NearestFilter;
@@ -142,12 +153,48 @@ function sukiFluffGradient(): THREE.DataTexture {
   return fluffGrad;
 }
 
+function stampBoneMask(mesh: THREE.Mesh, attrName: string, boneNames: readonly string[]) {
+  const geo = mesh.geometry;
+  if (geo.getAttribute(attrName)) return;
+  const n = geo.getAttribute('position')?.count ?? 0;
+  const arr = new Float32Array(n);
+  const sk = mesh as THREE.SkinnedMesh;
+  const idx = geo.getAttribute('skinIndex');
+  const wt = geo.getAttribute('skinWeight');
+  if (sk.isSkinnedMesh && sk.skeleton && idx && wt) {
+    const want = new Set<number>();
+    sk.skeleton.bones.forEach((b, i) => {
+      if (boneNames.includes(b.name)) want.add(i);
+    });
+    const comp = (attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, i: number, k: number) =>
+      k === 0 ? attr.getX(i) : k === 1 ? attr.getY(i) : k === 2 ? attr.getZ(i) : attr.getW(i);
+    for (let i = 0; i < n; i++) {
+      let w = 0;
+      for (let k = 0; k < 4; k++) {
+        if (want.has(comp(idx, i, k))) w += comp(wt, i, k);
+      }
+      arr[i] = w;
+    }
+  }
+  geo.setAttribute(attrName, new THREE.BufferAttribute(arr, 1));
+}
+
+/** Per-vert face / ear / Hunyuan-bow weights — chroma split without extra meshes. */
+function stampSukiFaceMask(mesh: THREE.Mesh) {
+  stampBoneMask(mesh, SUKI_FACE.attr, SUKI_FACE.bones);
+  stampBoneMask(mesh, SUKI_FACE.earAttr, SUKI_FACE.earBones);
+  stampBoneMask(mesh, SUKI_BOW.attr, SUKI_BOW.bones);
+}
+
 function sukiFluffMaterial(src: any) {
-  const m = new THREE.MeshToonNodeMaterial({
+  // Unlit paper — MeshToon would multiply Hana lightColor (purple hemi +
+  // peach lamp) and ignore gradient G/B. HEX × cool stops are the pixels.
+  const m = new THREE.MeshBasicNodeMaterial({
     color: FLUFF,
-    gradientMap: sukiFluffGradient(),
     side: THREE.FrontSide,
   });
+  const band = vec3(texture(sukiFluffGradient(), vec2(float(0.78), float(0.5))));
+  const paper = band.mul(tslColor(FLUFF));
   const albedo = src?.map as THREE.Texture | undefined;
   if (albedo) {
     const rgb = vec3(texture(albedo));
@@ -155,9 +202,41 @@ function sukiFluffMaterial(src: any) {
     const cmin = min(rgb.x, min(rgb.y, rgb.z));
     const chroma = cmax.sub(cmin);
     const luma = rgb.dot(vec3(0.299, 0.587, 0.114));
-    // Hard mask: keep saturated eyes/bow and dark features; coat becomes flat white.
-    const ident = max(step(float(0.14), chroma), float(1).sub(step(float(0.28), luma)));
-    m.colorNode = mix(tslColor(FLUFF), rgb, ident);
+    const faceW = float(attribute(SUKI_FACE.attr, 'float') as never);
+    const earW = float(attribute(SUKI_FACE.earAttr, 'float') as never);
+    const bowW = float(attribute(SUKI_BOW.attr, 'float') as never);
+    // Coat: tight chroma so hatch stays paper. Face verts: pale blush + lashes.
+    const chromaGate = mix(float(SUKI_FACE.coatChroma), float(SUKI_FACE.faceChroma), faceW);
+    const lumaGate = mix(float(SUKI_FACE.coatLuma), float(SUKI_FACE.faceLuma), faceW);
+    const ident = max(step(chromaGate, chroma), float(1).sub(step(lumaGate, luma)));
+    // Unlit raw albedo flattens the iris into a blue dot. Saturate + lift
+    // identity; crush lashes/nose so they stay ink against paper.
+    const grey = vec3(luma, luma, luma);
+    const sat = mix(grey, rgb, float(SUKI_FACE.sat));
+    const lift = mix(float(SUKI_FACE.inkMul), float(SUKI_FACE.lift), step(float(0.35), luma));
+    const lifted = saturate(sat.mul(lift));
+    const isBlue = step(rgb.x, rgb.z)
+      .mul(step(rgb.y.mul(float(0.92)), rgb.z))
+      .mul(step(float(0.07), chroma));
+    const sapphire = vec3(float(0.13), float(0.40), float(0.88));
+    const withEye = mix(lifted, mix(lifted, sapphire, float(0.38)), isBlue);
+    const isPink = step(rgb.z, rgb.x)
+      .mul(step(float(0.12), chroma))
+      .mul(step(float(0.25), faceW))
+      .mul(float(1).sub(step(float(0.90), luma)));
+    // Approved sit: faint peach wash. Magenta vec3(1,0.5,0.66) was a hard decal.
+    const peach = vec3(float(1.0), float(0.86), float(0.82));
+    const identRgb = mix(withEye, mix(withEye, peach, float(0.18)), isPink);
+    // Coat keeps sapphire only. Paper Hunyuan throat paint (bow bones + hot pink
+    // that is not an inner ear) so HeroBow is the only neck bow.
+    const isHotPink = step(rgb.z, rgb.x).mul(step(float(0.16), chroma));
+    const paperThroat = max(step(float(0.20), bowW), isHotPink.mul(float(1).sub(step(float(0.25), earW))));
+    const keep = mix(ident.mul(isBlue), ident, step(float(0.25), faceW)).mul(
+      float(1).sub(paperThroat),
+    );
+    m.colorNode = mix(paper, identRgb, keep);
+  } else {
+    m.colorNode = paper;
   }
   // Never assign Hunyuan maps — that was the scribble path.
   return m;
@@ -168,6 +247,7 @@ export function toonifySukiCoat(root: THREE.Object3D) {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
+    stampSukiFaceMask(mesh);
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const converted = mats.map((m: any) => {
       if (!m || isSkippable(m)) return m;

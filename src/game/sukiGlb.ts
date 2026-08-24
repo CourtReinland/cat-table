@@ -31,8 +31,10 @@ export const GLB_SCALE = 1;
 export const GLB_YAW_OFFSET = 0;
 
 /**
- * Sit belly-cards shred on this bind. Long idle stays on Idle / Idle_Look
- * (stand). Sit remains on the GLB for tools; gameplay must not rest into it.
+ * Sit belly-cards shred on the authored bind (hips 16° / thighs 22° / shins 28°).
+ * Long idle stays on Idle / Idle_Look (stand). Sit remains on the GLB after a
+ * travel tame (tools/character-pipe/tame_paw_mesh.py) so isolation f28 can plant
+ * without exploding Hunyuan cards. Gameplay must not rest into Sit.
  */
 export const USE_SIT_FOR_LONG_IDLE = false;
 
@@ -55,3 +57,118 @@ export const SUKI_PAW_BONES = ['paw_FL', 'paw_FR'] as const;
 
 /** Hit sphere around each visible front paw (metres). */
 export const PAW_HIT_RADIUS = 0.11;
+
+/**
+ * GS-PAW-MESH — Hunyuan fur-card shells tube when Swipe over-rotates the
+ * forearm and nearest-bone weights smear a paw across both wrists / the chest.
+ * Play GLB is patched in place (tools/character-pipe/tame_paw_mesh.py): paw
+ * verts exclusive-bind to paw_* bones, Swipe/Hit/Sit travel is slerped toward
+ * rest. Sit is not rest. Do not remake Hunyuan.
+ */
+export const PAW_MESH = {
+  exclusiveBones: ['paw_FL', 'paw_FR', 'paw_HL', 'paw_HR'] as const,
+  swipeTameBones: ['upper_FL', 'lower_FL', 'paw_FL', 'shoulder_L'] as const,
+  /** Walk-scale. Pre-fix Swipe upper_FL was ~59°. Keep 0.38 tame. */
+  swipeMaxDeltaDeg: 28,
+  hitTameBones: ['spine_01', 'neck', 'head', 'tail_01'] as const,
+  hitMaxDeltaDeg: 14,
+  sitTameBones: ['hip_L', 'thigh_L', 'shin_L', 'spine_01'] as const,
+  /** Authored Sit shin was 28°; f28 exploded 540 edges. */
+  sitMaxDeltaDeg: 12,
+  /** Sit must still fold off Idle stand — never bind sit as rest. */
+  sitMinHipDeg: 4,
+  lowYExclusiveMin: 0.85,
+} as const;
+
+/**
+ * Hero pink bow. Hunyuan `node_0` only has 159 verts on bow / bow_L / bow_R
+ * — a ~3 cm throat strip. Bone scale 3.2 did not silhouette from default
+ * OTS (1.32 m behind). A three.js nape mesh (two loops + tails) is parented
+ * to `bow`, offset up and toward the tail. Do not move the camera. Keep the
+ * Hunyuan skull. Do not inflate the chest strip.
+ */
+export const SUKI_BOW = {
+  meshName: 'node_0',
+  parentBone: 'bow' as const,
+  bones: ['bow', 'bow_L', 'bow_R'] as const,
+  /** Throat-strip scale — left at 1 so the chest thread does not smear. */
+  loopScale: 1,
+  knotScale: 1,
+  napeMesh: true,
+  /** Saturated hero pink; MeshBasic so night bounce cannot lavender it. */
+  pink: 0xf24a96,
+  /**
+   * Bone-local metres. +Y up the nape, −Z toward the tail / OTS camera.
+   * y=0.055 / z=-0.072 sat the knot above the ears (crown from OTS + portrait).
+   * y=0.028 / z=-0.042 is the nape that OTS reads as a neck bow from behind.
+   */
+  napeLocal: { x: 0, y: 0.028, z: -0.042 },
+  /** Hunyuan throat-strip verts — paper these so HeroBow is the only bow. */
+  attr: 'sukiBow',
+  loopRadius: 0.04,
+  tailLength: 0.06,
+} as const;
+
+/**
+ * Face identity on the single Hunyuan skinned mesh (`node_0`).
+ * Coat stays MeshBasic paper (0xfbfdff). Head/ear verts get a looser chroma
+ * + luma gate so sapphire / lashes / blush / nose keep maps instead of
+ * flattening into a blue dot. Do not widen the coat gate — hatch is graphite.
+ */
+export const SUKI_FACE = {
+  bones: ['head', 'ear_L', 'ear_R'] as const,
+  earBones: ['ear_L', 'ear_R'] as const,
+  attr: 'sukiFace',
+  earAttr: 'sukiEar',
+  /** Tight: bow + saturated iris only. Graphite hatch stays paper. */
+  coatChroma: 0.14,
+  coatLuma: 0.22,
+  /** Face verts: pale blush (~0.06 chroma) and grey lashes (~0.38 luma). */
+  faceChroma: 0.055,
+  faceLuma: 0.42,
+  /** Saturate identity rgb. 2.2 punched Hunyuan blush into a hard magenta decal. */
+  sat: 1.55,
+  /** Lift lit identity; ink stays crushed. 1.45 was the magenta punch. */
+  lift: 1.18,
+  inkMul: 0.7,
+  /**
+   * Hunyuan iris islands are a few millimetres — chroma keep still reads as a
+   * blue dot. Same nape-mesh idea as HeroBow: MeshBasic furniture on `head`.
+   * Overlay is eyes / lashes / nose only. Blush is a shader wash, not a sphere.
+   */
+  overlay: true,
+  parentBone: 'head' as const,
+  sapphire: 0x1e5ad8,
+  lash: 0x1a1422,
+  /** Approved-sit peach wash, not overlay magenta 0xf45a92. */
+  blush: 0xf2c4b6,
+  nose: 0xf24a96,
+  highlight: 0xffffff,
+  eyeRadius: 0.016,
+  /** Portrait-readable ink strokes; too short papers into the white coat. */
+  lashLen: 0.018,
+  /** Hard MeshBasic spheres read as magenta rectangles. Shader wash only. */
+  blushOverlay: false,
+  blushRadius: 0,
+  /** Head AABB is −X-heavy; sit overlay on the muzzle, not the +X cheek. */
+  headLocal: { x: -0.028, y: 0.048, z: -0.008 },
+} as const;
+
+/**
+ * Idle/rest tail sits on the OTS-left HeroBow loop (loopL, cat +X / screen-left).
+ * Fixed local quaternion after the mixer; Idle still wags around this bias.
+ * Do not bind Sit as rest. Do not move default OTS.
+ */
+export const SUKI_TAIL = {
+  bones: ['tail_01', 'tail_02', 'tail_03'] as const,
+  nudge: {
+    /**
+     * Local post-multiply after Idle (not euler-add — tail_01 rest is ~−88° X, gimbal).
+     * −X drops the plume under the nape; −Z swings it screen-left of OTS loopL.
+     * Keep enough +Y height that the plume is still a kitten tail, not a drag.
+     */
+    tail_01: { x: -16, y: -8, z: -22 },
+    tail_02: { x: -8, y: -3, z: -10 },
+    tail_03: { x: -4, y: -2, z: -6 },
+  },
+} as const;
