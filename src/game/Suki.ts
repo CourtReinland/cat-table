@@ -3,32 +3,21 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Cat } from './Cat';
 import { toonify, outlineCharacter } from './Toon';
 import { isSteerActive, leanFromYawRate } from './Steer';
+import { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
+
+export { CLIP, GLB_SCALE, GLB_YAW_OFFSET, USE_SIT_FOR_LONG_IDLE } from './sukiGlb';
 
 /**
  * Suki — playable heroine.
  *
- * Primary representation is `assets/models/suki.glb`, sculpted from scratch in
- * Blender against the splash key art (tools/blender/sculpt_suki.py): cream coat
- * baked into COLOR_0, amber eyes, pink ribbon collar, banded fluffy tail.
+ * Primary representation is `assets/models/suki.glb`, a standing Hunyuan
+ * quadruped from tools/character-pipe/ (bind_suki_stand.py): fluffy white
+ * kitten, sapphire eyes, pink bow. Rest pose is four-on-floor. Bound clips:
+ * Idle, Idle_Look, Walk, Run, Swipe, Sit, Cuddle, Hit.
  *
  * The old procedural cat stays as a fallback if the GLB fails to load, and can
  * be forced with `?suki=proc` for a quick A/B.
  */
-
-/** Clip names authored by sculpt_suki.py. */
-const CLIP = {
-  idle: 'Idle',
-  look: 'Idle_Look',
-  walk: 'Walk',
-  run: 'Run',
-  swipe: 'Swipe',
-  sit: 'Sit',
-  cuddle: 'Cuddle',
-  hit: 'Hit',
-} as const;
-
-/** Blender metres -> game units (a counter is ~4 units across). */
-const GLB_SCALE = 0.85;
 
 const _euler = new THREE.Euler();
 
@@ -75,6 +64,7 @@ export class Suki {
       const gltf = await new GLTFLoader().loadAsync('assets/models/suki.glb');
       this.inner = gltf.scene as THREE.Group;
       this.inner.scale.setScalar(GLB_SCALE);
+      this.inner.rotation.y = GLB_YAW_OFFSET;
       this.inner.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) {
@@ -98,7 +88,7 @@ export class Suki {
       this.useGlb = true;
       this.play(CLIP.idle);
       this.ready = true;
-      console.info('[suki] sculpted GLB loaded —', gltf.animations.length, 'clips');
+      console.info('[suki] Hunyuan GLB loaded —', gltf.animations.length, 'clips');
     } catch (err) {
       console.warn('[suki] glb unavailable, falling back to procedural cat', err);
       this.ready = true;
@@ -195,10 +185,14 @@ export class Suki {
       const ang = this.tumbleSpin * (1 - Math.pow(1 - u, 2.2));
       const _q = new THREE.Quaternion().setFromAxisAngle(this.tumbleAxis, -ang);
       const _e = new THREE.Euler().setFromQuaternion(_q);
-      if (this.inner) this.inner.rotation.copy(_e);
+      // Compose the Hunyuan −Z→+Z offset so a roll does not face her backward.
+      if (this.inner) {
+        this.inner.rotation.copy(_e);
+        this.inner.rotation.y += GLB_YAW_OFFSET;
+      }
       this.cat.group.rotation.copy(_e);
       if (this.tumbleT <= 0) {
-        this.inner?.rotation.set(0, 0, 0);
+        this.inner?.rotation.set(0, GLB_YAW_OFFSET, 0);
         this.cat.group.rotation.set(0, 0, 0);
         return false;
       }
@@ -234,7 +228,7 @@ export class Suki {
       // Planted A/D holds speed at 0; stand-idle yaws. Do not look/sit.
       this.play(CLIP.idle, 0.2);
       this.current!.timeScale = 1;
-    } else if (this.idleTime > 5.5) {
+    } else if (USE_SIT_FOR_LONG_IDLE && this.idleTime > 5.5) {
       this.play(CLIP.sit, 0.5, true);
       this.current!.timeScale = 1;
     } else if (this.idleTime > 2.5) {
@@ -247,9 +241,10 @@ export class Suki {
 
     this.mixer.update(dt);
     this.group.rotation.y = this.yaw;
-    // Light bank on the sculpt — group yaw stays the gameplay heading so
+    // Light bank on the mesh — group yaw stays the gameplay heading so
     // first-person / camera math stay upright. Skip while a tumble owns inner.
     if (this.tumbleT <= 0 && this.inner) {
+      this.inner.rotation.y = GLB_YAW_OFFSET;
       const lean = leanFromYawRate(this.yawRate);
       this.inner.rotation.z += (lean - this.inner.rotation.z) * Math.min(1, dt * 10);
     }

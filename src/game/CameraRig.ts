@@ -32,7 +32,7 @@ export const OTS = {
 
 /**
  * Conservative cat AABB in cat-local metres (origin at the feet).
- * Covers the procedural cat (scale 1.18) and the 0.85 GLB.
+ * Covers the procedural cat (scale 1.18) and the Hunyuan GLB (0.40 m bind).
  */
 export const CAT_FRAME = {
   min: new THREE.Vector3(-0.16, 0.0, -0.38),

@@ -117,7 +117,7 @@ export class UI {
     if (visible) this.paintBuildStamp();
   }
 
-  /** Big high-contrast BUILD 4 + hash — play HUD and title. */
+  /** Big high-contrast BUILD 5 + hash — play HUD and title. */
   paintBuildStamp() {
     for (const id of ['hud-build', 'title-build']) {
       const el = document.getElementById(id);
