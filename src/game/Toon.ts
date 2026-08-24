@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { positionLocal, normalLocal, attribute, vec2, vec3, color as tslColor, texture, mix, float, max, min, step, saturate } from 'three/tsl';
-import { SUKI_FACE } from './sukiGlb';
+import { SUKI_BOW, SUKI_FACE } from './sukiGlb';
 
 /**
  * Cel-shading pass for the whole game:
@@ -153,31 +153,37 @@ function sukiFluffGradient(): THREE.DataTexture {
   return fluffGrad;
 }
 
-/** Per-vert face weight from head/ear bones — chroma split without a second mesh. */
-function stampSukiFaceMask(mesh: THREE.Mesh) {
+function stampBoneMask(mesh: THREE.Mesh, attrName: string, boneNames: readonly string[]) {
   const geo = mesh.geometry;
-  if (geo.getAttribute(SUKI_FACE.attr)) return;
+  if (geo.getAttribute(attrName)) return;
   const n = geo.getAttribute('position')?.count ?? 0;
   const arr = new Float32Array(n);
   const sk = mesh as THREE.SkinnedMesh;
   const idx = geo.getAttribute('skinIndex');
   const wt = geo.getAttribute('skinWeight');
   if (sk.isSkinnedMesh && sk.skeleton && idx && wt) {
-    const face = new Set<number>();
+    const want = new Set<number>();
     sk.skeleton.bones.forEach((b, i) => {
-      if ((SUKI_FACE.bones as readonly string[]).includes(b.name)) face.add(i);
+      if (boneNames.includes(b.name)) want.add(i);
     });
     const comp = (attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, i: number, k: number) =>
       k === 0 ? attr.getX(i) : k === 1 ? attr.getY(i) : k === 2 ? attr.getZ(i) : attr.getW(i);
     for (let i = 0; i < n; i++) {
       let w = 0;
       for (let k = 0; k < 4; k++) {
-        if (face.has(comp(idx, i, k))) w += comp(wt, i, k);
+        if (want.has(comp(idx, i, k))) w += comp(wt, i, k);
       }
       arr[i] = w;
     }
   }
-  geo.setAttribute(SUKI_FACE.attr, new THREE.BufferAttribute(arr, 1));
+  geo.setAttribute(attrName, new THREE.BufferAttribute(arr, 1));
+}
+
+/** Per-vert face / ear / Hunyuan-bow weights — chroma split without extra meshes. */
+function stampSukiFaceMask(mesh: THREE.Mesh) {
+  stampBoneMask(mesh, SUKI_FACE.attr, SUKI_FACE.bones);
+  stampBoneMask(mesh, SUKI_FACE.earAttr, SUKI_FACE.earBones);
+  stampBoneMask(mesh, SUKI_BOW.attr, SUKI_BOW.bones);
 }
 
 function sukiFluffMaterial(src: any) {
@@ -197,6 +203,8 @@ function sukiFluffMaterial(src: any) {
     const chroma = cmax.sub(cmin);
     const luma = rgb.dot(vec3(0.299, 0.587, 0.114));
     const faceW = float(attribute(SUKI_FACE.attr, 'float') as never);
+    const earW = float(attribute(SUKI_FACE.earAttr, 'float') as never);
+    const bowW = float(attribute(SUKI_BOW.attr, 'float') as never);
     // Coat: tight chroma so hatch stays paper. Face verts: pale blush + lashes.
     const chromaGate = mix(float(SUKI_FACE.coatChroma), float(SUKI_FACE.faceChroma), faceW);
     const lumaGate = mix(float(SUKI_FACE.coatLuma), float(SUKI_FACE.faceLuma), faceW);
@@ -219,8 +227,13 @@ function sukiFluffMaterial(src: any) {
     // Approved sit: faint peach wash. Magenta vec3(1,0.5,0.66) was a hard decal.
     const peach = vec3(float(1.0), float(0.86), float(0.82));
     const identRgb = mix(withEye, mix(withEye, peach, float(0.18)), isPink);
-    // Coat keeps sapphire only. Hunyuan throat bow is magenta paint; HeroBow is the nape mesh.
-    const keep = mix(ident.mul(isBlue), ident, step(float(0.25), faceW));
+    // Coat keeps sapphire only. Paper Hunyuan throat paint (bow bones + hot pink
+    // that is not an inner ear) so HeroBow is the only neck bow.
+    const isHotPink = step(rgb.z, rgb.x).mul(step(float(0.16), chroma));
+    const paperThroat = max(step(float(0.20), bowW), isHotPink.mul(float(1).sub(step(float(0.25), earW))));
+    const keep = mix(ident.mul(isBlue), ident, step(float(0.25), faceW)).mul(
+      float(1).sub(paperThroat),
+    );
     m.colorNode = mix(paper, identRgb, keep);
   } else {
     m.colorNode = paper;

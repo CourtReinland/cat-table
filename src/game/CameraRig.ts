@@ -21,14 +21,14 @@ export const DEFAULT_FP_CAM = false;
 export const PORTRAIT = {
   /** Cat-local: +X right, +Y up, +Z forward. Negative side = 3/4 from the left. */
   side: -0.10,
-  /** Eye line — too low turned the nape HeroBow into a crown. */
-  height: 0.26,
-  /** Wider than the 0.34 one-eye dolly; tighter than a full-body bust. */
-  front: 0.40,
-  lookHeight: 0.232,
-  lookAhead: 0.10,
-  fov: 35,
-  near: 0.03,
+  /** Dropped from 0.26 — that high/tight crop clipped ear tips and the nape bow. */
+  height: 0.22,
+  /** Pulled back so both ear tips stay in; still a face 3/4, not a full-body bust. */
+  front: 0.50,
+  lookHeight: 0.245,
+  lookAhead: 0.09,
+  fov: 38,
+  near: 0.04,
   far: 80,
 } as const;
 

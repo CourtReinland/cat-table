@@ -97,8 +97,14 @@ export const SUKI_BOW = {
   napeMesh: true,
   /** Saturated hero pink; MeshBasic so night bounce cannot lavender it. */
   pink: 0xf24a96,
-  /** Bone-local metres. +Y up the nape, −Z toward the tail / OTS camera. */
-  napeLocal: { x: 0, y: 0.055, z: -0.072 },
+  /**
+   * Bone-local metres. +Y up the nape, −Z toward the tail / OTS camera.
+   * y=0.055 / z=-0.072 sat the knot above the ears (crown from OTS + portrait).
+   * y=0.028 / z=-0.042 is the nape that OTS reads as a neck bow from behind.
+   */
+  napeLocal: { x: 0, y: 0.028, z: -0.042 },
+  /** Hunyuan throat-strip verts — paper these so HeroBow is the only bow. */
+  attr: 'sukiBow',
   loopRadius: 0.04,
   tailLength: 0.06,
 } as const;
@@ -111,7 +117,9 @@ export const SUKI_BOW = {
  */
 export const SUKI_FACE = {
   bones: ['head', 'ear_L', 'ear_R'] as const,
+  earBones: ['ear_L', 'ear_R'] as const,
   attr: 'sukiFace',
+  earAttr: 'sukiEar',
   /** Tight: bow + saturated iris only. Graphite hatch stays paper. */
   coatChroma: 0.14,
   coatLuma: 0.22,

@@ -58,12 +58,15 @@ describe('GS-PLAY-ART Suki fluff stays paper white', () => {
     const coatFn = toon.slice(toon.indexOf('export function toonifySukiCoat'), toon.indexOf('const outlineMats'));
     assert.match(toon, /stampSukiFaceMask/);
     assert.match(toon, /SUKI_FACE\.attr/);
+    assert.match(toon, /SUKI_BOW\.attr/);
+    assert.match(toon, /SUKI_FACE\.earAttr/);
     assert.match(fluffFn, /coatChroma/);
     assert.match(fluffFn, /faceChroma/);
     assert.match(fluffFn, /identRgb/);
     assert.match(fluffFn, /sapphire/);
     assert.match(fluffFn, /peach/);
     assert.match(fluffFn, /ident\.mul\(isBlue\)/);
+    assert.match(fluffFn, /paperThroat/);
     assert.match(fluffFn, /mix\(paper, identRgb, keep\)/);
     assert.doesNotMatch(fluffFn, /vec3\(1\.0,\s*0\.5,\s*0\.66\)/);
     assert.doesNotMatch(fluffFn, /mix\(paper, identRgb, ident\)/);

@@ -59,8 +59,13 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.equal(SUKI_BOW.meshName, 'node_0');
     assert.ok(SUKI_BOW.loopRadius >= 0.035, `loopRadius ${SUKI_BOW.loopRadius} still a thread at 1.32 m`);
     assert.ok(SUKI_BOW.tailLength >= 0.05, `tailLength ${SUKI_BOW.tailLength}`);
-    assert.ok(SUKI_BOW.napeLocal.z < -0.05, 'nape mesh must sit toward the tail / OTS, above rump fur');
-    assert.ok(SUKI_BOW.napeLocal.y > 0.04, 'nape mesh must sit up the ruff, clear of the idle plume');
+    assert.ok(SUKI_BOW.napeLocal.y <= 0.032, `napeLocal.y ${SUKI_BOW.napeLocal.y} sits on the crown (0.055)`);
+    assert.ok(SUKI_BOW.napeLocal.y >= 0.018, `napeLocal.y ${SUKI_BOW.napeLocal.y} dropped onto the rump`);
+    assert.ok(
+      SUKI_BOW.napeLocal.z <= -0.035 && SUKI_BOW.napeLocal.z >= -0.055,
+      `napeLocal.z ${SUKI_BOW.napeLocal.z} must sit toward the tail without floating off the nape`,
+    );
+    assert.equal(SUKI_BOW.attr, 'sukiBow');
     const { r, g, b } = {
       r: (SUKI_BOW.pink >> 16) & 255,
       g: (SUKI_BOW.pink >> 8) & 255,

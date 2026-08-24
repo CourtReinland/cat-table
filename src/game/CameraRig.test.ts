@@ -189,9 +189,9 @@ describe('GS-PLAY-ART stills portrait camera', () => {
     assert.ok(PORTRAIT.lookHeight > OTS.lookHeight, 'portrait looks at the face, OTS at the chest');
     assert.ok(pose.look.y > cat.y + 0.2, 'look sits on the muzzle / eyes');
     assert.ok(PORTRAIT.fov < OTS.fov, 'tighter fov so eyes fill the frame');
-    assert.ok(PORTRAIT.front >= 0.38 && PORTRAIT.front < 0.50, `front ${PORTRAIT.front} is the 0.34 one-eye dolly or a full-body bust`);
-    assert.ok(PORTRAIT.fov >= 33 && PORTRAIT.fov <= 40, `fov ${PORTRAIT.fov} not a face 3/4`);
-    assert.ok(PORTRAIT.height >= 0.25, `height ${PORTRAIT.height} looks up the nape and hats the bow`);
+    assert.ok(PORTRAIT.front >= 0.46 && PORTRAIT.front <= 0.56, `front ${PORTRAIT.front} is the tight crop or a full-body bust`);
+    assert.ok(PORTRAIT.fov >= 36 && PORTRAIT.fov <= 42, `fov ${PORTRAIT.fov} not a face 3/4`);
+    assert.ok(PORTRAIT.height <= 0.24 && PORTRAIT.height >= 0.18, `height ${PORTRAIT.height} still the high/tight crop`);
     assert.notEqual(PORTRAIT.front, OTS.back);
   });
 
@@ -231,7 +231,20 @@ describe('GS-PLAY-ART stills portrait camera', () => {
       cat.y + 0.11,
       cat.z + fwd.z * 0.02,
     );
+    const earTips = [
+      new THREE.Vector3(
+        cat.x + right.x * -0.03 + fwd.x * 0.08,
+        cat.y + 0.36,
+        cat.z + right.z * -0.03 + fwd.z * 0.08,
+      ),
+      new THREE.Vector3(
+        cat.x + right.x * 0.03 + fwd.x * 0.08,
+        cat.y + 0.36,
+        cat.z + right.z * 0.03 + fwd.z * 0.08,
+      ),
+    ];
     assert.ok(pointsInView(cam, [muzzle, bowHint], 0.95), 'muzzle / neck-bow hint cropped out');
+    assert.ok(pointsInView(cam, earTips, 0.92), 'ear tips clipped by the portrait top');
   });
 
   it('does not change default OTS when computing a portrait pose', () => {
