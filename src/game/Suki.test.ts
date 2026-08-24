@@ -13,8 +13,8 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
     assert.notEqual(GLB_SCALE, 0.85);
   });
 
-  it('yaws the mesh 180° so −Z rest faces game +Z', () => {
-    assert.equal(GLB_YAW_OFFSET, Math.PI);
+  it('does not yaw the mesh — bind already faces game +Z', () => {
+    assert.equal(GLB_YAW_OFFSET, 0);
   });
 
   it('does not rest into the shredded Sit clip', () => {

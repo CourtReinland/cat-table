@@ -185,7 +185,6 @@ export class Suki {
       const ang = this.tumbleSpin * (1 - Math.pow(1 - u, 2.2));
       const _q = new THREE.Quaternion().setFromAxisAngle(this.tumbleAxis, -ang);
       const _e = new THREE.Euler().setFromQuaternion(_q);
-      // Compose the Hunyuan −Z→+Z offset so a roll does not face her backward.
       if (this.inner) {
         this.inner.rotation.copy(_e);
         this.inner.rotation.y += GLB_YAW_OFFSET;

@@ -23,12 +23,12 @@ export const CLIP = {
 export const GLB_SCALE = 1;
 
 /**
- * Hunyuan rest pose faces −Z (head / ears at min Z in the bound GLB).
- * Game / CameraRig treat +Z as forward at yaw 0. Offset lives on the mesh
- * only — group yaw stays the gameplay heading so OTS / first-person math
- * stay upright.
+ * Bind authored −Y forward in Blender; glTF +Y-up export lands the skeleton
+ * on game +Z (head / front paws at +Z, tail at −Z). Highest mesh verts are
+ * the tail plume, not the ears — do not infer facing from the AABB.
+ * Offset stays 0 so group yaw remains the gameplay heading.
  */
-export const GLB_YAW_OFFSET = Math.PI;
+export const GLB_YAW_OFFSET = 0;
 
 /**
  * Sit belly-cards shred on this bind. Long idle stays on Idle / Idle_Look
