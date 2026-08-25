@@ -46,7 +46,7 @@ export const SET_DRESS = {
   kitchen: {
     backCounter: { x: 0.55, y: 0.46, z: -1.14 },
     sink: { x: 1.28, y: 1.00, z: -1.14 },
-    riceCooker: { x: 0.08, y: 1.14, z: -1.12 },
+    riceCooker: { x: 0.08, y: 1.00, z: -1.12 },
     fridge: { x: 2.78, y: 0.92, z: 0.22 },
     upperCab: { x: 0.85, y: 2.08, z: -1.22 },
     bakerRack: { x: 1.52, y: 0.95, z: 1.68 },

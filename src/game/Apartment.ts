@@ -867,8 +867,9 @@ export class Apartment {
         this.meshBox(lg, 0.62, 1.84, 0.58, silver, k.fridge.x, k.fridge.y, k.fridge.z);
         this.meshBox(lg, 0.58, 0.02, 0.54, roomMat(0x4a5056, { rough: 0.5 }), k.fridge.x, k.fridge.y + 0.12, k.fridge.z + 0.01);
         this.meshBox(lg, 0.03, 0.55, 0.03, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), k.fridge.x - 0.28, k.fridge.y + 0.15, k.fridge.z + 0.28);
-        // L-return so the fridge isn't a lonely box in a purple void
-        this.cabinetRun(lg, level, 2.48, -0.42, 0.52, 1.35, 0.92);
+        // L-return tucked −Z of the fridge AABB (was z=−0.42, +Z face 0.255
+        // stabbed fridge −Z at −0.07). Fridge stays the +X vanishing point.
+        this.cabinetRun(lg, level, 2.48, -0.80, 0.52, 1.35, 0.92);
         // baker's rack on the +Z fringe — fills the right of the OTS frame
         const rackWood = roomMat(0x6a4a38, { rough: 0.8 });
         this.meshBox(lg, 0.48, 0.04, 0.36, rackWood, k.bakerRack.x, 0.42, k.bakerRack.z);
@@ -1065,8 +1066,9 @@ export class Apartment {
         for (let i = 0; i < 2; i++) {
           cyl(0.12 - i * 0.02, 0.03, panMat, 0.55 + i * 0.4, 2.02, 0.22);
         }
-        // bar stools — three so the +Z fringe stays dressed as she walks +X
-        for (const sx of [-0.9, 0.15, 1.15]) {
+        // bar stools — three so the +Z fringe stays dressed as she walks +X.
+        // Third was x=1.15, z=1.55 and clipped bakerRack (1.52, 1.68); nudge −X.
+        for (const sx of [-0.9, 0.15, 0.85]) {
           cyl(0.19, 0.07, roomMat(0x8a6a52, { rough: 0.6 }), sx, 0.62, 1.55);
           cyl(0.03, 0.6, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.3, 1.55);
           cyl(0.14, 0.03, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.02, 1.55);
@@ -1081,7 +1083,7 @@ export class Apartment {
         }
         // dusty lived-in clutter on the BACK COUNTER only (not the play slab)
         const k = SET_DRESS.kitchen;
-        const cooker = this.meshCyl(lg, 0.13, 0.16, roomMat(NIGHT_SURFACE.shellPan, { metal: 0.18, rough: 0.42 }), k.riceCooker.x, k.riceCooker.y - 0.02, k.riceCooker.z, 14);
+        const cooker = this.meshCyl(lg, 0.13, 0.16, roomMat(NIGHT_SURFACE.shellPan, { metal: 0.18, rough: 0.42 }), k.riceCooker.x, k.riceCooker.y, k.riceCooker.z, 14);
         cooker.scale.y = 1;
         this.meshCyl(lg, 0.14, 0.04, roomMat(NIGHT_SURFACE.shellPan, { metal: 0.16, rough: 0.5 }), k.riceCooker.x, k.riceCooker.y + 0.08, k.riceCooker.z, 14);
         this.meshCyl(lg, 0.025, 0.05, roomMat(0x4a4448, { rough: 0.6 }), k.riceCooker.x, k.riceCooker.y + 0.14, k.riceCooker.z, 8);

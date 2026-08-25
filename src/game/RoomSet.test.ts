@@ -159,4 +159,56 @@ describe('GS-ROOM-SET forge auto-fixes', () => {
     );
     assert.equal(NIGHT_RIG.key, 4.8);
   });
+
+  it('separates the L-return from the fridge AABB; fridge stays the +X vanishing point', () => {
+    const fridge = SET_DRESS.kitchen.fridge;
+    assert.equal(fridge.x, 2.78);
+    assert.equal(fridge.z, 0.22);
+    // fridge meshBox 0.62 × 1.84 × 0.58; L-return stone top 0.52 × 0.05 × 1.35
+    const f = {
+      minX: fridge.x - 0.62 / 2,
+      maxX: fridge.x + 0.62 / 2,
+      minY: fridge.y - 1.84 / 2,
+      maxY: fridge.y + 1.84 / 2,
+      minZ: fridge.z - 0.58 / 2,
+      maxZ: fridge.z + 0.58 / 2,
+    };
+    const lCx = 2.48;
+    const lCz = -0.8;
+    const lW = 0.52;
+    const lD = 1.35;
+    const lTopY = 0.92;
+    const l = {
+      minX: lCx - lW / 2,
+      maxX: lCx + lW / 2,
+      minY: 0,
+      maxY: lTopY,
+      minZ: lCz - lD / 2,
+      maxZ: lCz + lD / 2,
+    };
+    const overlap =
+      f.minX < l.maxX &&
+      f.maxX > l.minX &&
+      f.minY < l.maxY &&
+      f.maxY > l.minY &&
+      f.minZ < l.maxZ &&
+      f.maxZ > l.minZ;
+    assert.equal(overlap, false, 'L-return still intersects the fridge AABB');
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /cabinetRun\(lg, level, 2\.48, -0\.80, 0\.52, 1\.35, 0\.92\)/);
+    assert.doesNotMatch(apt, /cabinetRun\(lg, level, 2\.48, -0\.42, 0\.52, 1\.35, 0\.92\)/);
+  });
+
+  it('sits the rice cooker on the 0.92 back-counter, keeping OTS x/z', () => {
+    const p = SET_DRESS.kitchen.riceCooker;
+    assert.equal(p.x, 0.08);
+    assert.equal(p.z, -1.12);
+    assert.equal(p.y, 1.00);
+  });
+
+  it('nudges the third bar stool −X off bakerRack', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /for \(const sx of \[-0\.9, 0\.15, 0\.85\]\)/);
+    assert.doesNotMatch(apt, /for \(const sx of \[-0\.9, 0\.15, 1\.15\]\)/);
+  });
 });
