@@ -87,8 +87,10 @@ describe('GS-PROP-PHYS smashables stay dynamic', () => {
     const laptopR = Math.max(PROP_LIBRARY.laptop.size[0], PROP_LIBRARY.laptop.size[2]) * 0.6;
     const cat = { x: 0, z: 0 };
     const beside = { x: 0.32, z: 0.10 };
+    const rearLeft = { x: 0.22, z: -0.16 };
     const atCommit = { x: 0, z: 0.42 };
     assert.equal(swipeHitsProp(cat, beside, plantR), true);
+    assert.equal(swipeHitsProp(cat, rearLeft, plantR), true);
     assert.equal(swipeHitsProp(cat, atCommit, plantR), true);
     assert.equal(swipeHitsProp(cat, atCommit, laptopR), true);
     assert.equal(swipeHitsProp(cat, { x: 0, z: 0.80 }, plantR), false);

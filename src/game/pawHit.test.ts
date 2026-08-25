@@ -28,6 +28,18 @@ describe('GS-PROP-HIT play-reach swipe', () => {
     assert.equal(swipeHitsProp(CAT, beside, PLANT_R), true);
   });
 
+  it('hits the da64549 kitchen stills plant (adjacent, including rear-left)', () => {
+    // BUILD 12 da64549 fail stills: terracotta pot at hip/shoulder, off yaw,
+    // unmoved after Space, score 0. Cat faces +Z. Disc must hit all of these.
+    const shoulderLeft = { x: 0.24, z: 0.08 };
+    const rearLeft = { x: 0.22, z: -0.16 };
+    const chestFrontLeft = { x: 0.18, z: 0.20 };
+    for (const plant of [shoulderLeft, rearLeft, chestFrontLeft]) {
+      assert.ok(Math.hypot(plant.x, plant.z) <= 0.42, `stills plant ${JSON.stringify(plant)} farther than commit`);
+      assert.equal(swipeHitsProp(CAT, plant, PLANT_R), true, JSON.stringify(plant));
+    }
+  });
+
   it('hits plant and laptop at the 0.42 m commit distance', () => {
     const atCommit = { x: 0, z: 0.42 };
     assert.equal(swipeHitsProp(CAT, atCommit, PLANT_R), true);
