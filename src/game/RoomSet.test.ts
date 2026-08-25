@@ -179,6 +179,7 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
     assert.match(apt, /shaker drawer fronts so the pedestals read as a desk/);
     assert.match(apt, /leftover empty \+X BACK WALL/);
+    assert.match(apt, /coffee TV analogue/);
     const wall = SET_DRESS.desk.corkWall;
     assert.ok(pointsInView(cam, [new THREE.Vector3(wall.x, wall.y, wall.z)], 0.98), 'desk.corkWall misses spawn OTS');
     assert.equal(SET_DRESS.desk.fileCab.x, 2.32);
