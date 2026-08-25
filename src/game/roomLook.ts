@@ -56,21 +56,37 @@ export const SET_DRESS = {
     backConsole: { x: 0.35, y: 0.28, z: -1.06 },
     loungeChair: { x: 2.42, y: 0.42, z: 0.15 },
     portraitLamp: { x: -3.55, y: 0.85, z: 0.62 },
+    /** OTS-right snack cart — kitchen baker-rack analogue. */
+    snackCart: { x: 0.88, y: 0.62, z: 1.64 },
+    /** Speaker by the lounge, window side of the +X vanishing point. */
+    speaker: { x: 2.08, y: 0.38, z: -0.58 },
   },
   desk: {
     backShelf: { x: 0.25, y: 1.15, z: -1.10 },
     fileCab: { x: 2.32, y: 0.58, z: 0.18 },
     portraitCart: { x: -3.42, y: 0.55, z: 0.58 },
+    /** OTS-right easel (Kai leftover) so the +Z wall is not a navy slab. */
+    easel: { x: 1.42, y: 0.92, z: 1.54 },
+    /** Cork pinboard on the shelf's room face. */
+    pinboard: { x: 0.25, y: 1.72, z: -0.94 },
   },
   dresser: {
     nightstand: { x: 0.15, y: 0.55, z: -0.96 },
     wardrobe: { x: 2.18, y: 1.10, z: 0.18 },
     portraitHamper: { x: -3.22, y: 0.22, z: 0.68 },
+    /** OTS-right vanity stool (replaces the leftover cylinder that sat nowhere). */
+    vanityStool: { x: 1.18, y: 0.42, z: 1.38 },
+    /** Robe on a hook near the wardrobe, +Z fringe. */
+    robeHook: { x: 1.92, y: 1.28, z: 1.10 },
   },
   dining: {
     wineCart: { x: 2.88, y: 0.55, z: 0.18 },
     portraitBuffet: { x: -3.72, y: 0.48, z: 0.42 },
     windowSideboard: { x: 1.15, y: 0.42, z: -1.72 },
+    /** OTS-right guest chair — BUILD 12 only seated the window (−Z) side. */
+    guestChair: { x: 0.72, y: 0.55, z: 1.70 },
+    /** Serving trolley on the +Z fringe, plates readable in play OTS. */
+    serveTrolley: { x: 1.48, y: 0.55, z: 1.62 },
   },
 } as const;
 

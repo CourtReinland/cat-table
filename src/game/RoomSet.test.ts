@@ -89,10 +89,10 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
 
   it('puts OTS-near dressing on every other level', () => {
     const checks: { id: string; keys: string[] }[] = [
-      { id: 'coffee', keys: ['backConsole', 'loungeChair'] },
-      { id: 'desk', keys: ['backShelf', 'fileCab'] },
-      { id: 'dresser', keys: ['nightstand', 'wardrobe'] },
-      { id: 'dining', keys: ['wineCart', 'windowSideboard'] },
+      { id: 'coffee', keys: ['backConsole', 'loungeChair', 'snackCart', 'speaker'] },
+      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard'] },
+      { id: 'dresser', keys: ['nightstand', 'wardrobe', 'vanityStool', 'robeHook'] },
+      { id: 'dining', keys: ['wineCart', 'windowSideboard', 'guestChair', 'serveTrolley'] },
     ];
     for (const { id, keys } of checks) {
       const level = LEVELS.find((l) => l.id === id)!;
@@ -130,6 +130,86 @@ describe('GS-ROOM-SET leave the cat and camera alone', () => {
     assert.match(apt, /tileSurface/);
     assert.match(apt, /panelSurface/);
     assert.match(apt, /marbleSurface/);
+    assert.match(apt, /fabricSurface/);
+    assert.match(apt, /rugSurface/);
+    assert.match(apt, /dressProp\(/);
+  });
+});
+
+describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
+  it('does not move kitchen BUILD 12 landmarks or bump the stamp', () => {
+    const k = SET_DRESS.kitchen;
+    assert.equal(k.fridge.x, 2.78);
+    assert.equal(k.fridge.z, 0.22);
+    assert.equal(k.backCounter.z, -1.14);
+    assert.equal(k.bakerRack.x, 1.52);
+    assert.equal(NIGHT_RIG.key, 4.8);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 12/);
+  });
+
+  it('does not park new dressing on the play slab', () => {
+    for (const id of ['coffee', 'desk', 'dresser', 'dining'] as const) {
+      const level = LEVELS.find((l) => l.id === id)!;
+      const slab = slabOf(level);
+      const dress = SET_DRESS[id];
+      for (const [name, p] of Object.entries(dress)) {
+        const onSlab = p.x >= slab.minX && p.x <= slab.maxX && p.z >= slab.minZ && p.z <= slab.maxZ;
+        assert.equal(onSlab, false, `${id}.${name} @ ${p.x},${p.z} sits on the smashable slab`);
+      }
+    }
+  });
+
+  it('keeps coffee table good-form (lower shelf) and an OTS-right snack cart', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /lower shelf so the table reads as furniture/);
+    assert.match(apt, /SET_DRESS\.coffee/);
+    assert.equal(SET_DRESS.coffee.snackCart.z > 1.1, true);
+    const coffee = LEVELS.find((l) => l.id === 'coffee')!;
+    const cam = otsCam(coffee);
+    assert.ok(pointsInView(cam, [new THREE.Vector3(SET_DRESS.coffee.snackCart.x, SET_DRESS.coffee.snackCart.y, SET_DRESS.coffee.snackCart.z)], 0.98));
+  });
+
+  it('plants a desk easel and pinboard in spawn OTS', () => {
+    const desk = LEVELS.find((l) => l.id === 'desk')!;
+    const cam = otsCam(desk);
+    for (const name of ['easel', 'pinboard'] as const) {
+      const p = SET_DRESS.desk[name];
+      assert.ok(pointsInView(cam, [new THREE.Vector3(p.x, p.y, p.z)], 0.98), `desk.${name} misses spawn OTS`);
+    }
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /shaker drawer fronts so the pedestals read as a desk/);
+  });
+
+  it('drops the leftover dresser stool that sat on the OTS-right fringe twice', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.doesNotMatch(apt, /cyl\(0\.2, 0\.08, fabric, 0\.95, 0\.42, 1\.35\)/);
+    assert.equal(SET_DRESS.dresser.vanityStool.x, 1.18);
+    assert.equal(SET_DRESS.dresser.vanityStool.z, 1.38);
+  });
+
+  it('seats dining guests on the OTS-right and a serving trolley off-slab', () => {
+    const dining = LEVELS.find((l) => l.id === 'dining')!;
+    const cam = otsCam(dining);
+    const g = SET_DRESS.dining.guestChair;
+    const t = SET_DRESS.dining.serveTrolley;
+    assert.ok(pointsInView(cam, [new THREE.Vector3(g.x, g.y, g.z)], 0.98), 'guestChair misses spawn OTS');
+    assert.ok(pointsInView(cam, [new THREE.Vector3(t.x, t.y, t.z)], 0.98), 'serveTrolley misses spawn OTS');
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /two chairs on the window/);
+    assert.match(apt, /d \/ 2 \+ 0\.55/);
+  });
+
+  it('leaves Suki coat, OTS numbers, and smashable placement alone', () => {
+    const suki = readFileSync(join(here, 'Suki.ts'), 'utf8');
+    assert.match(suki, /toonifySukiCoat\(this\.inner\)/);
+    const cam = readFileSync(join(here, 'CameraRig.ts'), 'utf8');
+    assert.match(cam, /back: 1\.32/);
+    assert.match(cam, /side: 0\.18/);
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /this\.catSpawn\.set\(-w \/ 2 \+ 0\.35/);
+    assert.match(apt, /visual\.group\.position\.set\(x, counterRestY\(this\.surface\.topY\), z\)/);
+    assert.doesNotMatch(apt, /toonifySukiCoat/);
+    assert.equal(NIGHT_RIG.key, 4.8);
   });
 });
 
