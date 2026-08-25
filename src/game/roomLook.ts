@@ -20,17 +20,58 @@ export const BLOOM = {
 } as const;
 
 /** Shared apartment rig. Peak is the rim, not a counter pool; hemi/fill
- *  keep cabinets from falling into a black cliff. */
+ *  keep cabinets from falling into a black cliff.
+ *  GS-ROOM-SET: modest hemi/fill/moon lift so OTS backgrounds read. Key
+ *  stays put — it dumps on the play slab and would flatten Suki's neighbor
+ *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it. */
 export const NIGHT_RIG = {
-  hemi: 0.52,
-  moon: 0.58,
+  hemi: 0.60,
+  moon: 0.64,
   key: 4.8,
   lamp: 9.5,
-  fill: 7.2,
+  fill: 8.4,
   pendant: 3.6,
   tvGlow: 2.2,
   chandelier: 6,
   fogDensity: 0.022,
+} as const;
+
+/**
+ * World-space set-piece centers that must read in the play OTS at spawn
+ * (close over-the-shoulder, cat on the left-front of the slab facing +X).
+ * Far back-wall dressing is too small in that frustum — these sit on the
+ * slab fringe. Apartment.dressRoom plants geometry on these points.
+ */
+export const SET_DRESS = {
+  kitchen: {
+    backCounter: { x: 0.55, y: 0.46, z: -1.14 },
+    sink: { x: 1.28, y: 1.00, z: -1.14 },
+    riceCooker: { x: 0.08, y: 1.00, z: -1.12 },
+    fridge: { x: 2.78, y: 0.92, z: 0.22 },
+    upperCab: { x: 0.85, y: 2.08, z: -1.22 },
+    bakerRack: { x: 1.52, y: 0.95, z: 1.68 },
+    portraitHutch: { x: -4.05, y: 1.05, z: 0.55 },
+  },
+  coffee: {
+    backConsole: { x: 0.35, y: 0.28, z: -1.06 },
+    loungeChair: { x: 2.42, y: 0.42, z: 0.15 },
+    portraitLamp: { x: -3.55, y: 0.85, z: 0.62 },
+  },
+  desk: {
+    backShelf: { x: 0.25, y: 1.15, z: -1.10 },
+    fileCab: { x: 2.32, y: 0.58, z: 0.18 },
+    portraitCart: { x: -3.42, y: 0.55, z: 0.58 },
+  },
+  dresser: {
+    nightstand: { x: 0.15, y: 0.55, z: -0.96 },
+    wardrobe: { x: 2.18, y: 1.10, z: 0.18 },
+    portraitHamper: { x: -3.22, y: 0.22, z: 0.68 },
+  },
+  dining: {
+    wineCart: { x: 2.88, y: 0.55, z: 0.18 },
+    portraitBuffet: { x: -3.72, y: 0.48, z: 0.42 },
+    windowSideboard: { x: 1.15, y: 0.42, z: -1.72 },
+  },
 } as const;
 
 /** Dusty cocoa-purple, not magenta bounce. Rim is peach, not near-white. */

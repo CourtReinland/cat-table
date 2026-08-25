@@ -67,8 +67,11 @@ describe('GS-ROOM-LIGHT night rig', () => {
     assert.ok(luminance(fill) < 0.32, `fill too bright`);
     assert.ok(luminance(NIGHT_AMBIENT.ground) < 0.12);
     assert.ok(luminance(NIGHT_AMBIENT.rim) > 0.45, 'rim should read warm peach');
-    // captain-owned: do not retune hemi/fog/sky/ground on a surface-color ticket
-    assert.equal(NIGHT_RIG.hemi, 0.52);
+    // GS-ROOM-SET modest lift; fog/sky/ground stay captain-owned from COLOR
+    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.62, `hemi ${NIGHT_RIG.hemi} modest OTS lift`);
+    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.2, `fill ${NIGHT_RIG.fill}`);
+    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.70, `moon ${NIGHT_RIG.moon}`);
+    assert.equal(NIGHT_RIG.key, 4.8);
     assert.equal(NIGHT_RIG.fogDensity, 0.022);
     assert.equal(NIGHT_AMBIENT.sky, 0x43384c);
     assert.equal(NIGHT_AMBIENT.ground, 0x1a1412);
@@ -242,8 +245,8 @@ describe('GS-ROOM-LIGHT per-level accents on the night family', () => {
 });
 
 describe('GS-ROOM-LIGHT stamp', () => {
-  it('visible stamp is BUILD 11 (CameraRig.test.ts owns this too)', () => {
-    assert.match(BUILD_STAMP, /^BUILD 11\b/);
+  it('visible stamp is BUILD 12 (CameraRig.test.ts owns this too)', () => {
+    assert.match(BUILD_STAMP, /^BUILD 12\b/);
   });
 });
 
@@ -254,7 +257,7 @@ describe('GS-ROOM-LIGHT wiring', () => {
 
     const apt = src('Apartment.ts');
     const load = apt.slice(apt.indexOf('loadLevel('));
-    const wallLoop = load.match(/for \(const i of \[1, 2, 3\]\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
+    const wallLoop = load.match(/for \(const i of \[1, 2, 3, 4\]\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
     assert.match(wallLoop, /toonify\(wall\)/);
     assert.doesNotMatch(wallLoop, /\.dispose\(/);
     assert.match(apt, /NIGHT_RIG\.hemi/);
@@ -286,6 +289,12 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.doesNotMatch(apt, /roomMat\(0x2a2a32/);
     assert.doesNotMatch(apt, /roomMat\(0x141014/);
     assert.doesNotMatch(apt, /roomMat\(0x2a2422/);
+    assert.match(apt, /for \(const i of \[1, 2, 3, 4\]\)/);
+    assert.match(apt, /front\.position\.set\(0, 2\.2, 5\.2\)/);
+    assert.match(apt, /dressPlayFringe/);
+    assert.match(apt, /tileSurface/);
+    assert.match(apt, /cabinetRun/);
+    assert.match(apt, /SET_DRESS\.kitchen/);
     assert.match(apt, /liftLuma\(/);
     assert.doesNotMatch(apt, /multiplyScalar\(0\.48\)/);
     assert.doesNotMatch(apt, /rgba\(6, 4, 14/);
