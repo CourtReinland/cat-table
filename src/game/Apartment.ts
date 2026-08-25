@@ -1114,18 +1114,18 @@ export class Apartment {
         // leftover empty +X BACK WALL — cork face the play OTS actually looks at
         // (window-side splash stays; this is the kitchen-fridge analogue)
         const corkFace = surfaceMat(panelSurface(0xb09068, 41), [1.2, 1.8]);
-        this.meshBox(lg, 0.07, 1.75, 0.95, corkFace, d.corkWall.x, d.corkWall.y, d.corkWall.z);
+        this.meshBox(lg, 0.07, 1.75, 1.15, corkFace, d.corkWall.x, d.corkWall.y, d.corkWall.z);
         for (let i = 0; i < 6; i++) {
           this.meshBox(
             lg,
-            0.012,
+            0.014,
+            0.26,
             0.2,
-            0.14,
-            roomMat([0xf2ead0, 0xd0e4f4, 0xf0c8c8, 0xe8dcc8][i % 4], { rough: 0.95 }),
-            d.corkWall.x - 0.045,
-            0.95 + (i % 3) * 0.38,
-            d.corkWall.z - 0.28 + Math.floor(i / 3) * 0.42,
-            (i - 2.5) * 0.04,
+            roomMat([0xf8f0dc, 0xd8eef8, 0xf8d0d0, 0xe8dcc0][i % 4], { rough: 0.95 }),
+            d.corkWall.x - 0.05,
+            0.92 + (i % 3) * 0.42,
+            d.corkWall.z - 0.32 + Math.floor(i / 3) * 0.48,
+            (i - 2.5) * 0.05,
           );
         }
         this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
@@ -1165,8 +1165,8 @@ export class Apartment {
         lg.add(corkLight);
         // leftover empty +X room wall (coffee TV analogue) — far enough not to billboard
         const farBoard = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.7, 1.35),
-          new THREE.MeshStandardNodeMaterial({ map: posterTex(38), roughness: 0.92 }),
+          new THREE.PlaneGeometry(2.1, 1.55),
+          surfaceMat(panelSurface(0xb09068, 33), [2.2, 1.5]),
         );
         farBoard.position.set(6.88, 1.62, 0.38);
         farBoard.rotation.y = -Math.PI / 2;

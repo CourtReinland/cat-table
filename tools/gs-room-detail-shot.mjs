@@ -97,9 +97,9 @@ try {
     console.log('shot', `${PREFIX}-${id}-iso.png`);
     await setIso(false);
 
-    await page.keyboard.down('KeyD');
+    await page.keyboard.down('KeyW');
     await sleep(700);
-    await page.keyboard.up('KeyD');
+    await page.keyboard.up('KeyW');
     await sleep(500);
     await page.screenshot({ path: `${OUT}/${PREFIX}-${id}-walked.png` });
     console.log('shot', `${PREFIX}-${id}-walked.png`);
