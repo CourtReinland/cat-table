@@ -36,14 +36,65 @@ function glbJson(path: string) {
   assert.equal(buf.subarray(0, 4).toString('ascii'), 'glTF');
   const chunkLen = buf.readUInt32LE(12);
   const json = JSON.parse(buf.subarray(20, 20 + chunkLen).toString('utf8')) as {
-    animations?: { name?: string; samplers?: { input: number }[] }[];
-    accessors?: { max?: number[] }[];
+    animations?: {
+      name?: string;
+      samplers?: { input: number; output: number }[];
+      channels?: { sampler: number; target: { node: number; path: string } }[];
+    }[];
+    accessors?: {
+      bufferView?: number;
+      byteOffset?: number;
+      count: number;
+      componentType: number;
+      type: string;
+      max?: number[];
+    }[];
+    bufferViews?: { buffer: number; byteOffset?: number; byteLength: number }[];
     nodes?: { name?: string }[];
     materials?: unknown[];
     textures?: unknown[];
     images?: unknown[];
   };
-  return { buf, json };
+  const jsonPad = (4 - (chunkLen % 4)) % 4;
+  const binStart = 20 + chunkLen + jsonPad + 8;
+  return { buf, json, binStart };
+}
+
+function glbVec3Track(
+  parsed: ReturnType<typeof glbJson>,
+  clipName: string,
+  nodeName: string,
+  path: string,
+): number[][] {
+  const { buf, json, binStart } = parsed;
+  const anim = (json.animations ?? []).find((a) => a.name === clipName);
+  assert.ok(anim, `missing clip ${clipName}`);
+  const nodeI = (json.nodes ?? []).findIndex((n) => n.name === nodeName);
+  assert.ok(nodeI >= 0, `missing node ${nodeName}`);
+  const ch = (anim.channels ?? []).find(
+    (c) => c.target.node === nodeI && c.target.path === path,
+  );
+  assert.ok(ch, `missing ${clipName} ${nodeName}.${path}`);
+  const acc = json.accessors![anim.samplers![ch.sampler].output];
+  const view = json.bufferViews![acc.bufferView ?? 0];
+  const off = binStart + (view.byteOffset ?? 0) + (acc.byteOffset ?? 0);
+  const out: number[][] = [];
+  for (let i = 0; i < acc.count; i++) {
+    const o = off + i * 12;
+    out.push([buf.readFloatLE(o), buf.readFloatLE(o + 4), buf.readFloatLE(o + 8)]);
+  }
+  return out;
+}
+
+function xyzTravel(samples: number[][]): number {
+  const xs = samples.map((s) => s[0]);
+  const ys = samples.map((s) => s[1]);
+  const zs = samples.map((s) => s[2]);
+  return Math.hypot(
+    Math.max(...xs) - Math.min(...xs),
+    Math.max(...ys) - Math.min(...ys),
+    Math.max(...zs) - Math.min(...zs),
+  );
 }
 
 function clipDuration(json: ReturnType<typeof glbJson>['json'], name: string) {
@@ -115,9 +166,10 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
 
   it('boy-eli.glb is the textured Mixamo drop-in (glTF, clips, Head, no Cuddle)', () => {
     const path = join(models, 'boy-eli.glb');
-    assert.equal(statSync(path).size, 32810800);
-    const { buf, json } = glbJson(path);
-    assert.equal(buf.length, 32810800);
+    assert.equal(statSync(path).size, 32548648);
+    const parsed = glbJson(path);
+    const { buf, json } = parsed;
+    assert.equal(buf.length, 32548648);
     const names = (json.animations ?? []).map((a) => a.name);
     assert.deepEqual(names, ['Idle_Sit', 'Idle_Stand', 'StandUp', 'Walk', 'Kneel']);
     assert.equal(names.includes('Cuddle'), false);
@@ -129,9 +181,16 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
     const nodeNames = (json.nodes ?? []).map((n) => n.name);
     assert.ok(nodeNames.includes('Head'), 'Head bone missing');
     assert.ok((json.images?.length ?? 0) >= 1, 'PBR textures missing');
+    const hipsWalk = glbVec3Track(parsed, 'Walk', 'mixamorig:Hips', 'translation');
+    assert.ok(xyzTravel(hipsWalk) < 0.5, `Walk must stay in-place, travel=${xyzTravel(hipsWalk)}`);
+    const headT = glbVec3Track(parsed, 'Idle_Stand', 'Head', 'translation');
+    assert.ok(Math.max(...headT.map((s) => Math.abs(s[1]))) < 2, 'Head translation must be metres, not ~1880');
+    const hipsScale = glbVec3Track(parsed, 'Idle_Stand', 'mixamorig:Hips', 'scale');
+    assert.ok(hipsScale.every((s) => s.every((v) => Math.abs(v - 1) < 0.01)), 'Hips scale must stay ~1');
     const boy = src('BoyGlb.ts');
     assert.doesNotMatch(boy, /SUKI_FACE/);
     assert.doesNotMatch(boy, /faceFurniture/);
+    assert.match(boy, /SkeletonUtils\.clone\(src\.scene\)/);
   });
 
   it('does not overwrite the other clay boy GLBs', () => {
