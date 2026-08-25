@@ -1066,20 +1066,24 @@ export class Apartment {
         this.dressProp(lg, 'plant', d.fileCab.x, 1.16, d.fileCab.z, 0.8);
         this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
         this.dressProp(lg, 'book', d.portraitCart.x, 0.95, d.portraitCart.z);
-        // OTS-right easel + canvas (Kai leftover)
+        // OTS-right easel + canvas (Kai leftover). Canvas faces −X so play OTS
+        // looking +X actually sees the painting, not a stick.
         const easelWood = roomMat(0x6a4a38, { rough: 0.8 });
-        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x - 0.18, 0.7, d.easel.z - 0.08);
-        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x + 0.18, 0.7, d.easel.z - 0.08);
-        this.meshBox(lg, 0.04, 1.15, 0.04, easelWood, d.easel.x, 0.6, d.easel.z + 0.16);
-        this.meshBox(lg, 0.42, 0.04, 0.04, easelWood, d.easel.x, 1.18, d.easel.z);
+        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x, 0.7, d.easel.z - 0.18);
+        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x, 0.7, d.easel.z + 0.18);
+        this.meshBox(lg, 0.04, 1.15, 0.04, easelWood, d.easel.x + 0.16, 0.6, d.easel.z);
+        this.meshBox(lg, 0.04, 0.04, 0.42, easelWood, d.easel.x, 1.18, d.easel.z);
         const canvas = new THREE.Mesh(
           new THREE.PlaneGeometry(0.52, 0.68),
           new THREE.MeshStandardNodeMaterial({ map: posterTex(200), roughness: 0.9 }),
         );
         canvas.position.set(d.easel.x, d.easel.y, d.easel.z);
-        canvas.rotation.x = -0.12;
+        canvas.rotation.y = Math.PI / 2;
+        canvas.rotation.x = -0.08;
         canvas.castShadow = true;
         lg.add(canvas);
+        const canvasBack = this.meshBox(lg, 0.03, 0.7, 0.54, easelWood, d.easel.x + 0.02, d.easel.y, d.easel.z);
+        canvasBack.rotation.y = 0;
         this.dressProp(lg, 'jar', d.easel.x + 0.28, 0.02, d.easel.z + 0.12, 0.7);
         this.dressProp(lg, 'bowl', d.easel.x - 0.28, 0.02, d.easel.z + 0.1, 0.65);
         const under = new THREE.PointLight(level.lampColor, 1.8, 3.0, 2);
@@ -1136,8 +1140,9 @@ export class Apartment {
         this.meshCyl(lg, 0.03, 0.38, darkWood, r.vanityStool.x, r.vanityStool.y - 0.22, r.vanityStool.z);
         // robe on a hook
         this.meshCyl(lg, 0.02, 0.12, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), r.robeHook.x, r.robeHook.y + 0.35, r.robeHook.z, 8);
-        this.meshBox(lg, 0.28, 0.85, 0.12, linen, r.robeHook.x, r.robeHook.y, r.robeHook.z, 0.2);
-        this.meshBox(lg, 0.1, 0.55, 0.1, roomMat(0xb88a9a, { rough: 1 }), r.robeHook.x + 0.12, r.robeHook.y - 0.08, r.robeHook.z + 0.04, 0.35);
+        this.meshBox(lg, 0.38, 0.95, 0.22, linen, r.robeHook.x, r.robeHook.y, r.robeHook.z, 0.35);
+        this.meshBox(lg, 0.16, 0.7, 0.16, roomMat(0xb88a9a, { rough: 1 }), r.robeHook.x + 0.14, r.robeHook.y - 0.08, r.robeHook.z + 0.06, 0.5);
+        this.meshBox(lg, 0.14, 0.55, 0.14, roomMat(0x8a9ab8, { rough: 1 }), r.robeHook.x - 0.1, r.robeHook.y - 0.12, r.robeHook.z + 0.04, 0.15);
         break;
       }
       case 'dining': {
