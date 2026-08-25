@@ -13,8 +13,9 @@ import {
   rugSurface,
   panelSurface,
   surfaceMat,
+  tileSurface,
 } from './Textures';
-import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG, NIGHT_SURFACE, levelMood, liftLuma } from './roomLook';
+import { EMISSIVE, MATTE, NIGHT_AMBIENT, NIGHT_FILL_POS, NIGHT_KEY_CONE, NIGHT_KEY_POS, NIGHT_KEY_TARGET, NIGHT_RIG, NIGHT_SURFACE, SET_DRESS, levelMood, liftLuma } from './roomLook';
 
 // ── canvas texture helpers ──────────────────────────────────────────────────
 
@@ -735,6 +736,245 @@ export class Apartment {
 
   // ── per-level room dressing: turns the shared shell into distinct rooms ──
 
+  private meshBox(
+    lg: THREE.Group,
+    w: number,
+    h: number,
+    d: number,
+    mat: THREE.Material,
+    x: number,
+    y: number,
+    z: number,
+    ry = 0,
+  ) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.rotation.y = ry;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    lg.add(m);
+    return m;
+  }
+
+  private meshCyl(
+    lg: THREE.Group,
+    r: number,
+    h: number,
+    mat: THREE.Material,
+    x: number,
+    y: number,
+    z: number,
+    seg = 12,
+  ) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    lg.add(m);
+    return m;
+  }
+
+  /** Cabinet + stone-top run used on the OTS-near fringe (not the play slab). */
+  private cabinetRun(
+    lg: THREE.Group,
+    level: LevelDef,
+    cx: number,
+    cz: number,
+    width: number,
+    depth: number,
+    topY: number,
+  ) {
+    const veinHex = new THREE.Color(level.counterColor).multiplyScalar(1.18).getHex();
+    const topMat = surfaceMat(marbleSurface(level.counterColor, veinHex, level.surface.length * 19), [2.2, 0.8]);
+    const bodyHex = liftLuma(
+      new THREE.Color(level.counterColor).multiplyScalar(NIGHT_SURFACE.cabinetMul).getHex(),
+      NIGHT_SURFACE.minWallLuma,
+    );
+    const bodyMat = surfaceMat(panelSurface(bodyHex, level.surface.length * 11), [2, 1]);
+    const cabH = topY - 0.08;
+    this.meshBox(lg, width - 0.08, cabH, depth - 0.08, bodyMat, cx, cabH / 2, cz);
+    this.meshBox(lg, width, 0.05, depth, topMat, cx, topY - 0.025, cz);
+    // shaker doors so the run reads as furniture, not a crate
+    const doorMat = surfaceMat(panelSurface(bodyHex, level.surface.length * 13), [1, 1]);
+    const doors = Math.max(2, Math.round(width / 0.55));
+    const dw = (width - 0.14) / doors;
+    for (let i = 0; i < doors; i++) {
+      const dx = cx - width / 2 + 0.1 + dw * (i + 0.5);
+      this.meshBox(lg, dw - 0.04, cabH * 0.72, 0.02, doorMat, dx, cabH * 0.48, cz + depth / 2 - 0.03);
+      this.meshCyl(lg, 0.012, 0.04, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), dx + dw * 0.28, cabH * 0.48, cz + depth / 2 + 0.01, 8);
+    }
+    return { topMat, bodyMat, topY };
+  }
+
+  /**
+   * GS-ROOM-SET: furniture on the play-slab fringe so the OTS camera actually
+   * sees a lived-in room. Distant back-wall props read as specks in that
+   * frustum; these sit 1.5–4 m from spawn.
+   */
+  private dressPlayFringe(lg: THREE.Group, level: LevelDef) {
+    const darkWood = roomMat(0x6a4a38, { rough: 0.8 });
+    const midWood = roomMat(0x7a5a42, { rough: 0.75 });
+    const silver = roomMat(NIGHT_SURFACE.shellPan, { metal: 0.18, rough: 0.45 });
+    const fabric = roomMat(0x7a6480, { rough: 0.95 });
+
+    switch (level.surface) {
+      case 'kitchen': {
+        const k = SET_DRESS.kitchen;
+        this.cabinetRun(lg, level, k.backCounter.x, k.backCounter.z, 3.35, 0.5, 0.92);
+        // tile backsplash so the run doesn't sit in a black void
+        const splash = new THREE.Mesh(
+          new THREE.BoxGeometry(3.3, 0.52, 0.04),
+          surfaceMat(tileSurface(0x8a7a88, 0x5a4c58, 31), [4, 1.2]),
+        );
+        splash.position.set(k.backCounter.x, 1.22, k.backCounter.z - 0.24);
+        splash.receiveShadow = true;
+        lg.add(splash);
+        // sink + faucet (OTS-left, window side of the island)
+        this.meshBox(lg, 0.42, 0.08, 0.32, roomMat(0x6a7278, { metal: 0.16, rough: 0.4 }), k.sink.x, k.sink.y - 0.04, k.sink.z);
+        this.meshCyl(lg, 0.018, 0.22, silver, k.sink.x + 0.12, k.sink.y + 0.12, k.sink.z - 0.08, 8);
+        const spout = this.meshBox(lg, 0.16, 0.022, 0.022, silver, k.sink.x + 0.04, k.sink.y + 0.22, k.sink.z - 0.02);
+        spout.rotation.z = 0.15;
+        this.meshCyl(lg, 0.012, 0.05, silver, k.sink.x - 0.02, k.sink.y + 0.18, k.sink.z + 0.02, 8);
+        // upper cabinets hanging in the top-left of OTS
+        this.meshBox(lg, 1.7, 0.42, 0.34, surfaceMat(panelSurface(0x6a5850, 17), [2, 1]), k.upperCab.x, k.upperCab.y, k.upperCab.z);
+        this.meshBox(lg, 0.02, 0.02, 0.28, roomMat(0xffc07a, { emissive: 0xffb46a, emissiveIntensity: EMISSIVE.led }), k.upperCab.x, k.upperCab.y - 0.22, k.upperCab.z + 0.08);
+        // fridge at the far +X end — vanishing point of the play camera
+        this.meshBox(lg, 0.62, 1.84, 0.58, silver, k.fridge.x, k.fridge.y, k.fridge.z);
+        this.meshBox(lg, 0.58, 0.02, 0.54, roomMat(0x4a5056, { rough: 0.5 }), k.fridge.x, k.fridge.y + 0.12, k.fridge.z + 0.01);
+        this.meshBox(lg, 0.03, 0.55, 0.03, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), k.fridge.x - 0.28, k.fridge.y + 0.15, k.fridge.z + 0.28);
+        // portrait-side hutch (behind the cat in 3/4 stills)
+        this.meshBox(lg, 0.72, 2.05, 0.38, darkWood, k.portraitHutch.x, k.portraitHutch.y, k.portraitHutch.z);
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(lg, 0.64, 0.03, 0.32, midWood, k.portraitHutch.x, 0.55 + i * 0.45, k.portraitHutch.z + 0.02);
+          const dish = buildProp(i % 2 ? 'jar' : 'bowl');
+          dish.group.position.set(k.portraitHutch.x + (i - 1) * 0.16, 0.58 + i * 0.45, k.portraitHutch.z + 0.02);
+          dish.group.scale.setScalar(0.85);
+          lg.add(dish.group);
+        }
+        // local practical under the back run — lifts cabinets, not the slab
+        const under = new THREE.PointLight(level.lampColor, 2.4, 3.2, 2);
+        under.position.set(k.backCounter.x, 0.88, k.backCounter.z + 0.12);
+        lg.add(under);
+        break;
+      }
+      case 'coffee': {
+        const c = SET_DRESS.coffee;
+        this.cabinetRun(lg, level, c.backConsole.x, c.backConsole.z, 2.4, 0.42, 0.52);
+        this.meshBox(lg, 0.28, 0.22, 0.18, roomMat(0x2a2e38, { rough: 0.45 }), c.backConsole.x - 0.7, 0.64, c.backConsole.z);
+        const rec = buildProp('remote');
+        rec.group.position.set(c.backConsole.x - 0.35, 0.54, c.backConsole.z + 0.05);
+        lg.add(rec.group);
+        const mag = buildProp('book');
+        mag.group.position.set(c.backConsole.x + 0.45, 0.54, c.backConsole.z);
+        mag.group.rotation.y = 0.4;
+        lg.add(mag.group);
+        // lounge chair at the far +X end
+        this.meshBox(lg, 0.62, 0.38, 0.58, fabric, c.loungeChair.x, c.loungeChair.y, c.loungeChair.z, -0.25);
+        this.meshBox(lg, 0.62, 0.55, 0.12, fabric, c.loungeChair.x - 0.04, c.loungeChair.y + 0.42, c.loungeChair.z - 0.22, -0.25);
+        const plant = buildProp('plant');
+        plant.group.position.set(c.loungeChair.x + 0.45, 0, c.loungeChair.z - 0.45);
+        plant.group.scale.setScalar(1.35);
+        lg.add(plant.group);
+        // portrait-side torchiere
+        this.meshCyl(lg, 0.04, 1.55, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.16, rough: 0.5 }), c.portraitLamp.x, 0.78, c.portraitLamp.z, 8);
+        this.meshCyl(lg, 0.16, 0.08, roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }), c.portraitLamp.x, c.portraitLamp.y + 0.55, c.portraitLamp.z, 12);
+        const pLight = new THREE.PointLight(level.lampColor, 2.1, 3.4, 2);
+        pLight.position.set(c.portraitLamp.x, c.portraitLamp.y + 0.5, c.portraitLamp.z);
+        lg.add(pLight);
+        break;
+      }
+      case 'desk': {
+        const d = SET_DRESS.desk;
+        const bodyHex = liftLuma(
+          new THREE.Color(level.counterColor).multiplyScalar(NIGHT_SURFACE.cabinetMul).getHex(),
+          NIGHT_SURFACE.minWallLuma,
+        );
+        const shelfMat = surfaceMat(panelSurface(bodyHex, 21), [1.4, 1]);
+        this.meshBox(lg, 1.7, 1.55, 0.28, shelfMat, d.backShelf.x, d.backShelf.y - 0.35, d.backShelf.z);
+        for (let r = 0; r < 4; r++) {
+          this.meshBox(lg, 1.62, 0.03, 0.26, shelfMat, d.backShelf.x, 0.35 + r * 0.36, d.backShelf.z + 0.02);
+          for (let b = 0; b < 5; b++) {
+            this.meshBox(
+              lg,
+              0.05,
+              0.22 + (b % 3) * 0.04,
+              0.18,
+              roomMat([0x4a2c2c, 0x2c3c4a, 0x4a3c2c, 0x342c44, 0x3a4a38][b], { rough: 0.9 }),
+              d.backShelf.x - 0.65 + b * 0.28,
+              0.48 + r * 0.36,
+              d.backShelf.z + 0.02,
+            );
+          }
+        }
+        this.meshBox(lg, 0.48, 1.12, 0.5, darkWood, d.fileCab.x, d.fileCab.y, d.fileCab.z);
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(lg, 0.42, 0.08, 0.02, midWood, d.fileCab.x, 0.28 + i * 0.28, d.fileCab.z + 0.26);
+        }
+        this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
+        const sk = buildProp('book');
+        sk.group.position.set(d.portraitCart.x, 0.95, d.portraitCart.z);
+        lg.add(sk.group);
+        const under = new THREE.PointLight(level.lampColor, 1.8, 3.0, 2);
+        under.position.set(d.backShelf.x, 1.4, d.backShelf.z + 0.2);
+        lg.add(under);
+        break;
+      }
+      case 'dresser': {
+        const r = SET_DRESS.dresser;
+        this.cabinetRun(lg, level, r.nightstand.x, r.nightstand.z, 1.15, 0.42, 0.62);
+        const lamp = buildProp('candle');
+        lamp.group.position.set(r.nightstand.x - 0.28, 0.64, r.nightstand.z);
+        lg.add(lamp.group);
+        const frame = buildProp('frame');
+        frame.group.position.set(r.nightstand.x + 0.22, 0.64, r.nightstand.z + 0.02);
+        lg.add(frame.group);
+        this.meshBox(lg, 0.85, 2.15, 0.48, darkWood, r.wardrobe.x, r.wardrobe.y, r.wardrobe.z);
+        this.meshCyl(lg, 0.018, 0.16, roomMat(0xd8b25a, { metal: 0.18, rough: 0.35 }), r.wardrobe.x - 0.28, r.wardrobe.y, r.wardrobe.z + 0.25, 8);
+        for (let i = 0; i < 3; i++) {
+          const cloth = new THREE.Mesh(
+            new THREE.SphereGeometry(0.13, 8, 6),
+            roomMat([0x8a9ab8, 0xb88a9a, 0xd8d0c0][i], { rough: 1 }),
+          );
+          cloth.scale.set(1.25, 0.45, 1.05);
+          cloth.position.set(r.portraitHamper.x + (i - 1) * 0.12, r.portraitHamper.y + i * 0.04, r.portraitHamper.z);
+          lg.add(cloth);
+        }
+        const stool = this.meshCyl(lg, 0.18, 0.08, fabric, r.portraitHamper.x + 0.45, 0.4, r.portraitHamper.z + 0.15);
+        stool.castShadow = true;
+        break;
+      }
+      case 'dining': {
+        const n = SET_DRESS.dining;
+        this.cabinetRun(lg, level, n.windowSideboard.x, n.windowSideboard.z, 1.8, 0.44, 0.78);
+        for (let i = 0; i < 3; i++) {
+          const btl = buildProp('bottle');
+          btl.group.position.set(n.windowSideboard.x - 0.45 + i * 0.22, 0.80, n.windowSideboard.z);
+          lg.add(btl.group);
+        }
+        const vase = buildProp('vase');
+        vase.group.position.set(n.windowSideboard.x + 0.55, 0.80, n.windowSideboard.z);
+        lg.add(vase.group);
+        // wine cart at the far +X vanishing point
+        this.meshBox(lg, 0.55, 0.08, 0.38, midWood, n.wineCart.x, 0.72, n.wineCart.z);
+        this.meshBox(lg, 0.55, 0.08, 0.38, midWood, n.wineCart.x, 0.38, n.wineCart.z);
+        for (const [lx, lz] of [[-0.22, -0.14], [0.22, -0.14], [-0.22, 0.14], [0.22, 0.14]] as const) {
+          this.meshCyl(lg, 0.02, 0.72, darkWood, n.wineCart.x + lx, 0.36, n.wineCart.z + lz, 8);
+        }
+        const dec = buildProp('bottle');
+        dec.group.position.set(n.wineCart.x, 0.78, n.wineCart.z);
+        lg.add(dec.group);
+        this.meshBox(lg, 1.55, 0.82, 0.42, midWood, n.portraitBuffet.x, n.portraitBuffet.y, n.portraitBuffet.z);
+        this.meshBox(lg, 1.58, 0.05, 0.44, darkWood, n.portraitBuffet.x, 0.92, n.portraitBuffet.z);
+        const gob = buildProp('wineglass');
+        gob.group.position.set(n.portraitBuffet.x + 0.3, 0.95, n.portraitBuffet.z);
+        lg.add(gob.group);
+        const under = new THREE.PointLight(level.lampColor, 2.0, 3.2, 2);
+        under.position.set(n.windowSideboard.x, 0.95, n.windowSideboard.z + 0.15);
+        lg.add(under);
+        break;
+      }
+    }
+  }
+
   private dressRoom(lg: THREE.Group, level: LevelDef) {
     const box = (w: number, h: number, d: number, mat: any, x: number, y: number, z: number, ry = 0) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -756,13 +996,17 @@ export class Apartment {
     const midWood = roomMat(0x7a5a42, { rough: 0.75 });
     const fabric = roomMat(0x7a6480, { rough: 0.95 });
 
+    this.dressPlayFringe(lg, level);
+
     switch (level.surface) {
       case 'kitchen': {
         // hanging pot rack over the island (in frame) + bar stools in the foreground
         const rackMat = roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 });
         const panMat = roomMat(NIGHT_SURFACE.shellPan, { metal: 0.16, rough: 0.5 });
         box(1.3, 0.03, 0.5, rackMat, -0.6, 2.15, 0.3);
-        for (const [cx, cz2] of [[-1.15, 0.05], [-1.15, 0.55], [-0.05, 0.05], [-0.05, 0.55]] as const) {
+        // second rack section further +X so OTS still sees pans after a few steps
+        box(1.1, 0.03, 0.42, rackMat, 0.85, 2.15, 0.22);
+        for (const [cx, cz2] of [[-1.15, 0.05], [-1.15, 0.55], [-0.05, 0.05], [-0.05, 0.55], [0.4, 0.05], [1.25, 0.05]] as const) {
           cyl(0.006, 1.3, rackMat, cx, 2.8, cz2, 6);
         }
         for (let i = 0; i < 3; i++) {
@@ -771,8 +1015,11 @@ export class Apartment {
           const handle = box(0.03, 0.02, 0.16, panMat, -1.05 + i * 0.42, 2.02, 0.45);
           handle.castShadow = false;
         }
-        // bar stools
-        for (const sx of [-0.9, 0.15]) {
+        for (let i = 0; i < 2; i++) {
+          cyl(0.12 - i * 0.02, 0.03, panMat, 0.55 + i * 0.4, 2.02, 0.22);
+        }
+        // bar stools — three so the +Z fringe stays dressed as she walks +X
+        for (const sx of [-0.9, 0.15, 1.15]) {
           cyl(0.19, 0.07, roomMat(0x8a6a52, { rough: 0.6 }), sx, 0.62, 1.55);
           cyl(0.03, 0.6, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.3, 1.55);
           cyl(0.14, 0.03, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.18, rough: 0.55 }), sx, 0.02, 1.55);
@@ -785,6 +1032,30 @@ export class Apartment {
           herb.scale.y = 1.4;
           lg.add(herb);
         }
+        // dusty lived-in clutter on the BACK COUNTER only (not the play slab)
+        const k = SET_DRESS.kitchen;
+        const cooker = this.meshCyl(lg, 0.13, 0.16, roomMat(NIGHT_SURFACE.shellPan, { metal: 0.18, rough: 0.42 }), k.riceCooker.x, k.riceCooker.y - 0.02, k.riceCooker.z, 14);
+        cooker.scale.y = 1;
+        this.meshCyl(lg, 0.14, 0.04, roomMat(NIGHT_SURFACE.shellPan, { metal: 0.16, rough: 0.5 }), k.riceCooker.x, k.riceCooker.y + 0.08, k.riceCooker.z, 14);
+        this.meshCyl(lg, 0.025, 0.05, roomMat(0x4a4448, { rough: 0.6 }), k.riceCooker.x, k.riceCooker.y + 0.14, k.riceCooker.z, 8);
+        const kettle = buildProp('teapot');
+        kettle.group.position.set(k.riceCooker.x + 0.38, 0.94, k.riceCooker.z + 0.02);
+        kettle.group.scale.setScalar(0.9);
+        lg.add(kettle.group);
+        const board = this.meshBox(lg, 0.32, 0.02, 0.22, roomMat(0x8a6a48, { rough: 0.9 }), k.sink.x - 0.55, 0.94, k.sink.z + 0.04);
+        board.rotation.y = 0.18;
+        const crock = this.meshCyl(lg, 0.055, 0.12, roomMat(0xb07a5a, { rough: 0.88 }), k.sink.x - 0.95, 1.00, k.sink.z - 0.04, 10);
+        crock.castShadow = true;
+        for (let i = 0; i < 4; i++) {
+          const stick = this.meshCyl(lg, 0.008, 0.18, roomMat(0xc8b090, { rough: 0.7 }), k.sink.x - 0.95 + (i - 1.5) * 0.018, 1.14, k.sink.z - 0.04, 6);
+          stick.rotation.z = (i - 1.5) * 0.08;
+        }
+        const towel = this.meshBox(lg, 0.18, 0.28, 0.04, roomMat(0xd8c8b8, { rough: 0.98 }), k.sink.x + 0.42, 0.72, k.sink.z + 0.22);
+        towel.rotation.x = 0.15;
+        const herbPot = buildProp('plant');
+        herbPot.group.position.set(k.backCounter.x - 1.25, 0.94, k.backCounter.z);
+        herbPot.group.scale.setScalar(0.7);
+        lg.add(herbPot.group);
         break;
       }
       case 'coffee': {
