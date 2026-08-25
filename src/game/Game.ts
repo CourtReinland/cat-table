@@ -27,6 +27,7 @@ import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantT
 import { pawHitsProp } from './pawHit';
 import { PAW_HIT_RADIUS } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
+import { cineShouldSitThenStand } from './boyfriendPlay';
 
 type Phase =
   | 'loading'
@@ -896,9 +897,12 @@ export class Game {
     const ease = (x: number) => x * x * (3 - 2 * x);
     const seg = (a: number, b: number) => ease(THREE.MathUtils.clamp((t - a) / (b - a), 0, 1));
 
-    // boyfriend: stand (0.2–1.0), walk (1.0–2.6), kneel (2.6–3.3), cuddle (3.6+)
-    if (t < 0.2) bf.setPose('sit', 0.3);
-    if (t >= 0.2 && t < 1.0 && this.cineT - dt < 0.2) bf.setPose('stand', 0.7);
+    // boyfriend: sit dates rise (0.2–1.0), then walk (1.0–2.6), kneel, cuddle.
+    // Kitchen Eli is already standing — do not play floating Idle_Sit or Mixamo StandUp.
+    if (cineShouldSitThenStand(bf.pose)) {
+      if (t < 0.2) bf.setPose('sit', 0.3);
+      if (t >= 0.2 && t < 1.0 && this.cineT - dt < 0.2) bf.setPose('stand', 0.7);
+    }
     if (t >= 1.0 && this.cineT - dt < 1.0) bf.setPose('walk', 0.4);
     if (t >= 1.0 && t < 2.6) {
       const k = seg(1.0, 2.6);
