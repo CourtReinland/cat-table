@@ -127,7 +127,11 @@ export function isSteerActive(speed: number, yawRate: number, speedFloor = 0.08)
   return speed > speedFloor || Math.abs(yawRate) > STEER.yawBusy;
 }
 
-/** Snapshotted world intent for body-locked (first-person) planted A/D/S. */
+/**
+ * Snapshotted world intent. First-person uses this for planted A/D/S
+ * (tank-spin). Third-person uses it for any held WASD/stick so a
+ * side-offset OTS look cannot live-remap W into a circle.
+ */
 export type PlantLock = { axes: XZ; world: XZ };
 
 const PLANT_AXIS_DEAD = 0.05;
@@ -177,7 +181,7 @@ function scaleLockedHeading(heading: XZ, axes: XZ): XZ {
  * planted; keep it until they are released so she turns into it and walks.
  * Scale by hypot(axes) each frame so analog ease still scrapes.
  * W-only stays live. In-gait cuts (already moving) stay live. Third-person
- * follow should not call this.
+ * follow uses `resolveHeadingLock` so OTS side-offset cannot orbit W.
  */
 export function resolvePlantLock(
   axes: XZ,
@@ -193,6 +197,33 @@ export function resolvePlantLock(
   }
 
   if (spd >= STEER.plantSpeed) return { move: live, lock: null };
+
+  const heading = unitXZ(live);
+  return {
+    move: scaleLockedHeading(heading, axes),
+    lock: { axes: { x: axes.x, z: axes.z }, world: heading },
+  };
+}
+
+/**
+ * Snapshot camera-relative world heading while the same quantized keys
+ * stay down. Close OTS sits `OTS.side` off the spine, so live
+ * `getWorldDirection` is slightly inward of cat heading; yaws toward it,
+ * the follow cam yaws with her, camDir updates, she circles. Hold the
+ * press-frame heading until release or a quantized axis change.
+ */
+export function resolveHeadingLock(
+  axes: XZ,
+  camDir: XZ,
+  lock: PlantLock | null,
+): { move: XZ; lock: PlantLock | null } {
+  const live = cameraRelativeMove(axes, camDir);
+  const q = quantizePlantAxes(axes);
+  if (q.x === 0 && q.z === 0) return { move: live, lock: null };
+
+  if (lock && samePlantAxes(lock.axes, axes)) {
+    return { move: scaleLockedHeading(lock.world, axes), lock };
+  }
 
   const heading = unitXZ(live);
   return {
