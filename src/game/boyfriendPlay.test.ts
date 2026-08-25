@@ -8,12 +8,15 @@ import { BUILD_STAMP } from '../buildStamp.ts';
 import { LEVELS } from '../data/content.ts';
 import { applyOtsPose, makeOtsCamera, OTS, otsPose } from './CameraRig.ts';
 import {
+  BIND_POSE_MAX_S,
   BOY_CLIPS,
   boyGlbUrl,
   boyMarkerWorld,
   boyPlayPlacement,
+  cineShouldSitThenStand,
   couchBoyPlacement,
   findHeadBone,
+  idleStandIsBind,
   kitchenCatSpawn,
   kitchenIslandBoyPlacement,
   LEVEL_SURFACE_CZ,
@@ -87,6 +90,13 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
     assert.match(boy, /boyGlbUrl\(id\)/);
     assert.doesNotMatch(boy, /suki\.glb/);
     assert.doesNotMatch(boy, /boy-eli\.glb`/);
+  });
+
+  it('clones skinned Eli with SkeletonUtils and does not mutate cached clips', () => {
+    const boy = src('BoyGlb.ts');
+    assert.match(boy, /SkeletonUtils\.clone\(src\.scene\)/);
+    assert.doesNotMatch(boy, /src\.scene\.clone\(/);
+    assert.doesNotMatch(boy, /remapMixamoRig/);
   });
 
   it('keeps the Mixamo clip contract without inventing Cuddle', () => {
@@ -234,6 +244,26 @@ describe('GS-HUMAN-SCOUT kitchen island stand, not couch sit', () => {
     assert.match(boy, /Idle_Stand/);
     const apt = src('Apartment.ts');
     assert.match(apt, /boyfriend\.setPose\(place\.pose/);
+  });
+
+  it('LoopOnce Idle_Stand only for sub-frame bind clips, not clay loops', () => {
+    const eli = clipDuration(glbJson(join(models, 'boy-eli.glb')).json, 'Idle_Stand');
+    const jasper = clipDuration(glbJson(join(models, 'boy-jasper.glb')).json, 'Idle_Stand');
+    assert.equal(idleStandIsBind(eli), true);
+    assert.equal(idleStandIsBind(jasper), false);
+    assert.ok(jasper > BIND_POSE_MAX_S);
+    const boy = src('BoyGlb.ts');
+    assert.match(boy, /idleStandIsBind\(next\.getClip\(\)\.duration\)/);
+    assert.doesNotMatch(boy, /if \(name === 'Idle_Stand'\) once = true/);
+  });
+
+  it('win cinematic does not sit a standing kitchen date, but still rises from a couch sit', () => {
+    assert.equal(cineShouldSitThenStand('stand'), false);
+    assert.equal(cineShouldSitThenStand('sit'), true);
+    const game = src('Game.ts');
+    assert.match(game, /cineShouldSitThenStand\(bf\.pose\)/);
+    assert.match(game, /setPose\('sit'/);
+    assert.match(game, /setPose\('stand'/);
   });
 
   it('couch spawn is outside Kitchen Island OTS (the old off-camera sit)', () => {

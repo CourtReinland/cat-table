@@ -9,9 +9,9 @@ import type { Object3D } from 'three';
  * Play mesh: textured Mixamo `public/assets/models/boy-eli.glb`.
  * Clips: Idle_Sit, Idle_Stand (1-frame T-pose bind — not a looping idle),
  * StandUp, Walk, Kneel. No Cuddle — do not invent one. Face FAIL is accepted;
- * do not invent a new face. Head bone is already `Head`; mixamorig prefixes
- * remap at load so look-at keeps working. Rest is standing T-pose, 1.75 m, +Y up.
- * Leave jasper/kai/theo/ren on clay.
+ * do not invent a new face. Head bone is already `Head`. Play load uses
+ * SkeletonUtils.clone and does not rename the rig or mutate cached clips.
+ * Rest is standing T-pose, 1.75 m, +Y up. Leave jasper/kai/theo/ren on clay.
  */
 export const BOY_CLIPS = [
   'Idle_Sit',
@@ -111,7 +111,19 @@ export function kitchenCatSpawn(counterSize: [number, number], counterHeight: nu
   };
 }
 
-/** Mixamo: `mixamorig:Head` / `mixamorigHead` → `Head`. Idempotent on clay names. */
+/** Idle_Stand shorter than this is a bind T-pose, not a looping idle (clay ~2.54s). */
+export const BIND_POSE_MAX_S = 0.05;
+
+export function idleStandIsBind(duration: number): boolean {
+  return duration > 0 && duration < BIND_POSE_MAX_S;
+}
+
+/** Win cine sits then StandUp only if the date spawned sitting. Kitchen Eli is already stand. */
+export function cineShouldSitThenStand(pose: string): boolean {
+  return pose === 'sit';
+}
+
+/** Mixamo: `mixamorig:Head` / `mixamorigHead` → `Head`. Idempotent on clay names. Play load does not call this. */
 export function stripMixamoPrefix(name: string): string {
   return name.replace(/^mixamorig[:_]?/, '');
 }

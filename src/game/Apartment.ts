@@ -566,6 +566,7 @@ export class Apartment {
     this.boyfriend.group.position.set(place.pos.x, place.pos.y, place.pos.z);
     this.boyfriend.group.rotation.y = place.rotY;
     this.boyfriend.setPose(place.pose, 0.01);
+    // Kitchen spawn is already stand. Game cine must not sit then StandUp that date.
     this.scene.add(this.boyfriend.group);
 
     this.cuddleSpot.set(0.4, 0, cz + d / 2 + 0.55);
