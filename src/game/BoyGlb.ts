@@ -42,8 +42,8 @@ function exclaimTexture() {
 let exclaimTex: THREE.CanvasTexture | null = null;
 
 /** GLB boyfriend: clip-driven poses + procedural head look-at.
- *  Mixamo Eli Head remap lives on boyfriendPlay.ts — do not fake a Mixamo mesh here.
- *  Kitchen date starts Idle_Stand (T-pose if that clip is missing). No floating sit.
+ *  Mixamo Eli is the boy-eli play mesh. Kitchen date starts Idle_Stand (1-frame T-pose bind)
+ *  or rest T-pose if that clip is missing. No floating sit. No invented face.
  *  setPose('cuddle') no-ops when the drop-in has no Cuddle clip.
  */
 export class Boyfriend {
@@ -112,6 +112,8 @@ export class Boyfriend {
     if (!this.mixer) return;
     const next = this.actions.get(name);
     if (!next) return;
+    // Idle_Stand is a 1-frame T-pose bind, not a looping idle.
+    if (name === 'Idle_Stand') once = true;
     if (next === this.current && !once) return;
     next.reset();
     if (once) {
@@ -139,8 +141,8 @@ export class Boyfriend {
           this.pendingAfter = { at: 0.9, clip: 'Idle_Stand', fade: 0.3 };
           this.oneShotUntil = 0.9;
         } else {
-          // Kitchen spawn / rest: Idle_Stand. Missing clip → bind T-pose (play no-ops).
-          this.play('Idle_Stand', time);
+          // Kitchen spawn / rest: Idle_Stand (1-frame T-pose). Missing clip → bind rest.
+          this.play('Idle_Stand', time, true);
         }
         break;
       }

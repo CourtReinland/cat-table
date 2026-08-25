@@ -6,14 +6,12 @@ import type { Object3D } from 'three';
  * Kitchen date (Eli): STAND at the far +X island lip. Do not couch-sit.
  * Do not start in Idle_Sit (that floats a sit clip at y=0 with no seat).
  *
- * Mixamo Eli, when dropped on `public/assets/models/boy-eli.glb`, ships clips
- * Idle_Sit, Idle_Stand, StandUp, Walk, Kneel. No Cuddle — do not invent one.
- * Face FAIL is accepted; do not invent a new face. `mixamorig:Head` remaps to
- * `Head` at load so look-at keeps working.
- *
- * Until that textured Mixamo file is dropped, this path is still the clay
- * factory mesh from `tools/blender/build_boyfriends.py`. Do not generate a
- * fake Mixamo mesh. Leave jasper/kai/theo/ren on clay.
+ * Play mesh: textured Mixamo `public/assets/models/boy-eli.glb`.
+ * Clips: Idle_Sit, Idle_Stand (1-frame T-pose bind — not a looping idle),
+ * StandUp, Walk, Kneel. No Cuddle — do not invent one. Face FAIL is accepted;
+ * do not invent a new face. Head bone is already `Head`; mixamorig prefixes
+ * remap at load so look-at keeps working. Rest is standing T-pose, 1.75 m, +Y up.
+ * Leave jasper/kai/theo/ren on clay.
  */
 export const BOY_CLIPS = [
   'Idle_Sit',

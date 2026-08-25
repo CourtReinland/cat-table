@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
@@ -26,6 +26,33 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const src = (name: string) => readFileSync(join(here, name), 'utf8');
+const models = join(here, '../../public/assets/models');
+
+function glbJson(path: string) {
+  const buf = readFileSync(path);
+  assert.equal(buf.subarray(0, 4).toString('ascii'), 'glTF');
+  const chunkLen = buf.readUInt32LE(12);
+  const json = JSON.parse(buf.subarray(20, 20 + chunkLen).toString('utf8')) as {
+    animations?: { name?: string; samplers?: { input: number }[] }[];
+    accessors?: { max?: number[] }[];
+    nodes?: { name?: string }[];
+    materials?: unknown[];
+    textures?: unknown[];
+    images?: unknown[];
+  };
+  return { buf, json };
+}
+
+function clipDuration(json: ReturnType<typeof glbJson>['json'], name: string) {
+  const anim = (json.animations ?? []).find((a) => a.name === name);
+  assert.ok(anim, `missing clip ${name}`);
+  let dur = 0;
+  for (const s of anim.samplers ?? []) {
+    const mx = json.accessors?.[s.input]?.max?.[0];
+    if (typeof mx === 'number') dur = Math.max(dur, mx);
+  }
+  return dur;
+}
 
 const COUCH = { x: -2.6, z: -2.0 };
 const KITCHEN = LEVELS[0];
@@ -74,6 +101,34 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
 
   it('visible stamp is BUILD 13', () => {
     assert.match(BUILD_STAMP, /^BUILD 13\b/);
+  });
+
+  it('boy-eli.glb is the textured Mixamo drop-in (glTF, clips, Head, no Cuddle)', () => {
+    const path = join(models, 'boy-eli.glb');
+    assert.equal(statSync(path).size, 32810800);
+    const { buf, json } = glbJson(path);
+    assert.equal(buf.length, 32810800);
+    const names = (json.animations ?? []).map((a) => a.name);
+    assert.deepEqual(names, ['Idle_Sit', 'Idle_Stand', 'StandUp', 'Walk', 'Kneel']);
+    assert.equal(names.includes('Cuddle'), false);
+    assert.equal(Math.round(clipDuration(json, 'Idle_Sit') * 10) / 10, 4.3);
+    assert.ok(clipDuration(json, 'Idle_Stand') < 0.04, 'Idle_Stand must stay a 1-frame bind');
+    assert.equal(Math.round(clipDuration(json, 'StandUp') * 1000) / 1000, 8.267);
+    assert.equal(Math.round(clipDuration(json, 'Walk') * 1000) / 1000, 1.033);
+    assert.equal(Math.round(clipDuration(json, 'Kneel') * 1000) / 1000, 4.667);
+    const nodeNames = (json.nodes ?? []).map((n) => n.name);
+    assert.ok(nodeNames.includes('Head'), 'Head bone missing');
+    assert.ok((json.images?.length ?? 0) >= 1, 'PBR textures missing');
+    const boy = src('BoyGlb.ts');
+    assert.doesNotMatch(boy, /SUKI_FACE/);
+    assert.doesNotMatch(boy, /faceFurniture/);
+  });
+
+  it('does not overwrite the other clay boy GLBs', () => {
+    assert.equal(statSync(join(models, 'boy-jasper.glb')).size, 399688);
+    assert.equal(statSync(join(models, 'boy-kai.glb')).size, 424264);
+    assert.equal(statSync(join(models, 'boy-theo.glb')).size, 420648);
+    assert.equal(statSync(join(models, 'boy-ren.glb')).size, 398700);
   });
 });
 
