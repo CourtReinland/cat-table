@@ -1043,6 +1043,17 @@ export class Apartment {
         this.dressProp(lg, 'plant', d.backShelf.x - 0.55, 1.46, d.backShelf.z + 0.02, 0.7);
         this.dressProp(lg, 'jar', d.backShelf.x + 0.5, 1.46, d.backShelf.z + 0.02, 0.8);
         this.dressProp(lg, 'frame', d.backShelf.x + 0.15, 1.46, d.backShelf.z + 0.02, 0.75, 0.15);
+        // leftover empty BACK WALL — cork splash (kitchen-tile analogue)
+        this.meshBox(
+          lg,
+          2.4,
+          1.35,
+          0.05,
+          surfaceMat(panelSurface(0x9a7a5a, 37), [3, 1.6]),
+          d.backShelf.x,
+          1.62,
+          d.backShelf.z - 0.18,
+        );
         // cork pinboard on the room face
         this.meshBox(lg, 1.15, 0.72, 0.03, surfaceMat(panelSurface(0x9a7a5a, 37), [1.6, 1]), d.pinboard.x, d.pinboard.y, d.pinboard.z);
         for (let i = 0; i < 6; i++) {
