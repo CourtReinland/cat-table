@@ -49,11 +49,15 @@ export class Input {
   constructor() {
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      this.keys.add(e.code);
-      this.pressedEdge.add(e.code);
-      if (e.code === 'Space') e.preventDefault();
+      const code = e.code === 'Space' || e.key === ' ' ? 'Space' : e.code;
+      this.keys.add(code);
+      this.pressedEdge.add(code);
+      if (code === 'Space') e.preventDefault();
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('keyup', (e) => {
+      const code = e.code === 'Space' || e.key === ' ' ? 'Space' : e.code;
+      this.keys.delete(code);
+    });
     window.addEventListener('blur', () => this.keys.clear());
 
     this.bindTouch();

@@ -49,7 +49,7 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
   it('samples front paw bones for swipe contact', () => {
     assert.deepEqual([...SUKI_PAW_BONES], ['paw_FL', 'paw_FR']);
     assert.ok(PAW_HIT_RADIUS > 0.05 && PAW_HIT_RADIUS < 0.2);
-    assert.equal(PAW_PLAY_REACH, 0.28);
+    assert.equal(PAW_PLAY_REACH, 0.42);
     const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
     assert.match(src, /preparePaws\(dt: number\) \{\s*this\.group\.rotation\.y = this\.yaw;/);
     assert.match(src, /updateMatrixWorld\(true\)/);

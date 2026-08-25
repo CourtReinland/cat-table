@@ -25,7 +25,7 @@ import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
 import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
 import { swipeHitsProp } from './pawHit';
-import { PAW_HIT_RADIUS, PAW_PLAY_REACH } from './sukiGlb';
+import { PAW_PLAY_REACH } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
 
 type Phase =
@@ -551,22 +551,13 @@ export class Game {
         const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
         cat.preparePaws(dt);
         const paws = cat.getPawTips();
-        // XZ swipe capsule vs prop disc. Rest Y (counterRestY) is not a miss
-        // layer — contact ignores height. Immovable is the only skip.
-        // GLB paw-bone origins sit in the chest after tame; swipeHitsProp
-        // fills only the shortfall out to PAW_PLAY_REACH (not a body cone).
+        // Disc around the cat (play reach + prop radius). A facing capsule
+        // missed smashables beside her after WASD. Rest Y is not a miss
+        // layer. Immovable is the only skip.
         const origin = { x: catPos.x, z: catPos.z };
-        const faceXZ = { x: facing.x, z: facing.z };
         for (const b of this.apartment.physics.bodies) {
           if (b.state === 'gone' || b.state === 'falling') continue;
-          let hit = false;
-          for (const paw of paws) {
-            if (swipeHitsProp({ x: paw.x, z: paw.z }, { x: b.pos.x, z: b.pos.z }, b.radiusXZ, faceXZ, origin, PAW_HIT_RADIUS, PAW_PLAY_REACH)) {
-              hit = true;
-              break;
-            }
-          }
-          if (!hit) continue;
+          if (!swipeHitsProp(origin, { x: b.pos.x, z: b.pos.z }, b.radiusXZ, PAW_PLAY_REACH)) continue;
           const to = new THREE.Vector3().subVectors(b.pos, catPos);
           to.y = 0;
           const dir = to.lengthSq() > 1e-8 ? to.normalize() : facing.clone();
@@ -1104,6 +1095,9 @@ export class Game {
     }
 
     void this.engine.render();
+    // Without this, pressed('Space') stays consumed after the first edge
+    // (or a menu Space) and later swipes never start swipeT / the clip.
+    this.input.flush();
   };
 
   // test hooks — used by tools/playthrough.mjs + indie-sprint play gate

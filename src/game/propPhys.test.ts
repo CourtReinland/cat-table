@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { LEVELS, PROP_LIBRARY, shatterableCount, type PropKind } from '../data/content.ts';
 import { counterRestY } from './ground.ts';
 import { pawHitsProp, swipeHitsProp } from './pawHit.ts';
-import { PAW_HIT_RADIUS, PAW_PLAY_REACH } from './sukiGlb.ts';
+import { PAW_HIT_RADIUS } from './sukiGlb.ts';
 import { contactAccel, isSmashable, kickScale } from './mass.ts';
 import { BUILD_STAMP } from '../buildStamp.ts';
 import { DEFAULT_FP_CAM } from './CameraRig.ts';
@@ -82,18 +82,16 @@ describe('GS-PROP-PHYS smashables stay dynamic', () => {
     assert.equal(pawHitsProp({ x: 0, z: 0 }, { x: 0.6, z: 0 }, 0.132, PAW_HIT_RADIUS), false);
   });
 
-  it('short paw at play reach shoves plant + laptop; immovable still does not yield', () => {
+  it('cat disc hits adjacent / 0.42 m smashables; far miss; immovable still skips', () => {
     const plantR = Math.max(PROP_LIBRARY.plant.size[0], PROP_LIBRARY.plant.size[2]) * 0.6;
     const laptopR = Math.max(PROP_LIBRARY.laptop.size[0], PROP_LIBRARY.laptop.size[2]) * 0.6;
-    const short = { x: 0, z: 0 };
-    const atReach = { x: 0, z: PAW_PLAY_REACH };
-    const autoplay = { x: 0, z: 0.42 };
-    const facing = { x: 0, z: 1 };
-    const origin = { x: 0, z: 0 };
-    assert.equal(pawHitsProp(short, atReach, plantR, PAW_HIT_RADIUS), false);
-    assert.equal(pawHitsProp(short, autoplay, laptopR, PAW_HIT_RADIUS), false);
-    assert.equal(swipeHitsProp(short, atReach, plantR, facing, origin), true);
-    assert.equal(swipeHitsProp(short, autoplay, laptopR, facing, origin), true);
+    const cat = { x: 0, z: 0 };
+    const beside = { x: 0.32, z: 0.10 };
+    const atCommit = { x: 0, z: 0.42 };
+    assert.equal(swipeHitsProp(cat, beside, plantR), true);
+    assert.equal(swipeHitsProp(cat, atCommit, plantR), true);
+    assert.equal(swipeHitsProp(cat, atCommit, laptopR), true);
+    assert.equal(swipeHitsProp(cat, { x: 0, z: 0.80 }, plantR), false);
     assert.equal(isSmashable(true), false);
     assert.equal(isSmashable(PROP_LIBRARY.plant.immovable), true);
     assert.equal(isSmashable(PROP_LIBRARY.laptop.immovable), true);
@@ -102,9 +100,12 @@ describe('GS-PROP-PHYS smashables stay dynamic', () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const game = readFileSync(join(here, 'Game.ts'), 'utf8');
     const phys = readFileSync(join(here, 'Physics.ts'), 'utf8');
+    const input = readFileSync(join(here, '../core/Input.ts'), 'utf8');
     assert.match(game, /swipeHitsProp/);
+    assert.match(game, /this\.input\.flush\(\)/);
     assert.match(game, /if \(b\.immovable\) \{\s*this\.swipeBlocked = true;\s*continue;/);
     assert.match(phys, /if \(b\.state === 'gone' \|\| b\.immovable\) return;/);
+    assert.match(input, /call at end of each frame/);
     assert.doesNotMatch(game, /OTS\.(back|side|height)\s*=/);
   });
 
