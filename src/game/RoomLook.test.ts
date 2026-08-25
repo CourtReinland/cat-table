@@ -257,7 +257,7 @@ describe('GS-ROOM-LIGHT wiring', () => {
 
     const apt = src('Apartment.ts');
     const load = apt.slice(apt.indexOf('loadLevel('));
-    const wallLoop = load.match(/for \(const i of \[1, 2, 3\]\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
+    const wallLoop = load.match(/for \(const i of \[1, 2, 3, 4\]\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
     assert.match(wallLoop, /toonify\(wall\)/);
     assert.doesNotMatch(wallLoop, /\.dispose\(/);
     assert.match(apt, /NIGHT_RIG\.hemi/);
@@ -289,10 +289,13 @@ describe('GS-ROOM-LIGHT wiring', () => {
     assert.doesNotMatch(apt, /roomMat\(0x2a2a32/);
     assert.doesNotMatch(apt, /roomMat\(0x141014/);
     assert.doesNotMatch(apt, /roomMat\(0x2a2422/);
-    assert.match(apt, /SET_DRESS\.kitchen/);
+    assert.match(apt, /for \(const i of \[1, 2, 3, 4\]\)/);
+    assert.match(apt, /front\.position\.set\(0, 2\.2, 5\.2\)/);
     assert.match(apt, /dressPlayFringe/);
     assert.match(apt, /tileSurface/);
     assert.match(apt, /cabinetRun/);
+    assert.match(apt, /SET_DRESS\.kitchen/);
+    assert.match(apt, /liftLuma\(/);
     assert.doesNotMatch(apt, /multiplyScalar\(0\.48\)/);
     assert.doesNotMatch(apt, /rgba\(6, 4, 14/);
     assert.doesNotMatch(apt, /#241811/);

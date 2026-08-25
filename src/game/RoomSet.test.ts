@@ -63,7 +63,7 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
   it('plants kitchen back-counter / fridge / cooker in the spawn OTS frame', () => {
     const kitchen = LEVELS.find((l) => l.id === 'kitchen')!;
     const cam = otsCam(kitchen);
-    const need = ['backCounter', 'sink', 'riceCooker', 'fridge', 'upperCab'] as const;
+    const need = ['backCounter', 'sink', 'riceCooker', 'fridge', 'upperCab', 'bakerRack'] as const;
     for (const name of need) {
       const p = SET_DRESS.kitchen[name];
       const pt = new THREE.Vector3(p.x, p.y, p.z);

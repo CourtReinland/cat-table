@@ -25,7 +25,7 @@ export const BLOOM = {
  *  stays put — it dumps on the play slab and would flatten Suki's neighbor
  *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it. */
 export const NIGHT_RIG = {
-  hemi: 0.58,
+  hemi: 0.60,
   moon: 0.64,
   key: 4.8,
   lamp: 9.5,
@@ -49,6 +49,7 @@ export const SET_DRESS = {
     riceCooker: { x: 0.08, y: 1.14, z: -1.12 },
     fridge: { x: 2.78, y: 0.92, z: 0.22 },
     upperCab: { x: 0.85, y: 2.08, z: -1.22 },
+    bakerRack: { x: 1.52, y: 0.95, z: 1.68 },
     portraitHutch: { x: -4.05, y: 1.05, z: 0.55 },
   },
   coffee: {

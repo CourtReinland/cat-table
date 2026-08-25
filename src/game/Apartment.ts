@@ -227,6 +227,31 @@ export class Apartment {
     right.rotation.y = -Math.PI / 2;
     right.position.set(7, 2.2, 0.5);
     g.add(right);
+    // fourth wall — OTS looks +X with +Z on the right; without this the
+    // play camera stares into fog (the "black cave" on screen-right).
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(15, 4.4), wallMat);
+    front.rotation.y = Math.PI;
+    front.position.set(0, 2.2, 5.2);
+    front.receiveShadow = true;
+    g.add(front);
+    const doorMat = roomMat(0x5a4038, { rough: 0.88 });
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.15, 0.08), doorMat);
+    door.position.set(-2.4, 1.08, 5.14);
+    g.add(door);
+    const jamb = roomMat(NIGHT_SURFACE.shellFrame, { rough: 0.7 });
+    for (const [w, h, x, y] of [[1.2, 0.08, -2.4, 2.2], [0.08, 2.2, -2.96, 1.1], [0.08, 2.2, -1.84, 1.1]] as const) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), jamb);
+      bar.position.set(x, y, 5.16);
+      g.add(bar);
+    }
+    // pictures on the new closer wall so OTS-right isn't a blank plaster slab
+    const frontPoster = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), new THREE.MeshStandardNodeMaterial({ map: posterTex(48), roughness: 0.9 }));
+    frontPoster.position.set(1.8, 2.25, 5.16);
+    frontPoster.rotation.y = Math.PI;
+    const frontPoster2 = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.7), new THREE.MeshStandardNodeMaterial({ map: posterTex(200), roughness: 0.9 }));
+    frontPoster2.position.set(2.7, 2.15, 5.16);
+    frontPoster2.rotation.y = Math.PI;
+    g.add(frontPoster, frontPoster2);
 
     // window (back wall, right side) — frame + city view + sill
     const winG = new THREE.Group();
@@ -491,7 +516,8 @@ export class Apartment {
     // Do not dispose map/normalMap: plasterSurface keeps them in
     // Textures.cached and toonMaterialFor keys by map.uuid — dispose
     // poisons a later return to this room (walls go black).
-    for (const i of [1, 2, 3]) {
+    // children 1–4 are back, left, right, front (OTS-right closer).
+    for (const i of [1, 2, 3, 4]) {
       const wall = this.roomGroup.children[i] as THREE.Mesh;
       wall.material = wallPlaster;
       toonify(wall);
@@ -841,6 +867,23 @@ export class Apartment {
         this.meshBox(lg, 0.62, 1.84, 0.58, silver, k.fridge.x, k.fridge.y, k.fridge.z);
         this.meshBox(lg, 0.58, 0.02, 0.54, roomMat(0x4a5056, { rough: 0.5 }), k.fridge.x, k.fridge.y + 0.12, k.fridge.z + 0.01);
         this.meshBox(lg, 0.03, 0.55, 0.03, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), k.fridge.x - 0.28, k.fridge.y + 0.15, k.fridge.z + 0.28);
+        // L-return so the fridge isn't a lonely box in a purple void
+        this.cabinetRun(lg, level, 2.48, -0.42, 0.52, 1.35, 0.92);
+        // baker's rack on the +Z fringe — fills the right of the OTS frame
+        const rackWood = roomMat(0x6a4a38, { rough: 0.8 });
+        this.meshBox(lg, 0.48, 0.04, 0.36, rackWood, k.bakerRack.x, 0.42, k.bakerRack.z);
+        this.meshBox(lg, 0.48, 0.04, 0.36, rackWood, k.bakerRack.x, 0.78, k.bakerRack.z);
+        this.meshBox(lg, 0.48, 0.04, 0.36, rackWood, k.bakerRack.x, 1.14, k.bakerRack.z);
+        for (const [lx, lz] of [[-0.2, -0.14], [0.2, -0.14], [-0.2, 0.14], [0.2, 0.14]] as const) {
+          this.meshCyl(lg, 0.018, 1.18, rackWood, k.bakerRack.x + lx, 0.59, k.bakerRack.z + lz, 8);
+        }
+        const rackJar = buildProp('jar');
+        rackJar.group.position.set(k.bakerRack.x - 0.1, 0.82, k.bakerRack.z);
+        lg.add(rackJar.group);
+        const rackPlant = buildProp('plant');
+        rackPlant.group.position.set(k.bakerRack.x + 0.12, 1.16, k.bakerRack.z);
+        rackPlant.group.scale.setScalar(0.75);
+        lg.add(rackPlant.group);
         // portrait-side hutch (behind the cat in 3/4 stills)
         this.meshBox(lg, 0.72, 2.05, 0.38, darkWood, k.portraitHutch.x, k.portraitHutch.y, k.portraitHutch.z);
         for (let i = 0; i < 3; i++) {
@@ -850,8 +893,11 @@ export class Apartment {
           dish.group.scale.setScalar(0.85);
           lg.add(dish.group);
         }
+        const hutchLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
+        hutchLight.position.set(k.portraitHutch.x + 0.35, 1.35, k.portraitHutch.z + 0.45);
+        lg.add(hutchLight);
         // local practical under the back run — lifts cabinets, not the slab
-        const under = new THREE.PointLight(level.lampColor, 2.4, 3.2, 2);
+        const under = new THREE.PointLight(level.lampColor, 1.5, 2.8, 2);
         under.position.set(k.backCounter.x, 0.88, k.backCounter.z + 0.12);
         lg.add(under);
         break;
