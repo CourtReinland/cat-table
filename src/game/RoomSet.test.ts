@@ -89,10 +89,10 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
 
   it('puts OTS-near dressing on every other level', () => {
     const checks: { id: string; keys: string[] }[] = [
-      { id: 'coffee', keys: ['backConsole', 'loungeChair', 'snackCart', 'speaker'] },
-      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard', 'corkWall'] },
-      { id: 'dresser', keys: ['nightstand', 'wardrobe', 'vanityStool', 'robeHook'] },
-      { id: 'dining', keys: ['wineCart', 'windowSideboard', 'guestChair', 'serveTrolley'] },
+      { id: 'coffee', keys: ['backConsole', 'loungeChair', 'snackCart', 'speaker', 'wallBoard'] },
+      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard', 'corkWall', 'wallBoard'] },
+      { id: 'dresser', keys: ['nightstand', 'wardrobe', 'vanityStool', 'robeHook', 'wallBoard'] },
+      { id: 'dining', keys: ['wineCart', 'windowSideboard', 'guestChair', 'serveTrolley', 'wallBoard'] },
     ];
     for (const { id, keys } of checks) {
       const level = LEVELS.find((l) => l.id === id)!;
@@ -179,7 +179,8 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
     assert.match(apt, /shaker drawer fronts so the pedestals read as a desk/);
     assert.match(apt, /leftover empty \+X BACK WALL/);
-    assert.match(apt, /coffee TV analogue/);
+    assert.match(apt, /leftoverWallBoard/);
+    assert.doesNotMatch(apt, /farBoard/);
     const wall = SET_DRESS.desk.corkWall;
     assert.ok(pointsInView(cam, [new THREE.Vector3(wall.x, wall.y, wall.z)], 0.98), 'desk.corkWall misses spawn OTS');
     assert.equal(SET_DRESS.desk.fileCab.x, 2.32);

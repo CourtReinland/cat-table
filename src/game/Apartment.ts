@@ -860,6 +860,29 @@ export class Apartment {
     return p;
   }
 
+  /**
+   * Leftover empty +Z wall (OTS-right navy). Faces into the room like the
+   * GS-ROOM-SET posters — do not cover those posters or redo kitchen splash.
+   */
+  private leftoverWallBoard(lg: THREE.Group, x: number, y: number, z: number, seed: number) {
+    const cork = surfaceMat(panelSurface(0xc4a070, seed), [1.5, 1.3]);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.98), cork);
+    board.position.set(x, y, z);
+    board.rotation.y = Math.PI;
+    board.receiveShadow = true;
+    lg.add(board);
+    this.meshBox(lg, 1.26, 1.06, 0.04, roomMat(0x6a4a38, { rough: 0.82 }), x, y, z + 0.02);
+    for (let i = 0; i < 4; i++) {
+      const note = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.22, 0.28),
+        roomMat([0xf8f0dc, 0xd8eef8, 0xf8d0d0, 0xe8dcc0][i], { rough: 0.95 }),
+      );
+      note.position.set(x - 0.28 + (i % 2) * 0.5, y - 0.18 + Math.floor(i / 2) * 0.4, z - 0.02);
+      note.rotation.y = Math.PI;
+      lg.add(note);
+    }
+  }
+
   /** Cabinet + stone-top run used on the OTS-near fringe (not the play slab). */
   private cabinetRun(
     lg: THREE.Group,
@@ -1035,6 +1058,7 @@ export class Apartment {
         const cartLight = new THREE.PointLight(level.lampColor, 1.5, 2.6, 2);
         cartLight.position.set(c.snackCart.x, 1.05, c.snackCart.z);
         lg.add(cartLight);
+        this.leftoverWallBoard(lg, c.wallBoard.x, c.wallBoard.y, c.wallBoard.z, 29);
         break;
       }
       case 'desk': {
@@ -1111,23 +1135,29 @@ export class Apartment {
         this.dressProp(lg, 'plant', d.fileCab.x, 1.16, d.fileCab.z, 0.8);
         this.dressProp(lg, 'mug', d.fileCab.x + 0.14, 1.16, d.fileCab.z + 0.06, 0.7);
         this.dressProp(lg, 'book', d.fileCab.x - 0.12, 1.16, d.fileCab.z, 0.85, 0.4);
-        // leftover empty +X BACK WALL — cork face the play OTS actually looks at
-        // (window-side splash stays; this is the kitchen-fridge analogue)
-        const corkFace = surfaceMat(panelSurface(0xb09068, 41), [1.2, 1.8]);
-        this.meshBox(lg, 0.07, 1.75, 1.15, corkFace, d.corkWall.x, d.corkWall.y, d.corkWall.z);
+        // leftover empty +X BACK WALL — cork FACE the play OTS looks at
+        // (window-side splash stays; do not redo fileCab)
+        const corkFace = surfaceMat(panelSurface(0xc4a070, 41), [1.5, 1.8]);
+        const corkBoard = new THREE.Mesh(new THREE.PlaneGeometry(1.42, 1.68), corkFace);
+        corkBoard.position.set(d.corkWall.x, d.corkWall.y, d.corkWall.z);
+        corkBoard.rotation.y = -Math.PI / 2;
+        corkBoard.receiveShadow = true;
+        lg.add(corkBoard);
+        this.meshBox(lg, 0.05, 1.74, 1.48, roomMat(0x6a4a38, { rough: 0.8 }), d.corkWall.x + 0.03, d.corkWall.y, d.corkWall.z);
         for (let i = 0; i < 6; i++) {
-          this.meshBox(
-            lg,
-            0.014,
-            0.26,
-            0.2,
+          const note = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.28, 0.34),
             roomMat([0xf8f0dc, 0xd8eef8, 0xf8d0d0, 0xe8dcc0][i % 4], { rough: 0.95 }),
-            d.corkWall.x - 0.05,
-            0.92 + (i % 3) * 0.42,
-            d.corkWall.z - 0.32 + Math.floor(i / 3) * 0.48,
-            (i - 2.5) * 0.05,
           );
+          note.position.set(
+            d.corkWall.x - 0.03,
+            0.95 + (i % 3) * 0.42,
+            d.corkWall.z - 0.38 + Math.floor(i / 3) * 0.55,
+          );
+          note.rotation.y = -Math.PI / 2;
+          lg.add(note);
         }
+        this.leftoverWallBoard(lg, d.wallBoard.x, d.wallBoard.y, d.wallBoard.z, 41);
         this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
         this.dressProp(lg, 'book', d.portraitCart.x, 0.95, d.portraitCart.z);
         // OTS-right easel + canvas (Kai leftover). Canvas faces −X so play OTS
@@ -1163,14 +1193,6 @@ export class Apartment {
         const corkLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
         corkLight.position.set(d.corkWall.x - 0.35, d.corkWall.y, d.corkWall.z);
         lg.add(corkLight);
-        // leftover empty +X room wall (coffee TV analogue) — far enough not to billboard
-        const farBoard = new THREE.Mesh(
-          new THREE.PlaneGeometry(2.1, 1.55),
-          surfaceMat(panelSurface(0xb09068, 33), [2.2, 1.5]),
-        );
-        farBoard.position.set(6.88, 1.62, 0.38);
-        farBoard.rotation.y = -Math.PI / 2;
-        lg.add(farBoard);
         break;
       }
       case 'dresser': {
@@ -1237,6 +1259,7 @@ export class Apartment {
           cloth.position.set(r.vanityStool.x + 0.28 + i * 0.08, 0.08 + i * 0.03, r.vanityStool.z - 0.06);
           lg.add(cloth);
         }
+        this.leftoverWallBoard(lg, r.wallBoard.x, r.wallBoard.y, r.wallBoard.z, 23);
         break;
       }
       case 'dining': {
@@ -1285,6 +1308,7 @@ export class Apartment {
         const trolleyLight = new THREE.PointLight(level.lampColor, 1.5, 2.5, 2);
         trolleyLight.position.set(n.serveTrolley.x, 1.05, n.serveTrolley.z);
         lg.add(trolleyLight);
+        this.leftoverWallBoard(lg, n.wallBoard.x, n.wallBoard.y, n.wallBoard.z, 19);
         break;
       }
     }
