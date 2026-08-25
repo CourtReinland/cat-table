@@ -896,9 +896,10 @@ export class Apartment {
         const hutchLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
         hutchLight.position.set(k.portraitHutch.x + 0.35, 1.35, k.portraitHutch.z + 0.45);
         lg.add(hutchLight);
-        // local practical under the back run — lifts cabinets, not the slab
-        const under = new THREE.PointLight(level.lampColor, 1.5, 2.8, 2);
-        under.position.set(k.backCounter.x, 0.88, k.backCounter.z + 0.12);
+        // Park under the stone-top lip (front face), not inside the 0.895 slab —
+        // y=0.88 / z+0.12 leaked onto the island back. Keep NIGHT_RIG.key at 4.8.
+        const under = new THREE.PointLight(level.lampColor, 1.5, 1.8, 2);
+        under.position.set(k.backCounter.x, 0.78, k.backCounter.z + 0.5 / 2);
         lg.add(under);
         break;
       }
@@ -1131,11 +1132,8 @@ export class Apartment {
         break;
       }
       case 'desk': {
-        // rolling office chair behind the desk + shelf of art books + corkboard
-        const chairMat = roomMat(0x2a2e38, { rough: 0.7 });
-        box(0.5, 0.08, 0.48, chairMat, 0.6, 0.5, -1.15, 0.4);
-        box(0.5, 0.6, 0.08, chairMat, 0.68, 0.85, -1.42, 0.4);
-        cyl(0.03, 0.45, roomMat(0x4a4e58, { metal: 0.6, rough: 0.3 }), 0.6, 0.25, -1.15);
+        // Leftover rolling chair at (0.6, 0.5, −1.15) ate SET_DRESS.desk.backShelf
+        // (RoomSet locks that landmark — do not slide the shelf). Drop the chair.
         // corkboard with pinned notes
         box(1.3, 0.9, 0.03, roomMat(0x9a7a5a, { rough: 0.9 }), 3.4, 2.2, -3.35);
         for (let i = 0; i < 6; i++) {

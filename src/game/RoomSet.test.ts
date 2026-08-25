@@ -132,3 +132,31 @@ describe('GS-ROOM-SET leave the cat and camera alone', () => {
     assert.match(apt, /marbleSurface/);
   });
 });
+
+describe('GS-ROOM-SET forge auto-fixes', () => {
+  it('drops the leftover desk chair that intersected backShelf', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.doesNotMatch(
+      apt,
+      /0\.6,\s*0\.5,\s*-1\.15/,
+      'old chair seat at (0.6, 0.5, −1.15) intersects SET_DRESS.desk.backShelf',
+    );
+    assert.equal(SET_DRESS.desk.backShelf.x, 0.25);
+    assert.equal(SET_DRESS.desk.backShelf.z, -1.10);
+  });
+
+  it('parks the kitchen under-cab PointLight under the stone-top lip', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.doesNotMatch(
+      apt,
+      /0\.88,\s*k\.backCounter\.z \+ 0\.12/,
+      'under-cab must not sit at y=0.88 / z+0.12 (inside the 0.895 stone top)',
+    );
+    assert.match(
+      apt,
+      /under\.position\.set\(k\.backCounter\.x,\s*0\.78,\s*k\.backCounter\.z \+ 0\.5 \/ 2\)/,
+      'park under-cab at y=0.78 on the cabinet front face (under the lip)',
+    );
+    assert.equal(NIGHT_RIG.key, 4.8);
+  });
+});
