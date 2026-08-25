@@ -85,7 +85,7 @@ try {
       window.__cat.autopilot = false;
     });
     await page.waitForFunction(() => window.__cat?.state?.phase === 'playing', { timeout: 25000 });
-    await sleep(900);
+    await sleep(2200);
     const st = await page.evaluate(() => window.__cat.state);
     console.log(id, 'phase', st?.phase, 'webgpu', st?.webgpu, 'cat', st?.cat, 'urlLevel', i);
 
