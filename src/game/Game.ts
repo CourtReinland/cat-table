@@ -160,8 +160,11 @@ export class Game {
     this.bindUnlock();
 
     // URL test hooks: ?auto=1&level=2&instant=1&quality=low
+    // Live Pages still gates later levels on save.unlocked (title picker).
+    // Local stills / playtest jump with auto+level; instant skips the intro card.
     const q = new URLSearchParams(location.search);
     this.autopilot = q.get('auto') === '1';
+    const instant = q.get('instant') === '1';
     this.portraitCam = stillsPortraitRequested() || q.get('portrait') === '1';
     const forcedQ = q.get('quality');
     if (forcedQ === 'low' || forcedQ === 'medium' || forcedQ === 'high') {
@@ -177,7 +180,10 @@ export class Game {
     stage('boot: first frame…');
     this.clock.start();
     this.loop();
-    if (this.autopilot) this.showIntro(lvl);
+    if (this.autopilot) {
+      this.showIntro(lvl);
+      if (instant) this.startPlaying();
+    }
   }
 
   // ── setup ────────────────────────────────────────────────────────────────

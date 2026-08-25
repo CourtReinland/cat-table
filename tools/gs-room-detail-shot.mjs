@@ -1,15 +1,22 @@
 #!/usr/bin/env node
 /**
  * GS-ROOM-DETAIL stills: play OTS + isolation (HUD/cat/smashables off).
- * Usage: node tools/gs-room-detail-shot.mjs [prefix]
+ * Uses ?auto=1&level=N&instant=1 (live Pages still gates on save.unlocked).
+ * Usage: node tools/gs-room-detail-shot.mjs <prefix> [coffee,desk,dresser,dining]
  * Env: BASE (default http://127.0.0.1:5173), OUT, VIEW
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
 
-const BASE = process.env.BASE ?? 'http://127.0.0.1:5173/?gl=1';
+const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
 const OUT = process.env.OUT ?? 'tools/out/gs-room-detail';
 const PREFIX = process.argv[2] ?? 'gs-b12';
+const ONLY = new Set(
+  (process.argv[3] ?? 'coffee,desk,dresser,dining')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
 mkdirSync(OUT, { recursive: true });
 
 const LEVELS = [
@@ -18,7 +25,16 @@ const LEVELS = [
   { id: 'desk', i: 2 },
   { id: 'dresser', i: 3 },
   { id: 'dining', i: 4 },
-];
+].filter((l) => ONLY.has(l.id));
+
+function levelUrl(i) {
+  const u = new URL(BASE);
+  u.searchParams.set('gl', '1');
+  u.searchParams.set('auto', '1');
+  u.searchParams.set('level', String(i));
+  u.searchParams.set('instant', '1');
+  return u.toString();
+}
 
 const browser = await chromium.launch({
   headless: true,
@@ -60,13 +76,18 @@ async function setIso(hide) {
 
 try {
   for (const { id, i } of LEVELS) {
-    // Fresh page per level — loadLevel dispose races WebGPU on a hot reload.
-    await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
-    await sleep(2200);
-    await page.evaluate((l) => window.__cat.debugStart(l), i);
-    await sleep(2200);
+    // Fresh page per level. URL hook skips intro; freeze autopilot so spawn OTS holds.
+    const url = levelUrl(i);
+    console.log('goto', url);
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForFunction(() => window.__cat, { timeout: 20000 });
+    await page.evaluate(() => {
+      window.__cat.autopilot = false;
+    });
+    await page.waitForFunction(() => window.__cat?.state?.phase === 'playing', { timeout: 25000 });
+    await sleep(900);
     const st = await page.evaluate(() => window.__cat.state);
-    console.log(id, 'phase', st?.phase, 'webgpu', st?.webgpu, 'cat', st?.cat);
+    console.log(id, 'phase', st?.phase, 'webgpu', st?.webgpu, 'cat', st?.cat, 'urlLevel', i);
 
     await page.screenshot({ path: `${OUT}/${PREFIX}-${id}-ots.png` });
     console.log('shot', `${PREFIX}-${id}-ots.png`);
