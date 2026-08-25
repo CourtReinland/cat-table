@@ -80,11 +80,15 @@ try {
     const url = levelUrl(i);
     console.log('goto', url);
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForFunction(() => window.__cat, { timeout: 20000 });
+    // window.__cat exists before init() finishes and would overwrite an early
+    // autopilot=false. Freeze only after phase==='playing'.
+    await page.waitForFunction(
+      () => window.__cat && window.__cat.phase === 'playing',
+      { timeout: 25000 },
+    );
     await page.evaluate(() => {
       window.__cat.autopilot = false;
     });
-    await page.waitForFunction(() => window.__cat?.state?.phase === 'playing', { timeout: 25000 });
     await sleep(2200);
     const st = await page.evaluate(() => window.__cat.state);
     console.log(id, 'phase', st?.phase, 'webgpu', st?.webgpu, 'cat', st?.cat, 'urlLevel', i);

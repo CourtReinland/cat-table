@@ -770,15 +770,16 @@ export class Apartment {
         chLight.position.set(0, 2.6, cz);
         lg.add(chLight);
         // two chairs on the window (−Z) side, two more on the OTS-right (+Z)
+        const n = SET_DRESS.dining;
         const seatMat = surfaceMat(fabricSurface(0x6a2030, 19), [1, 1]);
-        for (const [x, zOff, rot] of [
-          [-0.8, -d / 2 - 0.55, 0],
-          [0.8, -d / 2 - 0.55, 0],
-          [-0.55, d / 2 + 0.55, Math.PI],
-          [0.72, d / 2 + 0.55, Math.PI],
-        ] as const) {
+        for (const [x, z, rot] of [
+          [-0.8, cz - d / 2 - 0.55, 0],
+          [0.8, cz - d / 2 - 0.55, 0],
+          [-0.55, cz + d / 2 + 0.55, Math.PI],
+          [n.guestChair.x, n.guestChair.z, Math.PI],
+        ]) {
           const chair = new THREE.Group();
-          chair.position.set(x, 0, cz + zOff);
+          chair.position.set(x, 0, z);
           chair.rotation.y = rot;
           const seat = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.06, 0.42), seatMat);
           seat.position.y = 0.5;
@@ -1172,7 +1173,7 @@ export class Apartment {
           new THREE.MeshStandardNodeMaterial({ map: posterTex(200), roughness: 0.9 }),
         );
         canvas.position.set(d.easel.x, d.easel.y, d.easel.z);
-        canvas.rotation.y = Math.PI / 2;
+        canvas.rotation.y = -Math.PI / 2;
         canvas.rotation.x = -0.08;
         canvas.castShadow = true;
         lg.add(canvas);
@@ -1215,7 +1216,7 @@ export class Apartment {
         this.meshBox(lg, 0.85, 2.15, 0.48, wardMat, r.wardrobe.x, r.wardrobe.y, r.wardrobe.z);
         this.meshCyl(lg, 0.018, 0.16, roomMat(0xd8b25a, { metal: 0.18, rough: 0.35 }), r.wardrobe.x - 0.28, r.wardrobe.y, r.wardrobe.z + 0.25, 8);
         // leftover empty +X wall behind the wardrobe — do not replace GS-ROOM-SET wardrobe
-        this.meshBox(lg, 0.05, 1.7, 1.45, linen, r.wardrobe.x + 0.32, 1.55, r.wardrobe.z);
+        this.meshBox(lg, 0.05, 1.7, 1.45, linen, r.wardrobe.x + 0.48, 1.55, r.wardrobe.z);
         // ajar door + hanging clothes so the wardrobe isn't a sealed crate
         const door = this.meshBox(lg, 0.38, 1.7, 0.03, wardMat, r.wardrobe.x - 0.22, r.wardrobe.y - 0.05, r.wardrobe.z + 0.28);
         door.rotation.y = 0.55;

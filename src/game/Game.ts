@@ -180,9 +180,10 @@ export class Game {
     stage('boot: first frame…');
     this.clock.start();
     this.loop();
-    if (this.autopilot) {
+    if (this.autopilot && instant) {
+      this.startPlaying();
+    } else if (this.autopilot) {
       this.showIntro(lvl);
-      if (instant) this.startPlaying();
     }
   }
 

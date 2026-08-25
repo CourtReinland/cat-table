@@ -204,6 +204,8 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
     assert.match(apt, /two chairs on the window/);
     assert.match(apt, /d \/ 2 \+ 0\.55/);
+    assert.match(apt, /n\.guestChair\.x/);
+    assert.match(apt, /n\.guestChair\.z/);
   });
 
   it('fills leftover empty surfaces on coffee/desk/dresser/dining without new OTS-missing landmarks', () => {
@@ -221,7 +223,11 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     assert.match(shot, /searchParams\.set\('level', String\(i\)\)/);
     const game = readFileSync(join(here, 'Game.ts'), 'utf8');
     assert.match(game, /q\.get\('instant'\) === '1'/);
-    assert.match(game, /if \(instant\) this\.startPlaying\(\)/);
+    assert.match(game, /if \(this\.autopilot && instant\)/);
+    assert.match(game, /this\.startPlaying\(\)/);
+    assert.match(game, /else if \(this\.autopilot\)/);
+    assert.match(shot, /phase === 'playing'/);
+    assert.doesNotMatch(shot, /waitForFunction\(\(\) => window\.__cat, \{ timeout: 20000 \}\)/);
   });
 
   it('leaves Suki coat, OTS numbers, and smashable placement alone', () => {
