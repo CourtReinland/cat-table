@@ -24,8 +24,8 @@ import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
 import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
-import { pawHitsProp } from './pawHit';
-import { PAW_HIT_RADIUS } from './sukiGlb';
+import { swipeHitsProp } from './pawHit';
+import { PAW_HIT_RADIUS, PAW_PLAY_REACH } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
 
 type Phase =
@@ -551,13 +551,17 @@ export class Game {
         const facing = new THREE.Vector3(Math.sin(cat.yaw), 0, Math.cos(cat.yaw));
         cat.preparePaws(dt);
         const paws = cat.getPawTips();
-        // XZ paw-sphere vs prop disc. Rest Y (counterRestY) is not a miss
+        // XZ swipe capsule vs prop disc. Rest Y (counterRestY) is not a miss
         // layer — contact ignores height. Immovable is the only skip.
+        // GLB paw-bone origins sit in the chest after tame; swipeHitsProp
+        // fills only the shortfall out to PAW_PLAY_REACH (not a body cone).
+        const origin = { x: catPos.x, z: catPos.z };
+        const faceXZ = { x: facing.x, z: facing.z };
         for (const b of this.apartment.physics.bodies) {
           if (b.state === 'gone' || b.state === 'falling') continue;
           let hit = false;
           for (const paw of paws) {
-            if (pawHitsProp({ x: paw.x, z: paw.z }, { x: b.pos.x, z: b.pos.z }, b.radiusXZ, PAW_HIT_RADIUS)) {
+            if (swipeHitsProp({ x: paw.x, z: paw.z }, { x: b.pos.x, z: b.pos.z }, b.radiusXZ, faceXZ, origin, PAW_HIT_RADIUS, PAW_PLAY_REACH)) {
               hit = true;
               break;
             }
@@ -577,9 +581,9 @@ export class Game {
         if (tip) this.pawTip.copy(tip);
         else {
           this.pawTip.set(
-            catPos.x + facing.x * 0.28,
+            catPos.x + facing.x * PAW_PLAY_REACH,
             s.topY + 0.08,
-            catPos.z + facing.z * 0.28,
+            catPos.z + facing.z * PAW_PLAY_REACH,
           );
         }
       }

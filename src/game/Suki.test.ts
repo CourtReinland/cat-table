@@ -12,6 +12,7 @@ import {
   SUKI_COAT,
   SUKI_PAW_BONES,
   PAW_HIT_RADIUS,
+  PAW_PLAY_REACH,
   PAW_MESH,
   SUKI_BOW,
   SUKI_FACE,
@@ -48,6 +49,10 @@ describe('GS-SUKI-IN Hunyuan play mesh', () => {
   it('samples front paw bones for swipe contact', () => {
     assert.deepEqual([...SUKI_PAW_BONES], ['paw_FL', 'paw_FR']);
     assert.ok(PAW_HIT_RADIUS > 0.05 && PAW_HIT_RADIUS < 0.2);
+    assert.equal(PAW_PLAY_REACH, 0.28);
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Suki.ts'), 'utf8');
+    assert.match(src, /preparePaws\(dt: number\) \{\s*this\.group\.rotation\.y = this\.yaw;/);
+    assert.match(src, /updateMatrixWorld\(true\)/);
   });
 
   it('caps Swipe/Hit bone travel so paw shells cannot tube', () => {

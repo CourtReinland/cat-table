@@ -76,6 +76,17 @@ export const SUKI_PAW_BONES = ['paw_FL', 'paw_FR'] as const;
 export const PAW_HIT_RADIUS = 0.11;
 
 /**
+ * GS-PROP-HIT — minimum forward contact from the cat origin during a
+ * committed swipe. Hunyuan `paw_FL` / `paw_FR` rest at z≈0.06–0.10 (wrist
+ * inside the chest). After swipe tame 0.38 the bone barely leaves that
+ * pocket, so a 0.11 sphere at the origin misses plant/laptop at play
+ * distance (autoplay commits at 0.42). Do not grow a body-forward cone;
+ * fill only the shortfall from the sampled paw out to this reach.
+ * Matches the fallback paw-tip / FP-paw base in Game.ts.
+ */
+export const PAW_PLAY_REACH = 0.28;
+
+/**
  * GS-PAW-MESH — Hunyuan fur-card shells tube when Swipe over-rotates the
  * forearm and nearest-bone weights smear a paw across both wrists / the chest.
  * Play GLB is patched in place (tools/character-pipe/tame_paw_mesh.py): paw

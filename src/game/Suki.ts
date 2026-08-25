@@ -271,8 +271,11 @@ export class Suki {
   /**
    * Advance the swipe pose before Game samples paw hit volumes, then skip
    * the mixer tick in update() so clips do not double-speed.
+   * Yaw is applied here so bone world matrices match this frame's heading
+   * (update() used to write rotation.y after the swipe sample).
    */
   preparePaws(dt: number) {
+    this.group.rotation.y = this.yaw;
     if (this.useGlb) {
       if (this.mixer && !this.animAdvanced) {
         this.mixer.update(dt);
