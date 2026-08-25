@@ -1111,6 +1111,23 @@ export class Apartment {
         this.dressProp(lg, 'plant', d.fileCab.x, 1.16, d.fileCab.z, 0.8);
         this.dressProp(lg, 'mug', d.fileCab.x + 0.14, 1.16, d.fileCab.z + 0.06, 0.7);
         this.dressProp(lg, 'book', d.fileCab.x - 0.12, 1.16, d.fileCab.z, 0.85, 0.4);
+        // leftover empty +X BACK WALL — cork face the play OTS actually looks at
+        // (window-side splash stays; this is the kitchen-fridge analogue)
+        const corkFace = surfaceMat(panelSurface(0x8a6848, 41), [1.4, 2]);
+        this.meshBox(lg, 0.06, 1.9, 1.65, corkFace, d.corkWall.x, d.corkWall.y, d.corkWall.z);
+        for (let i = 0; i < 8; i++) {
+          this.meshBox(
+            lg,
+            0.012,
+            0.22,
+            0.16,
+            roomMat([0xf2ead0, 0xd0e4f4, 0xf0c8c8, 0xe8dcc8][i % 4], { rough: 0.95 }),
+            d.corkWall.x - 0.04,
+            0.85 + (i % 4) * 0.38,
+            d.corkWall.z - 0.55 + Math.floor(i / 4) * 0.7,
+            (i - 3.5) * 0.03,
+          );
+        }
         this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
         this.dressProp(lg, 'book', d.portraitCart.x, 0.95, d.portraitCart.z);
         // OTS-right easel + canvas (Kai leftover). Canvas faces −X so play OTS
@@ -1143,6 +1160,9 @@ export class Apartment {
         const fileLight = new THREE.PointLight(level.lampColor, 1.4, 2.4, 2);
         fileLight.position.set(d.fileCab.x - 0.15, 1.35, d.fileCab.z + 0.2);
         lg.add(fileLight);
+        const corkLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
+        corkLight.position.set(d.corkWall.x - 0.35, d.corkWall.y, d.corkWall.z);
+        lg.add(corkLight);
         break;
       }
       case 'dresser': {
@@ -1164,6 +1184,8 @@ export class Apartment {
         const wardMat = surfaceMat(panelSurface(0x6a4a38, 31), [1.2, 2]);
         this.meshBox(lg, 0.85, 2.15, 0.48, wardMat, r.wardrobe.x, r.wardrobe.y, r.wardrobe.z);
         this.meshCyl(lg, 0.018, 0.16, roomMat(0xd8b25a, { metal: 0.18, rough: 0.35 }), r.wardrobe.x - 0.28, r.wardrobe.y, r.wardrobe.z + 0.25, 8);
+        // leftover empty +X wall behind the wardrobe — do not replace GS-ROOM-SET wardrobe
+        this.meshBox(lg, 0.05, 1.7, 1.45, linen, r.wardrobe.x + 0.32, 1.55, r.wardrobe.z);
         // ajar door + hanging clothes so the wardrobe isn't a sealed crate
         const door = this.meshBox(lg, 0.38, 1.7, 0.03, wardMat, r.wardrobe.x - 0.22, r.wardrobe.y - 0.05, r.wardrobe.z + 0.28);
         door.rotation.y = 0.55;

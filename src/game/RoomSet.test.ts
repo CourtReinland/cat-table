@@ -90,7 +90,7 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
   it('puts OTS-near dressing on every other level', () => {
     const checks: { id: string; keys: string[] }[] = [
       { id: 'coffee', keys: ['backConsole', 'loungeChair', 'snackCart', 'speaker'] },
-      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard'] },
+      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard', 'corkWall'] },
       { id: 'dresser', keys: ['nightstand', 'wardrobe', 'vanityStool', 'robeHook'] },
       { id: 'dining', keys: ['wineCart', 'windowSideboard', 'guestChair', 'serveTrolley'] },
     ];
@@ -178,6 +178,11 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     }
     const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
     assert.match(apt, /shaker drawer fronts so the pedestals read as a desk/);
+    assert.match(apt, /leftover empty \+X BACK WALL/);
+    const wall = SET_DRESS.desk.corkWall;
+    assert.ok(pointsInView(cam, [new THREE.Vector3(wall.x, wall.y, wall.z)], 0.98), 'desk.corkWall misses spawn OTS');
+    assert.equal(SET_DRESS.desk.fileCab.x, 2.32);
+    assert.equal(SET_DRESS.desk.backShelf.z, -1.10);
   });
 
   it('drops the leftover dresser stool that sat on the OTS-right fringe twice', () => {
@@ -207,6 +212,7 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     assert.match(apt, /leftover empty floor by the stool/);
     assert.match(apt, /leftover empty floor — wine crate/);
     assert.match(apt, /dresserRug/);
+    assert.match(apt, /leftover empty \+X wall behind the wardrobe/);
     const shot = readFileSync(join(here, '../../tools/gs-room-detail-shot.mjs'), 'utf8');
     assert.match(shot, /auto=1&level=N&instant=1/);
     assert.match(shot, /searchParams\.set\('instant', '1'\)/);

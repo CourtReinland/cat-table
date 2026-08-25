@@ -69,6 +69,8 @@ export const SET_DRESS = {
     easel: { x: 1.42, y: 0.92, z: 1.54 },
     /** Cork pinboard on the shelf's room face. */
     pinboard: { x: 0.25, y: 1.72, z: -0.94 },
+    /** +X cork wall (kitchen-fridge analogue) — play OTS looks into this, not the −Z splash. */
+    corkWall: { x: 2.72, y: 1.50, z: 0.30 },
   },
   dresser: {
     nightstand: { x: 0.15, y: 0.55, z: -0.96 },
