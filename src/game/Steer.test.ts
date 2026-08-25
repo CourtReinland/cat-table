@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import {
   STEER,
@@ -13,11 +14,13 @@ import {
   yawRateForSpeed,
   isPlantStrafe,
   isPlantTurn,
+  resolveHeadingLock,
   resolvePlantLock,
   type PlantLock,
   type XZ,
 } from './Steer.ts';
 import { combineMoveAxes, restDeadzone, REST_DEADZONE } from '../core/Input.ts';
+import { OTS, otsPose } from './CameraRig.ts';
 
 const LOOK_NEG_Z = { x: 0, y: 0, z: -1 };
 const LOOK_POS_X = { x: 1, y: 0, z: 0 };
@@ -379,5 +382,157 @@ describe('GS-CAM-OTS rest / no auto-forward', () => {
     const a = cameraRelativeMove({ x: 0, z: 0 }, lookToCamDir(LOOK_POS_X, 0));
     almost(a.x, 0);
     almost(a.z, 0);
+  });
+});
+
+/** Flattened OTS look — side-offset so camDir ≠ cat heading. */
+function otsCamDir(yaw: number, speed = 0): XZ {
+  const pose = otsPose({ x: 0, y: 0, z: 0 }, yaw, speed);
+  return lookToCamDir(
+    { x: pose.look.x - pose.pos.x, y: pose.look.y - pose.pos.y, z: pose.look.z - pose.pos.z },
+    yaw,
+  );
+}
+
+function maxCrossTrack(points: XZ[]): number {
+  const a = points[0];
+  const b = points[points.length - 1];
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const span = Math.hypot(dx, dz) || 1;
+  let max = 0;
+  for (const p of points) {
+    const cross = Math.abs((p.x - a.x) * dz - (p.z - a.z) * dx) / span;
+    if (cross > max) max = cross;
+  }
+  return max;
+}
+
+describe('GS-W-CIRCLE heading lock (side-offset OTS)', () => {
+  it('OTS look is inward of cat heading — the live-W orbit bias', () => {
+    assert.equal(OTS.side, 0.18);
+    const yaw = 0;
+    const cam = otsCamDir(yaw);
+    const heading = { x: Math.sin(yaw), z: Math.cos(yaw) };
+    const dot = cam.x * heading.x + cam.z * heading.z;
+    assert.ok(dot < 0.995, `camDir·heading ${dot} should show the 0.18 side offset`);
+    assert.ok(Math.abs(cam.x) > 0.05, `camDir.x ${cam.x} must not equal heading`);
+  });
+
+  it('W-only from standstill walks a straight line; live remap would orbit', () => {
+    const frames = 60; // 1.0s
+    const settle = 20; // 0.33s — planted yaw onto the snapshot heading
+
+    let lock: PlantLock | null = null;
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    const pos = { x: 0, z: 0 };
+    const path: XZ[] = [{ x: 0, z: 0 }];
+    let yawAtSettle = 0;
+    for (let i = 0; i < frames; i++) {
+      const cam = otsCamDir(yaw, Math.hypot(vel.x, vel.z));
+      const r = resolveHeadingLock(AXES_W, cam, lock);
+      lock = r.lock;
+      const s = stepProwl(DT, vel, yaw, { x: r.move.x * WALK, z: r.move.z * WALK });
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+      pos.x += vel.x * DT;
+      pos.z += vel.z * DT;
+      path.push({ x: pos.x, z: pos.z });
+      if (i === settle - 1) yawAtSettle = yaw;
+    }
+    assert.ok(lock, 'held W must snapshot a world heading');
+    assert.ok(Math.hypot(vel.x, vel.z) > 0.8, 'W from rest should be on the gait');
+    assert.ok(
+      Math.abs(shortestAngle(yaw, yawAtSettle)) < 0.03,
+      `yaw must settle after the initial catch (Δ ${shortestAngle(yaw, yawAtSettle)})`,
+    );
+    const settled = path.slice(settle);
+    const drift = maxCrossTrack(settled);
+    assert.ok(drift < 0.02, `settled path cross-track ${drift} is an arc, not a line`);
+
+    // Same loop without the lock: live camDir chase — the BUILD 12 circle.
+    let liveYaw = 0;
+    let liveVel: XZ = { x: 0, z: 0 };
+    for (let i = 0; i < frames; i++) {
+      const cam = otsCamDir(liveYaw, Math.hypot(liveVel.x, liveVel.z));
+      const move = cameraRelativeMove(AXES_W, cam);
+      const s = stepProwl(DT, liveVel, liveYaw, { x: move.x * WALK, z: move.z * WALK });
+      liveVel = { x: s.x, z: s.z };
+      liveYaw = s.yaw;
+    }
+    assert.ok(
+      Math.abs(shortestAngle(liveYaw, 0)) > 0.6,
+      `live OTS remap should keep turning (yaw ${liveYaw}); lock exists because of this`,
+    );
+    assert.ok(
+      Math.abs(shortestAngle(yaw, 0)) < 0.2,
+      `locked W should only take the initial side-offset catch (yaw ${yaw})`,
+    );
+  });
+
+  it('planted A/D still pivots in place under the heading lock', () => {
+    let lock: PlantLock | null = null;
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    const pos = { x: 0, z: 0 };
+    for (let i = 0; i < 90; i++) {
+      const cam = otsCamDir(yaw);
+      assert.equal(isPlantTurn(AXES_A), true);
+      const r = resolveHeadingLock(AXES_A, cam, lock);
+      lock = r.lock;
+      const s = stepProwl(DT, vel, yaw, { x: r.move.x * WALK, z: r.move.z * WALK }, true);
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+      pos.x += vel.x * DT;
+      pos.z += vel.z * DT;
+    }
+    assert.ok(lock, 'planted A snapshots a world heading');
+    assert.ok(Math.hypot(vel.x, vel.z) < 0.02, `planted A must not translate (${Math.hypot(vel.x, vel.z)})`);
+    assert.ok(Math.hypot(pos.x, pos.z) < 0.02, `planted A travel ${Math.hypot(pos.x, pos.z)} must stay planted`);
+    assert.ok(Math.abs(yaw) > 0.8, `held A should yaw in place (yaw ${yaw})`);
+    const aTarget = Math.atan2(lock.world.x, lock.world.z);
+    assert.ok(
+      Math.abs(shortestAngle(yaw, aTarget)) < 0.35,
+      `A should face the snapshotted heading (yaw ${yaw} vs ${aTarget})`,
+    );
+
+    const d = resolveHeadingLock(AXES_D, otsCamDir(0), null);
+    const pivoted = stepFor(90, { x: 0, z: 0 }, 0, { x: d.move.x * WALK, z: d.move.z * WALK }, true);
+    assert.ok(Math.sign(pivoted.yaw) !== Math.sign(yaw), 'D should yaw the other way from A');
+    assert.ok(Math.abs(pivoted.yaw) > 0.8, `held D should yaw in place (yaw ${pivoted.yaw})`);
+    assert.ok(Math.hypot(pivoted.pos.x, pivoted.pos.z) < 0.02, 'D planted pivot must keep the feet still');
+  });
+
+  it('release and quantized-axis change drop or resnapshot the lock', () => {
+    const cam = otsCamDir(0);
+    const held = resolveHeadingLock(AXES_W, cam, null);
+    assert.ok(held.lock);
+    const still = resolveHeadingLock(AXES_W, otsCamDir(0.4), held.lock);
+    assert.ok(still.lock);
+    almost(still.lock.world.x, held.lock.world.x);
+    almost(still.lock.world.z, held.lock.world.z);
+
+    const up = resolveHeadingLock({ x: 0, z: 0 }, cam, held.lock);
+    assert.equal(up.lock, null);
+
+    const cut = resolveHeadingLock(AXES_D, cam, held.lock);
+    assert.ok(cut.lock);
+    const wDir = Math.atan2(held.lock.world.x, held.lock.world.z);
+    const dDir = Math.atan2(cut.lock.world.x, cut.lock.world.z);
+    assert.ok(Math.abs(shortestAngle(wDir, dDir)) > 0.8, 'D must resnapshot off the W heading');
+  });
+
+  it('Game third-person playerWorldAxes holds W; FP plant lock and OTS numbers stay', () => {
+    const src = readFileSync(new URL('./Game.ts', import.meta.url), 'utf8');
+    assert.match(src, /resolveHeadingLock/);
+    assert.match(src, /!this\.fpCam/);
+    assert.match(src, /resolvePlantLock/);
+    assert.match(src, /isPlantTurn/);
+    assert.doesNotMatch(src, /OTS\.(back|side|height)\s*=/);
+    assert.equal(OTS.side, 0.18);
+    assert.equal(OTS.back, 1.32);
+    assert.equal(OTS.fov, 52);
+    assert.equal(isPlantStrafe(AXES_W), false);
   });
 });

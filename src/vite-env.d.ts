@@ -1,4 +1,4 @@
 /// <reference types="vite/client" />
 
-/** `BUILD 12` + short git SHA, injected in vite.config.ts */
+/** `BUILD 13` + short git SHA, injected in vite.config.ts */
 declare const __BUILD_STAMP__: string;

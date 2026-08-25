@@ -204,8 +204,8 @@ describe('GS-PAW-MESH Hunyuan paw shells', () => {
     assert.equal(mixedContra, 0, 'paw shells must not span both forearms');
   });
 
-  it('visible stamp is BUILD 12', () => {
-    assert.match(BUILD_STAMP, /^BUILD 12\b/);
+  it('visible stamp is BUILD 13', () => {
+    assert.match(BUILD_STAMP, /^BUILD 13\b/);
   });
 
   it('keeps Swipe tame scale at 0.38', () => {

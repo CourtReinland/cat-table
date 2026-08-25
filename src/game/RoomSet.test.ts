@@ -112,7 +112,7 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
 
 describe('GS-ROOM-SET leave the cat and camera alone', () => {
   it('does not retune OTS, Suki fluff, or the BUILD stamp', () => {
-    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 12/);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 13/);
     const suki = readFileSync(join(here, 'Suki.ts'), 'utf8');
     assert.match(suki, /toonifySukiCoat\(this\.inner\)/);
     const cam = readFileSync(join(here, 'CameraRig.ts'), 'utf8');

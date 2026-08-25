@@ -23,7 +23,7 @@ import { preloadBoys } from './BoyGlb';
 import { Hazards } from './Hazards';
 import { toonGradient } from './Toon';
 import type { ShatterEvent } from './Physics';
-import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
+import { cameraRelativeMove, lookToCamDir, resolveHeadingLock, resolvePlantLock, stepProwl, isPlantTurn, STEER, type PlantLock } from './Steer';
 import { pawHitsProp } from './pawHit';
 import { PAW_HIT_RADIUS } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
@@ -90,8 +90,12 @@ export class Game {
   private targetBreak = 0;
   private catVel = new THREE.Vector3();
   private lookDir = new THREE.Vector3();
-  /** First-person planted A/D/S world heading; cleared on release / halt / 3P. */
-  private fpPlantLock: PlantLock | null = null;
+  /**
+   * Snapshotted camera-relative world heading. First-person: planted A/D/S
+   * (tank-spin). Third-person: any held WASD/stick so OTS side-offset
+   * cannot live-remap W into a circle. Cleared on release / halt.
+   */
+  private headingLock: PlantLock | null = null;
   private camMode: 'follow' | 'orbit' | 'cine' = 'orbit';
   private camPos = new THREE.Vector3(0, 2.2, 4.2);
   private camLook = new THREE.Vector3(0, 1, 0);
@@ -317,7 +321,7 @@ export class Game {
   /** Drop residual prowl so idle/sit can own title/intro/fail/cinematic. */
   private haltProwl() {
     this.catVel.set(0, 0, 0);
-    this.fpPlantLock = null;
+    this.headingLock = null;
     const cat = this.apartment.cat;
     cat.yawRate = 0;
     cat.speed = 0;
@@ -785,12 +789,13 @@ export class Game {
    * Map camera-local WASD / stick axes onto the live camera look.
    * W / stick-forward (`axes.z < 0`) walks along getWorldDirection flattened
    * to XZ — into the lens, which in first-person is also Suki's facing.
-   * In FP while planted, A/D/S snapshot a world heading so the body-locked
-   * lens cannot tank-spin plantCommit forever.
+   * Third-person snapshots that heading on press (OTS is side-offset, so
+   * resampling camDir every frame orbits her). In FP while planted, A/D/S
+   * snapshot a world heading so the body-locked lens cannot tank-spin.
    */
   private playerWorldAxes(axes: { x: number; z: number }): { x: number; z: number } {
     if (axes.x === 0 && axes.z === 0) {
-      this.fpPlantLock = null;
+      this.headingLock = null;
       return axes;
     }
     const cam = this.engine.camera;
@@ -798,17 +803,18 @@ export class Game {
     cam.getWorldDirection(this.lookDir);
     const camDir = lookToCamDir(this.lookDir, this.apartment.cat.yaw);
     if (!this.fpCam) {
-      this.fpPlantLock = null;
-      return cameraRelativeMove(axes, camDir);
+      const held = resolveHeadingLock(axes, camDir, this.headingLock);
+      this.headingLock = held.lock;
+      return held.move;
     }
     // Planted A/D is tank yaw, not turn-then-walk. Skip the FP lock so
     // holding A keeps yaws 90° off facing with zero translation (yawOnly).
     if (isPlantTurn(axes)) {
-      this.fpPlantLock = null;
+      this.headingLock = null;
       return cameraRelativeMove(axes, camDir);
     }
-    const resolved = resolvePlantLock(axes, camDir, this.catVel.length(), this.fpPlantLock);
-    this.fpPlantLock = resolved.lock;
+    const resolved = resolvePlantLock(axes, camDir, this.catVel.length(), this.headingLock);
+    this.headingLock = resolved.lock;
     return resolved.move;
   }
 
