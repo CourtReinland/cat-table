@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { toonify, outlineCharacter } from './Toon';
 import type { BoyDef } from '../data/content';
+import { boyGlbUrl, findHeadBone, remapMixamoRig } from './boyfriendPlay';
 
 type PoseName = 'sit' | 'stand' | 'walk' | 'kneel' | 'cuddle';
 
@@ -14,7 +15,7 @@ export async function preloadBoys(ids: string[]) {
     ids.map(async (id) => {
       if (gltfCache.has(id)) return;
       try {
-        const gltf = await loader.loadAsync(`assets/models/boy-${id}.glb`);
+        const gltf = await loader.loadAsync(boyGlbUrl(id));
         gltfCache.set(id, gltf);
       } catch (err) {
         console.warn(`[bf] boy-${id}.glb unavailable`, err);
@@ -40,7 +41,11 @@ function exclaimTexture() {
 }
 let exclaimTex: THREE.CanvasTexture | null = null;
 
-/** GLB boyfriend: Blender-built rig, clip-driven poses + procedural head look-at. */
+/** GLB boyfriend: clip-driven poses + procedural head look-at.
+ *  Mixamo Eli Head remap lives on boyfriendPlay.ts — do not fake a Mixamo mesh here.
+ *  Kitchen date starts Idle_Stand (T-pose if that clip is missing). No floating sit.
+ *  setPose('cuddle') no-ops when the drop-in has no Cuddle clip.
+ */
 export class Boyfriend {
   group = new THREE.Group();
   def: BoyDef;
@@ -67,6 +72,8 @@ export class Boyfriend {
         if (m.isMesh) m.castShadow = true;
       });
       this.group.add(inner);
+      // Mixamo drop-in: mixamorig:Head → Head so look-at survives. Clay names are unchanged.
+      remapMixamoRig(inner, src.animations ?? []);
       toonify(inner);
       // warmer outline for the boys — separates them from Suki (dark plum)
       // and reads as "romance lead" rim light
@@ -83,7 +90,7 @@ export class Boyfriend {
         // NLA track names come through clean: Idle_Sit, Walk, Cuddle…
         this.actions.set(clip.name, this.mixer.clipAction(clip));
       }
-      this.headBone = inner.getObjectByName('Head') ?? null;
+      this.headBone = findHeadBone(inner);
       this.ready = true;
     } else {
       console.warn(`[bf] no glb for ${def.id}; boyfriend invisible this level`);
@@ -96,7 +103,9 @@ export class Boyfriend {
     this.exclaim.visible = false;
     this.group.add(this.exclaim);
 
-    this.setPose('sit', 0.01);
+    // Kitchen date: Idle_Stand (or bind T-pose if the clip is missing).
+    // Apartment overrides with boyPlayPlacement — sit is couch rooms only.
+    this.setPose('stand', 0.01);
   }
 
   private play(name: string, fade = 0.3, once = false) {
@@ -122,11 +131,19 @@ export class Boyfriend {
       case 'sit':
         this.play('Idle_Sit', time);
         break;
-      case 'stand':
-        this.play('StandUp', time, true);
-        this.pendingAfter = { at: 0.9, clip: 'Idle_Stand', fade: 0.3 };
-        this.oneShotUntil = 0.9;
+      case 'stand': {
+        const sit = this.actions.get('Idle_Sit');
+        const fromSit = !!this.current && !!sit && this.current === sit;
+        if (fromSit && this.actions.has('StandUp')) {
+          this.play('StandUp', time, true);
+          this.pendingAfter = { at: 0.9, clip: 'Idle_Stand', fade: 0.3 };
+          this.oneShotUntil = 0.9;
+        } else {
+          // Kitchen spawn / rest: Idle_Stand. Missing clip → bind T-pose (play no-ops).
+          this.play('Idle_Stand', time);
+        }
         break;
+      }
       case 'walk':
         this.play('Walk', time);
         break;
