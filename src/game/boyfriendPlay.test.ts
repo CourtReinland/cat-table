@@ -13,7 +13,11 @@ import {
   boyGlbUrl,
   boyMarkerWorld,
   boyPlayPlacement,
+  cineRiseLookAt,
   cineShouldSitThenStand,
+  CINE_COUCH_RISE_LOOK,
+  CINE_RISE_POS,
+  CINE_RISE_T,
   couchBoyPlacement,
   findHeadBone,
   idleStandIsBind,
@@ -323,6 +327,49 @@ describe('GS-HUMAN-SCOUT kitchen island stand, not couch sit', () => {
     assert.match(game, /cineShouldSitThenStand\(bf\.pose\)/);
     assert.match(game, /setPose\('sit'/);
     assert.match(game, /setPose\('stand'/);
+  });
+
+  it('kitchen cine at t=1.2 looks toward the island boy, not the couch', () => {
+    assert.equal(CINE_RISE_T, 1.2);
+    const kitchen = boyPlayPlacement('kitchen', COUCH, cat, width);
+    const islandLook = cineRiseLookAt(kitchen);
+    const couchLook = cineRiseLookAt(couchBoyPlacement(COUCH));
+    assert.deepEqual(couchLook, CINE_COUCH_RISE_LOOK);
+    assert.deepEqual(CINE_COUCH_RISE_LOOK, { x: -1.9, y: 1.0, z: -1.5 });
+    assert.notDeepEqual(islandLook, CINE_COUCH_RISE_LOOK);
+    assert.equal(+islandLook.x.toFixed(2), 2.25);
+    assert.equal(+islandLook.z.toFixed(2), 0.97);
+    assert.ok(islandLook.y >= MIXAMO_STAND_CHEST_Y && islandLook.y <= MIXAMO_STAND_HEAD_Y);
+    const island = kitchenIslandBoyPlacement(cat, width);
+    const head = boyMarkerWorld(island, 'head', MIXAMO_STAND_HEAD_Y, MIXAMO_STAND_CHEST_Y);
+    const chest = boyMarkerWorld(island, 'chest', MIXAMO_STAND_HEAD_Y, MIXAMO_STAND_CHEST_Y);
+    const toIsland = Math.hypot(islandLook.x - island.pos.x, islandLook.z - island.pos.z);
+    const toCouch = Math.hypot(islandLook.x - CINE_COUCH_RISE_LOOK.x, islandLook.z - CINE_COUCH_RISE_LOOK.z);
+    assert.ok(toIsland < 0.05, `kitchen look xz should sit on Eli, dist=${toIsland}`);
+    assert.ok(toCouch > 3, `kitchen look should not stay on the sofa, dist=${toCouch}`);
+
+    for (const aspect of [16 / 9, 9 / 16]) {
+      const cam = new THREE.PerspectiveCamera(40, aspect, 0.08, 80);
+      cam.position.set(CINE_RISE_POS.x, CINE_RISE_POS.y, CINE_RISE_POS.z);
+      cam.lookAt(islandLook.x, islandLook.y, islandLook.z);
+      const label = aspect > 1 ? 'desktop' : 'phone';
+      assert.ok(ndcInView(cam, new THREE.Vector3(head.x, head.y, head.z)), `Eli head misses kitchen cine t=1.2 ${label}`);
+      assert.ok(ndcInView(cam, new THREE.Vector3(chest.x, chest.y, chest.z)), `Eli chest misses kitchen cine t=1.2 ${label}`);
+    }
+
+    for (const surface of ['coffee', 'desk', 'dresser', 'dining']) {
+      const place = boyPlayPlacement(surface, COUCH, cat, width);
+      assert.deepEqual(cineRiseLookAt(place), CINE_COUCH_RISE_LOOK);
+    }
+
+    const game = src('Game.ts');
+    assert.match(game, /cineRiseLookAt/);
+    assert.match(game, /this\.cineRiseLook/);
+    assert.match(game, /t: 1\.2/);
+    assert.doesNotMatch(
+      game,
+      /t: 1\.2, pos: new THREE\.Vector3\(-2\.6, 2\.0, 3\.3\), look: new THREE\.Vector3\(-1\.9, 1\.0, -1\.5\)/,
+    );
   });
 
   it('couch spawn is outside Kitchen Island OTS (the old off-camera sit)', () => {

@@ -27,7 +27,11 @@ import { cameraRelativeMove, lookToCamDir, resolvePlantLock, stepProwl, isPlantT
 import { pawHitsProp } from './pawHit';
 import { PAW_HIT_RADIUS } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
-import { cineShouldSitThenStand } from './boyfriendPlay';
+import {
+  cineRiseLookAt,
+  cineShouldSitThenStand,
+  CINE_RISE_POS,
+} from './boyfriendPlay';
 
 type Phase =
   | 'loading'
@@ -126,6 +130,8 @@ export class Game {
   private boyFrom = new THREE.Vector3();
   private catFrom = new THREE.Vector3();
   private cuddlePoint = new THREE.Vector3();
+  /** t=1.2 look baked at cine start (island stand vs couch sit). */
+  private cineRiseLook = new THREE.Vector3();
   private dlgIndex = 0;
   private dlgLines: Line[] = [];
 
@@ -881,6 +887,9 @@ export class Game {
     this.boyFrom.copy(bf.group.position);
     this.catFrom.copy(this.apartment.cat.group.position);
     this.cuddlePoint.copy(this.apartment.cuddleSpot);
+    const spawnPose = bf.pose === 'stand' ? 'stand' : 'sit';
+    const riseLook = cineRiseLookAt({ pos: this.boyFrom, pose: spawnPose });
+    this.cineRiseLook.set(riseLook.x, riseLook.y, riseLook.z);
     bf.lookAt(this.apartment.cat.group.position.clone());
     this.ui.showHud(false);
     this.ui.hideHint();
@@ -927,10 +936,14 @@ export class Game {
       cat.speed = 0;
     }
 
-    // camera keyframes
+    // camera keyframes — t=1.2 look is island stand (Eli) or couch sit, not leftover sofa.
     const camKeys = [
       { t: 0, pos: this.cineFrom, look: this.cineLookFrom },
-      { t: 1.2, pos: new THREE.Vector3(-2.6, 2.0, 3.3), look: new THREE.Vector3(-1.9, 1.0, -1.5) },
+      {
+        t: 1.2,
+        pos: new THREE.Vector3(CINE_RISE_POS.x, CINE_RISE_POS.y, CINE_RISE_POS.z),
+        look: this.cineRiseLook,
+      },
       { t: 2.8, pos: new THREE.Vector3(-1.6, 1.5, 3.0), look: new THREE.Vector3(0.1, 0.9, 1.2) },
       { t: 4.0, pos: new THREE.Vector3(1.95, 1.55, 3.7), look: new THREE.Vector3(0.4, 0.62, 1.45) },
     ];

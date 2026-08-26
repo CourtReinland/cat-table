@@ -123,6 +123,25 @@ export function cineShouldSitThenStand(pose: string): boolean {
   return pose === 'sit';
 }
 
+/**
+ * t=1.2 win-cine cut. Couch dates keep the sofa look; kitchen/stand dates look
+ * at the island body/head (Eli at ~2.25, 1.5, 0.97), not empty furniture.
+ * Camera pos for this cut stays the wide +Z shot — only the look was leftover.
+ */
+export const CINE_RISE_T = 1.2;
+export const CINE_RISE_POS = { x: -2.6, y: 2.0, z: 3.3 };
+export const CINE_COUCH_RISE_LOOK = { x: -1.9, y: 1.0, z: -1.5 };
+
+export function cineRiseLookAt(
+  place: Pick<BoyPlayPlacement, 'pos' | 'pose'>,
+  standHeadY = MIXAMO_STAND_HEAD_Y,
+  standChestY = MIXAMO_STAND_CHEST_Y,
+): { x: number; y: number; z: number } {
+  if (place.pose === 'sit') return { ...CINE_COUCH_RISE_LOOK };
+  const y = place.pos.y + (standHeadY + standChestY) * 0.5;
+  return { x: place.pos.x, y, z: place.pos.z };
+}
+
 /** Mixamo: `mixamorig:Head` / `mixamorigHead` → `Head`. Idempotent on clay names. Play load does not call this. */
 export function stripMixamoPrefix(name: string): string {
   return name.replace(/^mixamorig[:_]?/, '');
