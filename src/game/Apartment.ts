@@ -632,6 +632,22 @@ export class Apartment {
           leg.castShadow = true;
           lg.add(leg);
         }
+        // lower shelf so the table reads as furniture, not a floating slab
+        const lowShelf = new THREE.Mesh(new THREE.BoxGeometry(w - 0.38, 0.03, d - 0.28), bodyMat);
+        lowShelf.position.set(0, 0.18, cz);
+        lowShelf.castShadow = true;
+        lowShelf.receiveShadow = true;
+        lg.add(lowShelf);
+        for (let i = 0; i < 3; i++) {
+          const vol = new THREE.Mesh(
+            new THREE.BoxGeometry(0.22, 0.04, 0.16),
+            roomMat([0x6a3a42, 0x3a4a62, 0x8a6a48][i], { rough: 0.88 }),
+          );
+          vol.position.set(-0.55 + i * 0.38, 0.22, cz + (i % 2 ? 0.12 : -0.1));
+          vol.rotation.y = (i - 1) * 0.18;
+          vol.castShadow = true;
+          lg.add(vol);
+        }
         // TV on right wall, flickering
         const tvG = new THREE.Group();
         tvG.position.set(6.9, 1.7, 0.4);
@@ -656,6 +672,21 @@ export class Apartment {
           ped.position.set(x, (topY - 0.06) / 2, cz);
           ped.castShadow = true;
           lg.add(ped);
+          // shaker drawer fronts so the pedestals read as a desk, not crates
+          for (let r = 0; r < 3; r++) {
+            const drawer = new THREE.Mesh(
+              new THREE.BoxGeometry(0.42, 0.16, 0.03),
+              surfaceMat(panelSurface(bodyHex, 27 + r), [1, 1]),
+            );
+            drawer.position.set(x, 0.18 + r * 0.22, cz + (d - 0.15) / 2 + 0.01);
+            lg.add(drawer);
+            const knob = new THREE.Mesh(
+              new THREE.SphereGeometry(0.018, 8, 6),
+              roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }),
+            );
+            knob.position.set(x, 0.18 + r * 0.22, cz + (d - 0.15) / 2 + 0.03);
+            lg.add(knob);
+          }
         }
         // glowing monitor on the desk's back-left corner
         const mon = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.38), roomMat(0x0a1020, { emissive: 0x6ab0e8, emissiveIntensity: EMISSIVE.screen, rough: 0.4 }));
@@ -738,11 +769,19 @@ export class Apartment {
         const chLight = new THREE.PointLight(level.lampColor, NIGHT_RIG.chandelier, 6, 1.9);
         chLight.position.set(0, 2.6, cz);
         lg.add(chLight);
-        // two chairs
-        for (const x of [-0.8, 0.8]) {
+        // two chairs on the window (−Z) side, two more on the OTS-right (+Z)
+        const n = SET_DRESS.dining;
+        const seatMat = surfaceMat(fabricSurface(0x6a2030, 19), [1, 1]);
+        for (const [x, z, rot] of [
+          [-0.8, cz - d / 2 - 0.55, 0],
+          [0.8, cz - d / 2 - 0.55, 0],
+          [-0.55, cz + d / 2 + 0.55, Math.PI],
+          [n.guestChair.x, n.guestChair.z, Math.PI],
+        ]) {
           const chair = new THREE.Group();
-          chair.position.set(x, 0, cz - d / 2 - 0.55);
-          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.06, 0.42), bodyMat);
+          chair.position.set(x, 0, z);
+          chair.rotation.y = rot;
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.06, 0.42), seatMat);
           seat.position.y = 0.5;
           const backR = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.05), bodyMat);
           backR.position.set(0, 0.85, -0.19);
@@ -804,6 +843,47 @@ export class Apartment {
     return m;
   }
 
+  /** Kit prop seated as scenery (not a smashable Body). */
+  private dressProp(
+    lg: THREE.Group,
+    kind: PropKind,
+    x: number,
+    y: number,
+    z: number,
+    scale = 1,
+    ry = 0,
+  ) {
+    const p = buildProp(kind);
+    p.group.position.set(x, y, z);
+    p.group.scale.setScalar(scale);
+    p.group.rotation.y = ry;
+    lg.add(p.group);
+    return p;
+  }
+
+  /**
+   * Leftover empty +Z wall (OTS-right navy). Faces into the room like the
+   * GS-ROOM-SET posters — do not cover those posters or redo kitchen splash.
+   */
+  private leftoverWallBoard(lg: THREE.Group, x: number, y: number, z: number, seed: number) {
+    const cork = surfaceMat(panelSurface(0xc4a070, seed), [1.5, 1.3]);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.98), cork);
+    board.position.set(x, y, z);
+    board.rotation.y = Math.PI;
+    board.receiveShadow = true;
+    lg.add(board);
+    this.meshBox(lg, 1.26, 1.06, 0.04, roomMat(0x6a4a38, { rough: 0.82 }), x, y, z + 0.02);
+    for (let i = 0; i < 4; i++) {
+      const note = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.22, 0.28),
+        roomMat([0xf8f0dc, 0xd8eef8, 0xf8d0d0, 0xe8dcc0][i], { rough: 0.95 }),
+      );
+      note.position.set(x - 0.28 + (i % 2) * 0.5, y - 0.18 + Math.floor(i / 2) * 0.4, z - 0.02);
+      note.rotation.y = Math.PI;
+      lg.add(note);
+    }
+  }
+
   /** Cabinet + stone-top run used on the OTS-near fringe (not the play slab). */
   private cabinetRun(
     lg: THREE.Group,
@@ -845,7 +925,6 @@ export class Apartment {
     const darkWood = roomMat(0x6a4a38, { rough: 0.8 });
     const midWood = roomMat(0x7a5a42, { rough: 0.75 });
     const silver = roomMat(NIGHT_SURFACE.shellPan, { metal: 0.18, rough: 0.45 });
-    const fabric = roomMat(0x7a6480, { rough: 0.95 });
 
     switch (level.surface) {
       case 'kitchen': {
@@ -899,7 +978,7 @@ export class Apartment {
           dish.group.scale.setScalar(0.85);
           lg.add(dish.group);
         }
-        const hutchLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
+        const hutchLight = new THREE.PointLight(level.lampColor, 1.9, 2.8, 2);
         hutchLight.position.set(k.portraitHutch.x + 0.35, 1.35, k.portraitHutch.z + 0.45);
         lg.add(hutchLight);
         // Park under the stone-top lip (front face), not inside the 0.895 slab —
@@ -911,28 +990,82 @@ export class Apartment {
       }
       case 'coffee': {
         const c = SET_DRESS.coffee;
+        const upholstery = surfaceMat(fabricSurface(0x7a6480, 29), [2, 1.2]);
+        const throwMat = surfaceMat(fabricSurface(0xc84a5a, 41), [1.2, 1]);
         this.cabinetRun(lg, level, c.backConsole.x, c.backConsole.z, 2.4, 0.42, 0.52);
+        // glowing media box so the console isn't a blank crate
         this.meshBox(lg, 0.28, 0.22, 0.18, roomMat(0x2a2e38, { rough: 0.45 }), c.backConsole.x - 0.7, 0.64, c.backConsole.z);
-        const rec = buildProp('remote');
-        rec.group.position.set(c.backConsole.x - 0.35, 0.54, c.backConsole.z + 0.05);
-        lg.add(rec.group);
-        const mag = buildProp('book');
-        mag.group.position.set(c.backConsole.x + 0.45, 0.54, c.backConsole.z);
-        mag.group.rotation.y = 0.4;
-        lg.add(mag.group);
-        // lounge chair at the far +X end
-        this.meshBox(lg, 0.62, 0.38, 0.58, fabric, c.loungeChair.x, c.loungeChair.y, c.loungeChair.z, -0.25);
-        this.meshBox(lg, 0.62, 0.55, 0.12, fabric, c.loungeChair.x - 0.04, c.loungeChair.y + 0.42, c.loungeChair.z - 0.22, -0.25);
-        const plant = buildProp('plant');
-        plant.group.position.set(c.loungeChair.x + 0.45, 0, c.loungeChair.z - 0.45);
-        plant.group.scale.setScalar(1.35);
-        lg.add(plant.group);
+        this.meshBox(
+          lg,
+          0.24,
+          0.16,
+          0.01,
+          roomMat(0x0a1020, { emissive: 0x4a7ab8, emissiveIntensity: EMISSIVE.screen, rough: 0.4 }),
+          c.backConsole.x - 0.7,
+          0.64,
+          c.backConsole.z + 0.1,
+        );
+        this.dressProp(lg, 'remote', c.backConsole.x - 0.35, 0.54, c.backConsole.z + 0.05);
+        this.dressProp(lg, 'book', c.backConsole.x + 0.45, 0.54, c.backConsole.z, 1, 0.4);
+        this.dressProp(lg, 'plant', c.backConsole.x + 0.9, 0.54, c.backConsole.z, 0.7);
+        this.dressProp(lg, 'bowl', c.backConsole.x + 0.1, 0.54, c.backConsole.z - 0.04, 0.85, 0.2);
+        this.dressProp(lg, 'candle', c.backConsole.x + 0.68, 0.54, c.backConsole.z + 0.04, 0.8);
+        this.dressProp(lg, 'frame', c.backConsole.x - 0.08, 0.54, c.backConsole.z + 0.06, 0.7, 0.2);
+        this.meshBox(lg, 0.02, 0.02, 0.32, roomMat(0xffc07a, { emissive: 0xffb46a, emissiveIntensity: EMISSIVE.led }), c.backConsole.x, 0.50, c.backConsole.z + 0.18);
+        // lounge chair — woven upholstery + throw, not a pink crate
+        this.meshBox(lg, 0.62, 0.38, 0.58, upholstery, c.loungeChair.x, c.loungeChair.y, c.loungeChair.z, -0.25);
+        this.meshBox(lg, 0.62, 0.55, 0.12, upholstery, c.loungeChair.x - 0.04, c.loungeChair.y + 0.42, c.loungeChair.z - 0.22, -0.25);
+        this.meshBox(lg, 0.28, 0.08, 0.42, throwMat, c.loungeChair.x + 0.12, c.loungeChair.y + 0.24, c.loungeChair.z + 0.04, -0.4);
+        this.meshBox(lg, 0.22, 0.12, 0.28, throwMat, c.loungeChair.x - 0.08, c.loungeChair.y + 0.28, c.loungeChair.z + 0.08, -0.15);
+        this.dressProp(lg, 'plant', c.loungeChair.x + 0.45, 0, c.loungeChair.z - 0.45, 1.35);
+        // speaker (window side of the vanishing point)
+        const grille = surfaceMat(fabricSurface(0x4a4450, 17), [1, 1]);
+        this.meshBox(lg, 0.22, 0.72, 0.18, roomMat(0x3a3a44, { rough: 0.7 }), c.speaker.x, c.speaker.y, c.speaker.z, 0.2);
+        this.meshBox(lg, 0.16, 0.48, 0.02, grille, c.speaker.x - 0.02, c.speaker.y + 0.04, c.speaker.z + 0.09, 0.2);
+        this.dressProp(lg, 'plant', c.speaker.x + 0.22, 0, c.speaker.z - 0.18, 0.7);
+        // leftover empty floor by the speaker — crate so the window half isn't bare plank
+        this.meshBox(lg, 0.22, 0.14, 0.18, roomMat(0x6a4a38, { rough: 0.85 }), c.speaker.x + 0.36, 0.07, c.speaker.z + 0.12);
+        this.dressProp(lg, 'mug', c.speaker.x + 0.36, 0.16, c.speaker.z + 0.12, 0.7);
+        this.dressProp(lg, 'book', c.speaker.x + 0.36, 0.16, c.speaker.z + 0.02, 0.75, 0.3);
+        // OTS-right snack cart
+        const cartWood = surfaceMat(panelSurface(0x6a4a38, 33), [1, 1]);
+        this.meshBox(lg, 0.48, 0.04, 0.36, cartWood, c.snackCart.x, 0.42, c.snackCart.z);
+        this.meshBox(lg, 0.48, 0.04, 0.36, cartWood, c.snackCart.x, 0.78, c.snackCart.z);
+        this.meshBox(lg, 0.48, 0.04, 0.36, cartWood, c.snackCart.x, 1.14, c.snackCart.z);
+        for (const [lx, lz] of [[-0.2, -0.14], [0.2, -0.14], [-0.2, 0.14], [0.2, 0.14]] as const) {
+          this.meshCyl(lg, 0.018, 1.18, roomMat(0x6a4a38, { rough: 0.8 }), c.snackCart.x + lx, 0.59, c.snackCart.z + lz, 8);
+        }
+        this.dressProp(lg, 'bowl', c.snackCart.x - 0.08, 0.82, c.snackCart.z, 0.9);
+        this.dressProp(lg, 'bottle', c.snackCart.x + 0.12, 0.82, c.snackCart.z, 0.85);
+        this.dressProp(lg, 'mug', c.snackCart.x + 0.14, 0.82, c.snackCart.z + 0.08, 0.75);
+        this.dressProp(lg, 'plant', c.snackCart.x, 1.16, c.snackCart.z, 0.65);
+        this.dressProp(lg, 'candle', c.snackCart.x + 0.12, 1.16, c.snackCart.z + 0.08, 0.7);
+        this.dressProp(lg, 'book', c.snackCart.x - 0.08, 0.46, c.snackCart.z, 0.9, 0.35);
+        this.dressProp(lg, 'remote', c.snackCart.x + 0.12, 0.46, c.snackCart.z, 0.85, 0.2);
+        // leftover empty floor by the cart — magazines so OTS-right isn't bare plank
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(
+            lg,
+            0.16,
+            0.012,
+            0.22,
+            roomMat([0x8a4a5a, 0x4a6a8a, 0xc8b89a][i], { rough: 0.7 }),
+            c.snackCart.x - 0.28,
+            0.02 + i * 0.014,
+            c.snackCart.z + 0.06 + i * 0.02,
+            0.4 + i * 0.12,
+          );
+        }
         // portrait-side torchiere
         this.meshCyl(lg, 0.04, 1.55, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.16, rough: 0.5 }), c.portraitLamp.x, 0.78, c.portraitLamp.z, 8);
         this.meshCyl(lg, 0.16, 0.08, roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }), c.portraitLamp.x, c.portraitLamp.y + 0.55, c.portraitLamp.z, 12);
-        const pLight = new THREE.PointLight(level.lampColor, 2.1, 3.4, 2);
+        const pLight = new THREE.PointLight(level.lampColor, 2.5, 3.4, 2);
         pLight.position.set(c.portraitLamp.x, c.portraitLamp.y + 0.5, c.portraitLamp.z);
         lg.add(pLight);
+        const cartLight = new THREE.PointLight(level.lampColor, 1.9, 2.6, 2);
+        cartLight.position.set(c.snackCart.x, 1.05, c.snackCart.z);
+        lg.add(cartLight);
+        this.leftoverWallBoard(lg, c.wallBoard.x, c.wallBoard.y, c.wallBoard.z, 29);
         break;
       }
       case 'desk': {
@@ -958,30 +1091,181 @@ export class Apartment {
             );
           }
         }
-        this.meshBox(lg, 0.48, 1.12, 0.5, darkWood, d.fileCab.x, d.fileCab.y, d.fileCab.z);
-        for (let i = 0; i < 3; i++) {
-          this.meshBox(lg, 0.42, 0.08, 0.02, midWood, d.fileCab.x, 0.28 + i * 0.28, d.fileCab.z + 0.26);
+        this.dressProp(lg, 'plant', d.backShelf.x - 0.55, 1.46, d.backShelf.z + 0.02, 0.7);
+        this.dressProp(lg, 'jar', d.backShelf.x + 0.5, 1.46, d.backShelf.z + 0.02, 0.8);
+        this.dressProp(lg, 'frame', d.backShelf.x + 0.15, 1.46, d.backShelf.z + 0.02, 0.75, 0.15);
+        // leftover empty BACK WALL — cork splash (kitchen-tile analogue)
+        this.meshBox(
+          lg,
+          2.4,
+          1.35,
+          0.05,
+          surfaceMat(panelSurface(0x8a6848, 37), [3, 1.6]),
+          d.backShelf.x,
+          1.62,
+          d.backShelf.z - 0.18,
+        );
+        // cork pinboard on the room face
+        this.meshBox(lg, 1.15, 0.72, 0.03, surfaceMat(panelSurface(0x8a6848, 37), [1.6, 1]), d.pinboard.x, d.pinboard.y, d.pinboard.z);
+        for (let i = 0; i < 6; i++) {
+          this.meshBox(
+            lg,
+            0.18,
+            0.24,
+            0.012,
+            roomMat([0xf2ead0, 0xd0e4f4, 0xf0c8c8][i % 3], { rough: 0.95 }),
+            d.pinboard.x - 0.38 + (i % 3) * 0.38,
+            d.pinboard.y - 0.16 + Math.floor(i / 3) * 0.32,
+            d.pinboard.z + 0.02,
+            (i - 2.5) * 0.04,
+          );
         }
+        // polaroids on the splash so the wall isn't one cork slab
+        for (let i = 0; i < 4; i++) {
+          this.meshBox(
+            lg,
+            0.14,
+            0.16,
+            0.008,
+            roomMat([0xf8f0dc, 0xe8dcc8, 0xd8e8f0, 0xf0d0d0][i], { rough: 0.95 }),
+            d.backShelf.x - 0.85 + i * 0.52,
+            1.95,
+            d.backShelf.z - 0.14,
+            (i - 1.5) * 0.06,
+          );
+        }
+        const cabMat = surfaceMat(panelSurface(bodyHex, 25), [1, 1.4]);
+        this.meshBox(lg, 0.48, 1.12, 0.5, cabMat, d.fileCab.x, d.fileCab.y, d.fileCab.z);
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(lg, 0.42, 0.08, 0.02, cabMat, d.fileCab.x, 0.28 + i * 0.28, d.fileCab.z + 0.26);
+        }
+        this.dressProp(lg, 'plant', d.fileCab.x, 1.16, d.fileCab.z, 0.8);
+        this.dressProp(lg, 'mug', d.fileCab.x + 0.14, 1.16, d.fileCab.z + 0.06, 0.7);
+        this.dressProp(lg, 'book', d.fileCab.x - 0.12, 1.16, d.fileCab.z, 0.85, 0.4);
+        // leftover empty +X BACK WALL — cork FACE the play OTS looks at
+        // (window-side splash stays; do not redo fileCab)
+        const corkFace = surfaceMat(panelSurface(0xc4a070, 41), [1.5, 1.8]);
+        const corkBoard = new THREE.Mesh(new THREE.PlaneGeometry(1.42, 1.68), corkFace);
+        corkBoard.position.set(d.corkWall.x, d.corkWall.y, d.corkWall.z);
+        corkBoard.rotation.y = -Math.PI / 2;
+        corkBoard.receiveShadow = true;
+        lg.add(corkBoard);
+        this.meshBox(lg, 0.05, 1.74, 1.48, roomMat(0x6a4a38, { rough: 0.8 }), d.corkWall.x + 0.03, d.corkWall.y, d.corkWall.z);
+        for (let i = 0; i < 6; i++) {
+          const note = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.28, 0.34),
+            roomMat([0xf8f0dc, 0xd8eef8, 0xf8d0d0, 0xe8dcc0][i % 4], { rough: 0.95 }),
+          );
+          note.position.set(
+            d.corkWall.x - 0.03,
+            0.95 + (i % 3) * 0.42,
+            d.corkWall.z - 0.38 + Math.floor(i / 3) * 0.55,
+          );
+          note.rotation.y = -Math.PI / 2;
+          lg.add(note);
+        }
+        this.leftoverWallBoard(lg, d.wallBoard.x, d.wallBoard.y, d.wallBoard.z, 41);
         this.meshBox(lg, 0.42, 0.72, 0.38, darkWood, d.portraitCart.x, d.portraitCart.y, d.portraitCart.z);
-        const sk = buildProp('book');
-        sk.group.position.set(d.portraitCart.x, 0.95, d.portraitCart.z);
-        lg.add(sk.group);
-        const under = new THREE.PointLight(level.lampColor, 1.8, 3.0, 2);
+        this.dressProp(lg, 'book', d.portraitCart.x, 0.95, d.portraitCart.z);
+        // OTS-right easel + canvas (Kai leftover). Canvas faces −X so play OTS
+        // looking +X actually sees the painting, not a stick.
+        const easelWood = roomMat(0x6a4a38, { rough: 0.8 });
+        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x, 0.7, d.easel.z - 0.18);
+        this.meshBox(lg, 0.04, 1.35, 0.04, easelWood, d.easel.x, 0.7, d.easel.z + 0.18);
+        this.meshBox(lg, 0.04, 1.15, 0.04, easelWood, d.easel.x + 0.16, 0.6, d.easel.z);
+        this.meshBox(lg, 0.04, 0.04, 0.42, easelWood, d.easel.x, 1.18, d.easel.z);
+        const canvas = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.52, 0.68),
+          new THREE.MeshStandardNodeMaterial({ map: posterTex(200), roughness: 0.9 }),
+        );
+        canvas.position.set(d.easel.x, d.easel.y, d.easel.z);
+        canvas.rotation.y = -Math.PI / 2;
+        canvas.rotation.x = -0.08;
+        canvas.castShadow = true;
+        lg.add(canvas);
+        const canvasBack = this.meshBox(lg, 0.03, 0.7, 0.54, easelWood, d.easel.x + 0.02, d.easel.y, d.easel.z);
+        canvasBack.rotation.y = 0;
+        this.dressProp(lg, 'jar', d.easel.x + 0.28, 0.02, d.easel.z + 0.12, 0.7);
+        this.dressProp(lg, 'bowl', d.easel.x - 0.28, 0.02, d.easel.z + 0.1, 0.65);
+        this.dressProp(lg, 'book', d.easel.x + 0.22, 0.02, d.easel.z - 0.16, 0.8, 0.5);
+        this.dressProp(lg, 'jar', d.easel.x - 0.18, 0.02, d.easel.z - 0.12, 0.55);
+        // leftover empty floor — wastebasket so the easel corner isn't bare plank
+        this.meshCyl(lg, 0.12, 0.28, roomMat(0x4a4038, { rough: 0.9 }), d.easel.x - 0.42, 0.14, d.easel.z + 0.22, 10);
+        // leftover empty floor — paint tubes (cork wall stays the +X hero)
+        for (let i = 0; i < 3; i++) {
+          this.meshCyl(
+            lg,
+            0.025,
+            0.14,
+            roomMat([0x4a3a8a, 0x8a3a3a, 0xd8c070][i], { rough: 0.7 }),
+            d.easel.x - 0.52 + i * 0.06,
+            0.07,
+            d.easel.z + 0.08,
+            8,
+          );
+        }
+        this.dressProp(lg, 'book', d.fileCab.x + 0.08, 1.16, d.fileCab.z - 0.12, 0.7, -0.3);
+        // leftover empty floor at corkWall — stacked sketchbooks; do not replace cork
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(
+            lg,
+            0.28,
+            0.03,
+            0.36,
+            roomMat([0x3a3a44, 0x5a4a3a, 0x2a3a4a][i], { rough: 0.8 }),
+            d.corkWall.x - 0.38,
+            0.04 + i * 0.035,
+            d.corkWall.z + 0.42,
+            0.2 + i * 0.1,
+          );
+        }
+        const under = new THREE.PointLight(level.lampColor, 2.2, 3.0, 2);
         under.position.set(d.backShelf.x, 1.4, d.backShelf.z + 0.2);
         lg.add(under);
+        const fileLight = new THREE.PointLight(level.lampColor, 1.8, 2.4, 2);
+        fileLight.position.set(d.fileCab.x - 0.15, 1.35, d.fileCab.z + 0.2);
+        lg.add(fileLight);
+        const corkLight = new THREE.PointLight(level.lampColor, 2.0, 2.8, 2);
+        corkLight.position.set(d.corkWall.x - 0.35, d.corkWall.y, d.corkWall.z);
+        lg.add(corkLight);
         break;
       }
       case 'dresser': {
         const r = SET_DRESS.dresser;
+        const linen = surfaceMat(fabricSurface(0x8a6480, 23), [1.4, 1]);
         this.cabinetRun(lg, level, r.nightstand.x, r.nightstand.z, 1.15, 0.42, 0.62);
-        const lamp = buildProp('candle');
-        lamp.group.position.set(r.nightstand.x - 0.28, 0.64, r.nightstand.z);
-        lg.add(lamp.group);
-        const frame = buildProp('frame');
-        frame.group.position.set(r.nightstand.x + 0.22, 0.64, r.nightstand.z + 0.02);
-        lg.add(frame.group);
-        this.meshBox(lg, 0.85, 2.15, 0.48, darkWood, r.wardrobe.x, r.wardrobe.y, r.wardrobe.z);
+        this.dressProp(lg, 'candle', r.nightstand.x - 0.28, 0.64, r.nightstand.z);
+        this.dressProp(lg, 'frame', r.nightstand.x + 0.22, 0.64, r.nightstand.z + 0.02);
+        this.dressProp(lg, 'perfume', r.nightstand.x - 0.02, 0.64, r.nightstand.z + 0.06, 0.9);
+        this.dressProp(lg, 'jewelrybox', r.nightstand.x + 0.38, 0.64, r.nightstand.z - 0.04, 0.85, 0.2);
+        this.dressProp(lg, 'perfume', r.nightstand.x + 0.18, 0.64, r.nightstand.z + 0.08, 0.7, -0.2);
+        this.dressProp(lg, 'plant', r.nightstand.x - 0.48, 0.64, r.nightstand.z + 0.04, 0.55);
+        // modest shade lamp so the nightstand reads warm, not a dead crate
+        this.meshCyl(lg, 0.018, 0.22, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), r.nightstand.x - 0.42, 0.75, r.nightstand.z - 0.06, 8);
+        this.meshCyl(lg, 0.11, 0.1, roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }), r.nightstand.x - 0.42, 0.92, r.nightstand.z - 0.06, 12);
+        const nsLight = new THREE.PointLight(level.lampColor, 2.1, 2.6, 2);
+        nsLight.position.set(r.nightstand.x - 0.42, 0.9, r.nightstand.z);
+        lg.add(nsLight);
+        const wardMat = surfaceMat(panelSurface(0x6a4a38, 31), [1.2, 2]);
+        this.meshBox(lg, 0.85, 2.15, 0.48, wardMat, r.wardrobe.x, r.wardrobe.y, r.wardrobe.z);
         this.meshCyl(lg, 0.018, 0.16, roomMat(0xd8b25a, { metal: 0.18, rough: 0.35 }), r.wardrobe.x - 0.28, r.wardrobe.y, r.wardrobe.z + 0.25, 8);
+        // leftover empty +X wall behind the wardrobe — do not replace GS-ROOM-SET wardrobe
+        this.meshBox(lg, 0.05, 1.7, 1.45, linen, r.wardrobe.x + 0.48, 1.55, r.wardrobe.z);
+        // ajar door + hanging clothes so the wardrobe isn't a sealed crate
+        const door = this.meshBox(lg, 0.38, 1.7, 0.03, wardMat, r.wardrobe.x - 0.22, r.wardrobe.y - 0.05, r.wardrobe.z + 0.28);
+        door.rotation.y = 0.55;
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(
+            lg,
+            0.12,
+            0.7,
+            0.22,
+            roomMat([0x8a9ab8, 0xb88a9a, 0xd8d0c0][i], { rough: 1 }),
+            r.wardrobe.x - 0.08 + i * 0.12,
+            r.wardrobe.y + 0.15,
+            r.wardrobe.z + 0.08,
+          );
+        }
         for (let i = 0; i < 3; i++) {
           const cloth = new THREE.Mesh(
             new THREE.SphereGeometry(0.13, 8, 6),
@@ -991,38 +1275,88 @@ export class Apartment {
           cloth.position.set(r.portraitHamper.x + (i - 1) * 0.12, r.portraitHamper.y + i * 0.04, r.portraitHamper.z);
           lg.add(cloth);
         }
-        const stool = this.meshCyl(lg, 0.18, 0.08, fabric, r.portraitHamper.x + 0.45, 0.4, r.portraitHamper.z + 0.15);
-        stool.castShadow = true;
+        // OTS-right vanity stool
+        this.meshCyl(lg, 0.2, 0.08, linen, r.vanityStool.x, r.vanityStool.y, r.vanityStool.z);
+        this.meshCyl(lg, 0.03, 0.38, darkWood, r.vanityStool.x, r.vanityStool.y - 0.22, r.vanityStool.z);
+        // robe on a hook — bulk so play OTS actually reads cloth, not a stick
+        this.meshCyl(lg, 0.02, 0.12, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), r.robeHook.x, r.robeHook.y + 0.42, r.robeHook.z, 8);
+        this.meshBox(lg, 0.52, 1.18, 0.28, linen, r.robeHook.x, r.robeHook.y, r.robeHook.z, 0.35);
+        this.meshBox(lg, 0.22, 0.85, 0.2, roomMat(0xb88a9a, { rough: 1 }), r.robeHook.x + 0.16, r.robeHook.y - 0.1, r.robeHook.z + 0.08, 0.5);
+        this.meshBox(lg, 0.18, 0.7, 0.18, roomMat(0x8a9ab8, { rough: 1 }), r.robeHook.x - 0.12, r.robeHook.y - 0.14, r.robeHook.z + 0.06, 0.15);
+        this.meshBox(lg, 0.08, 0.55, 0.08, roomMat(0xd8c8b8, { rough: 1 }), r.robeHook.x + 0.04, r.robeHook.y - 0.22, r.robeHook.z + 0.1, 0.2);
+        // leftover empty floor by the robe — slippers so the hook isn't a wood void
+        this.meshBox(lg, 0.12, 0.04, 0.22, roomMat(0x6a4050, { rough: 0.95 }), r.robeHook.x - 0.18, 0.03, r.robeHook.z + 0.18, 0.25);
+        this.meshBox(lg, 0.12, 0.04, 0.22, roomMat(0x6a4050, { rough: 0.95 }), r.robeHook.x - 0.04, 0.03, r.robeHook.z + 0.22, 0.4);
+        this.dressProp(lg, 'plant', r.robeHook.x + 0.28, 0, r.robeHook.z - 0.18, 0.55);
+        // leftover empty floor by the wardrobe — shoeboxes past the +X face
+        this.meshBox(lg, 0.28, 0.12, 0.22, roomMat(0x8a6a48, { rough: 0.88 }), r.wardrobe.x + 0.22, 0.07, r.wardrobe.z + 0.38);
+        this.meshBox(lg, 0.26, 0.10, 0.20, roomMat(0x6a4a38, { rough: 0.88 }), r.wardrobe.x + 0.22, 0.18, r.wardrobe.z + 0.38, 0.15);
+        // leftover empty floor by the stool — hamper so +Z isn't a wood void
+        for (let i = 0; i < 3; i++) {
+          const cloth = new THREE.Mesh(
+            new THREE.SphereGeometry(0.12, 8, 6),
+            roomMat([0x8a9ab8, 0xb88a9a, 0xd8d0c0][i], { rough: 1 }),
+          );
+          cloth.scale.set(1.2, 0.5, 1.05);
+          cloth.position.set(r.vanityStool.x + 0.28 + i * 0.08, 0.08 + i * 0.03, r.vanityStool.z - 0.06);
+          lg.add(cloth);
+        }
+        this.leftoverWallBoard(lg, r.wallBoard.x, r.wallBoard.y, r.wallBoard.z, 23);
         break;
       }
       case 'dining': {
         const n = SET_DRESS.dining;
+        const cartMat = surfaceMat(panelSurface(0x7a5a42, 29), [1.2, 1]);
         this.cabinetRun(lg, level, n.windowSideboard.x, n.windowSideboard.z, 1.8, 0.44, 0.78);
         for (let i = 0; i < 3; i++) {
-          const btl = buildProp('bottle');
-          btl.group.position.set(n.windowSideboard.x - 0.45 + i * 0.22, 0.80, n.windowSideboard.z);
-          lg.add(btl.group);
+          this.dressProp(lg, 'bottle', n.windowSideboard.x - 0.45 + i * 0.22, 0.80, n.windowSideboard.z);
         }
-        const vase = buildProp('vase');
-        vase.group.position.set(n.windowSideboard.x + 0.55, 0.80, n.windowSideboard.z);
-        lg.add(vase.group);
+        this.dressProp(lg, 'vase', n.windowSideboard.x + 0.55, 0.80, n.windowSideboard.z);
+        this.dressProp(lg, 'plate', n.windowSideboard.x + 0.22, 0.80, n.windowSideboard.z + 0.04, 0.7, 0.3);
+        this.dressProp(lg, 'candle', n.windowSideboard.x - 0.72, 0.80, n.windowSideboard.z + 0.02, 0.85);
+        this.dressProp(lg, 'wineglass', n.windowSideboard.x - 0.18, 0.80, n.windowSideboard.z + 0.06, 0.8);
+        this.dressProp(lg, 'bowl', n.windowSideboard.x + 0.38, 0.80, n.windowSideboard.z, 0.65, 0.15);
         // wine cart at the far +X vanishing point
-        this.meshBox(lg, 0.55, 0.08, 0.38, midWood, n.wineCart.x, 0.72, n.wineCart.z);
-        this.meshBox(lg, 0.55, 0.08, 0.38, midWood, n.wineCart.x, 0.38, n.wineCart.z);
+        this.meshBox(lg, 0.55, 0.08, 0.38, cartMat, n.wineCart.x, 0.72, n.wineCart.z);
+        this.meshBox(lg, 0.55, 0.08, 0.38, cartMat, n.wineCart.x, 0.38, n.wineCart.z);
         for (const [lx, lz] of [[-0.22, -0.14], [0.22, -0.14], [-0.22, 0.14], [0.22, 0.14]] as const) {
           this.meshCyl(lg, 0.02, 0.72, darkWood, n.wineCart.x + lx, 0.36, n.wineCart.z + lz, 8);
         }
-        const dec = buildProp('bottle');
-        dec.group.position.set(n.wineCart.x, 0.78, n.wineCart.z);
-        lg.add(dec.group);
-        this.meshBox(lg, 1.55, 0.82, 0.42, midWood, n.portraitBuffet.x, n.portraitBuffet.y, n.portraitBuffet.z);
+        this.dressProp(lg, 'bottle', n.wineCart.x, 0.78, n.wineCart.z);
+        this.dressProp(lg, 'bottle', n.wineCart.x - 0.14, 0.78, n.wineCart.z + 0.08, 0.8);
+        this.dressProp(lg, 'wineglass', n.wineCart.x + 0.16, 0.78, n.wineCart.z + 0.04, 0.9);
+        this.dressProp(lg, 'wineglass', n.wineCart.x - 0.16, 0.78, n.wineCart.z - 0.04, 0.9);
+        this.meshBox(lg, 1.55, 0.82, 0.42, cartMat, n.portraitBuffet.x, n.portraitBuffet.y, n.portraitBuffet.z);
         this.meshBox(lg, 1.58, 0.05, 0.44, darkWood, n.portraitBuffet.x, 0.92, n.portraitBuffet.z);
-        const gob = buildProp('wineglass');
-        gob.group.position.set(n.portraitBuffet.x + 0.3, 0.95, n.portraitBuffet.z);
-        lg.add(gob.group);
-        const under = new THREE.PointLight(level.lampColor, 2.0, 3.2, 2);
+        this.dressProp(lg, 'wineglass', n.portraitBuffet.x + 0.3, 0.95, n.portraitBuffet.z);
+        this.dressProp(lg, 'bowl', n.portraitBuffet.x - 0.25, 0.95, n.portraitBuffet.z, 0.85);
+        // OTS-right serving trolley (guest chairs are table furniture)
+        this.meshBox(lg, 0.52, 0.05, 0.36, cartMat, n.serveTrolley.x, 0.78, n.serveTrolley.z);
+        this.meshBox(lg, 0.52, 0.05, 0.36, cartMat, n.serveTrolley.x, 0.42, n.serveTrolley.z);
+        for (const [lx, lz] of [[-0.2, -0.14], [0.2, -0.14], [-0.2, 0.14], [0.2, 0.14]] as const) {
+          this.meshCyl(lg, 0.018, 0.78, darkWood, n.serveTrolley.x + lx, 0.4, n.serveTrolley.z + lz, 8);
+        }
+        this.dressProp(lg, 'plate', n.serveTrolley.x - 0.1, 0.82, n.serveTrolley.z, 0.8, 0.2);
+        this.dressProp(lg, 'bowl', n.serveTrolley.x + 0.12, 0.82, n.serveTrolley.z, 0.75);
+        this.dressProp(lg, 'wineglass', n.serveTrolley.x, 0.82, n.serveTrolley.z + 0.08, 0.7);
+        this.dressProp(lg, 'candle', n.serveTrolley.x + 0.08, 0.82, n.serveTrolley.z - 0.08, 0.7);
+        this.dressProp(lg, 'plant', n.serveTrolley.x, 0.46, n.serveTrolley.z, 0.55);
+        this.dressProp(lg, 'bottle', n.serveTrolley.x - 0.14, 0.46, n.serveTrolley.z, 0.75);
+        this.meshBox(lg, 0.16, 0.02, 0.16, roomMat(0xd8c8b8, { rough: 0.98 }), n.serveTrolley.x + 0.14, 0.46, n.serveTrolley.z + 0.04, 0.2);
+        // leftover empty floor — wine crate so the trolley corner isn't bare plank
+        this.meshBox(lg, 0.32, 0.16, 0.22, roomMat(0x6a4a38, { rough: 0.85 }), n.serveTrolley.x + 0.38, 0.08, n.serveTrolley.z + 0.06);
+        this.dressProp(lg, 'bottle', n.serveTrolley.x + 0.38, 0.18, n.serveTrolley.z + 0.06, 0.7);
+        // leftover empty floor by the wine cart — crate so +X isn't a void
+        this.meshBox(lg, 0.28, 0.14, 0.22, roomMat(0x6a4a38, { rough: 0.85 }), n.wineCart.x - 0.42, 0.07, n.wineCart.z + 0.22);
+        this.dressProp(lg, 'bottle', n.wineCart.x - 0.42, 0.16, n.wineCart.z + 0.22, 0.65);
+        this.dressProp(lg, 'plant', n.wineCart.x - 0.22, 0, n.wineCart.z + 0.32, 0.55);
+        const under = new THREE.PointLight(level.lampColor, 2.4, 3.2, 2);
         under.position.set(n.windowSideboard.x, 0.95, n.windowSideboard.z + 0.15);
         lg.add(under);
+        const trolleyLight = new THREE.PointLight(level.lampColor, 1.9, 2.5, 2);
+        trolleyLight.position.set(n.serveTrolley.x, 1.05, n.serveTrolley.z);
+        lg.add(trolleyLight);
+        this.leftoverWallBoard(lg, n.wallBoard.x, n.wallBoard.y, n.wallBoard.z, 19);
         break;
       }
     }
@@ -1110,6 +1444,14 @@ export class Apartment {
         herbPot.group.position.set(k.backCounter.x - 1.25, 0.94, k.backCounter.z);
         herbPot.group.scale.setScalar(0.7);
         lg.add(herbPot.group);
+        // leftover empty surfaces only — do not redo BUILD 12 fridge/splash/hood/rack
+        this.dressProp(lg, 'bowl', 2.48, 0.94, -0.80, 0.8, 0.25);
+        this.meshBox(lg, 0.2, 0.04, 0.14, roomMat(0xd8c8b8, { rough: 0.98 }), 2.48, 0.94, -0.55);
+        this.dressProp(lg, 'mug', 2.48, 0.94, -1.05, 0.75);
+        this.dressProp(lg, 'bowl', k.bakerRack.x, 0.46, k.bakerRack.z, 0.7);
+        this.dressProp(lg, 'jar', k.bakerRack.x + 0.12, 0.46, k.bakerRack.z, 0.6);
+        this.meshBox(lg, 0.08, 0.10, 0.004, roomMat(0xe8dcc8, { rough: 0.9 }), k.fridge.x - 0.32, k.fridge.y + 0.48, k.fridge.z + 0.29);
+        this.meshBox(lg, 0.06, 0.08, 0.004, roomMat(0xc8d8e8, { rough: 0.9 }), k.fridge.x - 0.32, k.fridge.y + 0.28, k.fridge.z + 0.29, 0.12);
         break;
       }
       case 'coffee': {
@@ -1136,6 +1478,15 @@ export class Apartment {
           k.position.set(-0.9 + (Math.random() - 0.5) * 0.5, 0.02, -0.7 + (Math.random() - 0.5) * 0.4);
           lg.add(k);
         }
+        // rug under the table so the slab doesn't sit in a wood void
+        const coffeeRug = new THREE.Mesh(
+          new THREE.CircleGeometry(1.45, 24),
+          surfaceMat(rugSurface(0x6a5468, 0x8a7080, 21)),
+        );
+        coffeeRug.rotation.x = -Math.PI / 2;
+        coffeeRug.position.set(0, 0.006, 0.3);
+        coffeeRug.receiveShadow = true;
+        lg.add(coffeeRug);
         break;
       }
       case 'desk': {
@@ -1174,9 +1525,14 @@ export class Apartment {
           cloth.position.set(-3.4 + (Math.random() - 0.5) * 0.4, 0.05 + i * 0.03, -1.4 + (Math.random() - 0.5) * 0.3);
           lg.add(cloth);
         }
-        // vanity stool
-        cyl(0.2, 0.08, fabric, 0.95, 0.42, 1.35);
-        cyl(0.03, 0.4, darkWood, 0.95, 0.2, 1.35);
+        const dresserRug = new THREE.Mesh(
+          new THREE.CircleGeometry(1.25, 24),
+          surfaceMat(rugSurface(0x6a4058, 0x8a6080, 19)),
+        );
+        dresserRug.rotation.x = -Math.PI / 2;
+        dresserRug.position.set(0, 0.006, 0.35);
+        dresserRug.receiveShadow = true;
+        lg.add(dresserRug);
         break;
       }
       case 'dining': {
@@ -1200,6 +1556,14 @@ export class Apartment {
           box(0.5, 0.65, 0.03, darkWood, -0.8 + i * 0.7, 2.5, -3.37);
           box(0.42, 0.57, 0.02, roomMat(0x8a6a4a, { rough: 0.6, emissive: 0x3a2a1a, emissiveIntensity: 0.3 }), -0.8 + i * 0.7, 2.5, -3.36);
         }
+        const diningRug = new THREE.Mesh(
+          new THREE.CircleGeometry(1.55, 24),
+          surfaceMat(rugSurface(0x6a2030, 0x8a4050, 27)),
+        );
+        diningRug.rotation.x = -Math.PI / 2;
+        diningRug.position.set(0, 0.006, 0.3);
+        diningRug.receiveShadow = true;
+        lg.add(diningRug);
         break;
       }
     }
