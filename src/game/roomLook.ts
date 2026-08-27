@@ -63,7 +63,7 @@ export const SET_DRESS = {
     /** Speaker by the lounge, window side of the +X vanishing point. */
     speaker: { x: 2.08, y: 0.38, z: -0.58 },
     /** Leftover +Z wall void (OTS-right navy) — do not cover GS-ROOM-SET posters. */
-    wallBoard: { x: 3.55, y: 1.62, z: 4.72 },
+    wallBoard: { x: 3.55, y: 1.62, z: 5.16 },
   },
   desk: {
     backShelf: { x: 0.25, y: 1.15, z: -1.10 },
@@ -76,7 +76,7 @@ export const SET_DRESS = {
     /** +X cork wall (kitchen-fridge analogue) — play OTS looks into this, not the −Z splash. */
     corkWall: { x: 2.72, y: 1.50, z: 0.30 },
     /** Leftover +Z wall void (OTS-right navy) — keep the two GS-ROOM-SET posters. */
-    wallBoard: { x: 3.55, y: 1.65, z: 4.72 },
+    wallBoard: { x: 3.55, y: 1.65, z: 5.16 },
   },
   dresser: {
     nightstand: { x: 0.15, y: 0.55, z: -0.96 },
@@ -87,7 +87,7 @@ export const SET_DRESS = {
     /** Robe on a hook near the wardrobe, +Z fringe. */
     robeHook: { x: 1.92, y: 1.28, z: 1.10 },
     /** Leftover +Z wall void (OTS-right navy). */
-    wallBoard: { x: 3.55, y: 1.58, z: 4.72 },
+    wallBoard: { x: 3.55, y: 1.58, z: 5.16 },
   },
   dining: {
     wineCart: { x: 2.88, y: 0.55, z: 0.18 },
@@ -98,7 +98,7 @@ export const SET_DRESS = {
     /** Serving trolley on the +Z fringe, plates readable in play OTS. */
     serveTrolley: { x: 1.48, y: 0.55, z: 1.62 },
     /** Leftover +Z wall void (OTS-right navy). */
-    wallBoard: { x: 3.55, y: 1.62, z: 4.72 },
+    wallBoard: { x: 3.55, y: 1.62, z: 5.16 },
   },
 } as const;
 

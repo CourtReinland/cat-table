@@ -221,6 +221,10 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     assert.match(apt, /leftover empty floor by the wine cart/);
     assert.match(apt, /dresserRug/);
     assert.match(apt, /leftover empty \+X wall behind the wardrobe/);
+    for (const id of ['coffee', 'desk', 'dresser', 'dining'] as const) {
+      assert.equal(SET_DRESS[id].wallBoard.x, 3.55, `${id}.wallBoard must sit beside the front posters`);
+      assert.equal(SET_DRESS[id].wallBoard.z, 5.16, `${id}.wallBoard must share the front-poster plane, not hang at 4.72`);
+    }
     const shot = readFileSync(join(here, '../../tools/gs-room-detail-shot.mjs'), 'utf8');
     assert.match(shot, /auto=1&level=N&instant=1/);
     assert.match(shot, /searchParams\.set\('instant', '1'\)/);
