@@ -111,15 +111,22 @@ Mixamo or AccuRIG. Existing kit: `blender --background --python tools/blender/bu
 
 Hunyuan is **body-only**. Head / bust cards go through `tripo_mesh.py` at `--face-limit 5000`.
 
+**Do not use** Fal `tripo3d/h3.1` — 2026-08-27 Eli bust proof: 3942v/4650f, 261 shred islands, cavity 0, lashes 0, painted soup. H3.1 FAIL, painted blob.
+
+Fal P1 (`tripo3d/p1/image-to-3d`) is the working head we have. Ren's proof: 4660 faces, eyes readable. Candidate, not PASS, not live play.
+
+Official Studio Smart Mesh is preferred when a `TRIPO_API_KEY` / `--tripo-secrets-json` exists. Do not invent a key.
+
 ```bash
 python tools/character-pipe/tripo_mesh.py \
+  --backend fal \
   --front bust.png \
   --out head.glb \
   --thumb head-thumb.png \
   --face-limit 5000
 ```
 
-Also real: `--no-pbr`, `--no-texture`, `--quad` (may return FBX), `--auto-size`, `--orientation default|align_image`, `--model-seed`, `--secrets-json`, `--backend fal|official`, `--tripo-secrets-json`. House path is Fal `tripo3d/h3.1/image-to-3d` (`FAL_KEY`, `fal_client`). Official Studio Smart Mesh P1 (`P1-20260311` on `openapi.tripo3d.ai`) needs a Tripo key we do not have — do not invent one.
+Also real: `--fal-model p1|h3.1` (default `p1`; do not use `h3.1`), `--no-pbr`, `--no-texture`, `--quad` (may return FBX), `--auto-size`, `--orientation default|align_image`, `--model-seed`, `--secrets-json`, `--backend official`, `--tripo-secrets-json`. Fal P1 needs `FAL_KEY` / `fal_client`. Official (`P1-20260311` on `openapi.tripo3d.ai`) only if a key already exists.
 
 Steph: lashes as mesh; closed mouth already has teeth/tongue if the mesher is logical. Assemble untextured, keep parts separate.
 

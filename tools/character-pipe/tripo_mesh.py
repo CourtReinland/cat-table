@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Fal Tripo H3.1 image-to-3d (boy / human heads).
+"""Tripo image-to-3d (boy / human heads).
 
-Endpoint: tripo3d/h3.1/image-to-3d
-Front required.
+Fal P1 (`tripo3d/p1/image-to-3d`) is the working Fal head. Default.
+Fal H3.1 (`tripo3d/h3.1/image-to-3d`) is FAIL — painted blob; do not use.
+Official Studio Smart Mesh (`--backend official`, P1-20260311) is preferred
+when TRIPO_API_KEY / --tripo-secrets-json exists. Do not invent a key.
 
-Never prints secrets. Key from FAL_KEY, --secrets-json, or default connector file.
-Uses venv fal_client when available (recommended: /workspace/.venv-fal).
-
-Optional --backend official posts to openapi.tripo3d.ai P1-20260311
-only if TRIPO_API_KEY / --tripo-secrets-json exists. Do not invent a key.
+Never prints secrets. Fal key from FAL_KEY, --secrets-json, or default
+connector file. Uses venv fal_client when available
+(recommended: /workspace/.venv-fal).
 """
 from __future__ import annotations
 
@@ -24,7 +24,10 @@ DEFAULT_SECRETS = (
     "/home/box/agent-data/connector-secrets/"
     "3ffb7cad-0a29-4270-8502-71eeb1aa2526/fal.json"
 )
-ENDPOINT = "tripo3d/h3.1/image-to-3d"
+ENDPOINT_P1 = "tripo3d/p1/image-to-3d"
+ENDPOINT_H31 = "tripo3d/h3.1/image-to-3d"
+FAL_ENDPOINTS = {"p1": ENDPOINT_P1, "h3.1": ENDPOINT_H31}
+DEFAULT_FAL_MODEL = "p1"
 OFFICIAL_ENDPOINT = "https://openapi.tripo3d.ai/v3/generation/image-to-model"
 OFFICIAL_FILES = "https://openapi.tripo3d.ai/v3/files"
 OFFICIAL_TASK = "https://openapi.tripo3d.ai/v3/tasks/"
@@ -52,7 +55,7 @@ def load_tripo_key(secrets_path: str | None) -> str:
     if not path:
         raise SystemExit(
             "official backend needs TRIPO_API_KEY or --tripo-secrets-json "
-            "(house path is Fal H3.1; do not invent a Studio key)"
+            "(Fal P1 is the working unkeyed path; do not invent a Studio key)"
         )
     with open(path) as f:
         d = json.load(f)
@@ -247,7 +250,14 @@ def run_official(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
 
 def run_fal(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
             texture=True, quad=False, auto_size=False, orientation="default",
-            model_seed=None, thumb=None, secrets=None) -> dict:
+            model_seed=None, thumb=None, secrets=None, fal_model=DEFAULT_FAL_MODEL) -> dict:
+    fal_model = fal_model or DEFAULT_FAL_MODEL
+    if fal_model not in FAL_ENDPOINTS:
+        raise SystemExit(f"unknown fal model: {fal_model}")
+    endpoint = FAL_ENDPOINTS[fal_model]
+    if fal_model == "h3.1":
+        print("FAIL: Fal H3.1 is a painted blob — do not use; default is P1", flush=True)
+
     key = load_key(secrets)
     os.environ["FAL_KEY"] = key
     try:
@@ -263,19 +273,28 @@ def run_fal(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
     args = {
         "image_url": image_url,
         "face_limit": int(face_limit),
-        "pbr": bool(enable_pbr),
         "texture": bool(texture),
-        "orientation": orientation,
     }
-    if quad:
-        args["quad"] = True
-    if auto_size:
-        args["auto_size"] = True
     if model_seed is not None:
         args["model_seed"] = int(model_seed)
+    if fal_model == "h3.1":
+        args["pbr"] = bool(enable_pbr)
+        args["orientation"] = orientation
+        if quad:
+            args["quad"] = True
+        if auto_size:
+            args["auto_size"] = True
+    else:
+        if not enable_pbr:
+            print("Fal P1 has no pbr flag — omitted", flush=True)
+        if quad:
+            print("Fal P1 has no quad flag — omitted", flush=True)
+        if auto_size:
+            print("Fal P1 has no auto_size flag — omitted", flush=True)
+        if orientation != "default":
+            print("Fal P1 has no orientation flag — omitted", flush=True)
 
-    print(f"subscribe {ENDPOINT} face_limit={face_limit} pbr={enable_pbr} texture={texture}",
-          flush=True)
+    print(f"subscribe {endpoint} face_limit={face_limit} texture={texture}", flush=True)
 
     def on_q(update):
         if isinstance(update, dict):
@@ -287,7 +306,7 @@ def run_fal(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
                 print(f"queue {st}", flush=True)
 
     result = fal_client.subscribe(
-        ENDPOINT, arguments=args, with_logs=True, on_queue_update=on_q,
+        endpoint, arguments=args, with_logs=True, on_queue_update=on_q,
     )
     if not isinstance(result, dict):
         result = dict(result) if hasattr(result, "keys") else {"raw": str(result)}
@@ -306,7 +325,7 @@ def run_fal(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
         except Exception as e:
             print(f"thumb download failed: {e}", flush=True)
 
-    meta = write_sidecar(out_mesh, ENDPOINT, face_limit)
+    meta = write_sidecar(out_mesh, endpoint, face_limit)
     print(f"tripo done {out_mesh} bytes={meta['bytes']}", flush=True)
     return meta
 
@@ -314,7 +333,7 @@ def run_fal(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
 def run(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
         texture=True, quad=False, auto_size=False, orientation="default",
         model_seed=None, thumb=None, secrets=None, backend="fal",
-        tripo_secrets=None) -> dict:
+        tripo_secrets=None, fal_model=DEFAULT_FAL_MODEL) -> dict:
     if backend == "official":
         return run_official(
             front=front,
@@ -341,11 +360,18 @@ def run(front: str, out_mesh: str, face_limit=5000, enable_pbr=True,
         model_seed=model_seed,
         thumb=thumb,
         secrets=secrets,
+        fal_model=fal_model,
     )
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Tripo H3.1 image-to-3d (boy / human heads)")
+    ap = argparse.ArgumentParser(
+        description=(
+            "Tripo image-to-3d (boy / human heads). "
+            "Fal H3.1 FAIL (painted blob). Fal P1 working. "
+            "Official preferred when keyed."
+        )
+    )
     ap.add_argument("--front", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--thumb")
@@ -357,7 +383,18 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--orientation", choices=("default", "align_image"), default="default")
     ap.add_argument("--model-seed", type=int)
     ap.add_argument("--secrets-json")
-    ap.add_argument("--backend", choices=("fal", "official"), default="fal")
+    ap.add_argument(
+        "--backend",
+        choices=("fal", "official"),
+        default="fal",
+        help="fal (default P1) or official Studio if a key exists",
+    )
+    ap.add_argument(
+        "--fal-model",
+        choices=("p1", "h3.1"),
+        default=DEFAULT_FAL_MODEL,
+        help="Fal model. Default p1. h3.1 is FAIL — do not use.",
+    )
     ap.add_argument("--tripo-secrets-json")
     return ap.parse_args()
 
@@ -378,6 +415,7 @@ def main() -> None:
         secrets=a.secrets_json,
         backend=a.backend,
         tripo_secrets=a.tripo_secrets_json,
+        fal_model=a.fal_model,
     )
 
 
