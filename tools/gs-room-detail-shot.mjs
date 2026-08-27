@@ -2,7 +2,7 @@
 /**
  * GS-ROOM-DETAIL stills: play OTS + isolation (HUD/cat/smashables off).
  * Uses ?auto=1&level=N&instant=1 (live Pages still gates on save.unlocked).
- * Usage: node tools/gs-room-detail-shot.mjs <prefix> [coffee,desk,dresser,dining]
+ * Usage: node tools/gs-room-detail-shot.mjs <prefix> [kitchen,coffee,desk,dresser,dining]
  * Env: BASE (default http://127.0.0.1:5173), OUT, VIEW
  */
 import { chromium } from 'playwright';
@@ -12,7 +12,7 @@ const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
 const OUT = process.env.OUT ?? 'tools/out/gs-room-detail';
 const PREFIX = process.argv[2] ?? 'gs-b12';
 const ONLY = new Set(
-  (process.argv[3] ?? 'coffee,desk,dresser,dining')
+  (process.argv[3] ?? 'kitchen,coffee,desk,dresser,dining')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),

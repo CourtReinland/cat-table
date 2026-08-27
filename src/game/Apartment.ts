@@ -978,7 +978,7 @@ export class Apartment {
           dish.group.scale.setScalar(0.85);
           lg.add(dish.group);
         }
-        const hutchLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
+        const hutchLight = new THREE.PointLight(level.lampColor, 1.9, 2.8, 2);
         hutchLight.position.set(k.portraitHutch.x + 0.35, 1.35, k.portraitHutch.z + 0.45);
         lg.add(hutchLight);
         // Park under the stone-top lip (front face), not inside the 0.895 slab —
@@ -1016,12 +1016,17 @@ export class Apartment {
         this.meshBox(lg, 0.62, 0.38, 0.58, upholstery, c.loungeChair.x, c.loungeChair.y, c.loungeChair.z, -0.25);
         this.meshBox(lg, 0.62, 0.55, 0.12, upholstery, c.loungeChair.x - 0.04, c.loungeChair.y + 0.42, c.loungeChair.z - 0.22, -0.25);
         this.meshBox(lg, 0.28, 0.08, 0.42, throwMat, c.loungeChair.x + 0.12, c.loungeChair.y + 0.24, c.loungeChair.z + 0.04, -0.4);
+        this.meshBox(lg, 0.22, 0.12, 0.28, throwMat, c.loungeChair.x - 0.08, c.loungeChair.y + 0.28, c.loungeChair.z + 0.08, -0.15);
         this.dressProp(lg, 'plant', c.loungeChair.x + 0.45, 0, c.loungeChair.z - 0.45, 1.35);
         // speaker (window side of the vanishing point)
         const grille = surfaceMat(fabricSurface(0x4a4450, 17), [1, 1]);
         this.meshBox(lg, 0.22, 0.72, 0.18, roomMat(0x3a3a44, { rough: 0.7 }), c.speaker.x, c.speaker.y, c.speaker.z, 0.2);
         this.meshBox(lg, 0.16, 0.48, 0.02, grille, c.speaker.x - 0.02, c.speaker.y + 0.04, c.speaker.z + 0.09, 0.2);
         this.dressProp(lg, 'plant', c.speaker.x + 0.22, 0, c.speaker.z - 0.18, 0.7);
+        // leftover empty floor by the speaker — crate so the window half isn't bare plank
+        this.meshBox(lg, 0.22, 0.14, 0.18, roomMat(0x6a4a38, { rough: 0.85 }), c.speaker.x + 0.36, 0.07, c.speaker.z + 0.12);
+        this.dressProp(lg, 'mug', c.speaker.x + 0.36, 0.16, c.speaker.z + 0.12, 0.7);
+        this.dressProp(lg, 'book', c.speaker.x + 0.36, 0.16, c.speaker.z + 0.02, 0.75, 0.3);
         // OTS-right snack cart
         const cartWood = surfaceMat(panelSurface(0x6a4a38, 33), [1, 1]);
         this.meshBox(lg, 0.48, 0.04, 0.36, cartWood, c.snackCart.x, 0.42, c.snackCart.z);
@@ -1034,6 +1039,7 @@ export class Apartment {
         this.dressProp(lg, 'bottle', c.snackCart.x + 0.12, 0.82, c.snackCart.z, 0.85);
         this.dressProp(lg, 'mug', c.snackCart.x + 0.14, 0.82, c.snackCart.z + 0.08, 0.75);
         this.dressProp(lg, 'plant', c.snackCart.x, 1.16, c.snackCart.z, 0.65);
+        this.dressProp(lg, 'candle', c.snackCart.x + 0.12, 1.16, c.snackCart.z + 0.08, 0.7);
         this.dressProp(lg, 'book', c.snackCart.x - 0.08, 0.46, c.snackCart.z, 0.9, 0.35);
         this.dressProp(lg, 'remote', c.snackCart.x + 0.12, 0.46, c.snackCart.z, 0.85, 0.2);
         // leftover empty floor by the cart — magazines so OTS-right isn't bare plank
@@ -1053,10 +1059,10 @@ export class Apartment {
         // portrait-side torchiere
         this.meshCyl(lg, 0.04, 1.55, roomMat(NIGHT_SURFACE.shellRack, { metal: 0.16, rough: 0.5 }), c.portraitLamp.x, 0.78, c.portraitLamp.z, 8);
         this.meshCyl(lg, 0.16, 0.08, roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }), c.portraitLamp.x, c.portraitLamp.y + 0.55, c.portraitLamp.z, 12);
-        const pLight = new THREE.PointLight(level.lampColor, 2.1, 3.4, 2);
+        const pLight = new THREE.PointLight(level.lampColor, 2.5, 3.4, 2);
         pLight.position.set(c.portraitLamp.x, c.portraitLamp.y + 0.5, c.portraitLamp.z);
         lg.add(pLight);
-        const cartLight = new THREE.PointLight(level.lampColor, 1.5, 2.6, 2);
+        const cartLight = new THREE.PointLight(level.lampColor, 1.9, 2.6, 2);
         cartLight.position.set(c.snackCart.x, 1.05, c.snackCart.z);
         lg.add(cartLight);
         this.leftoverWallBoard(lg, c.wallBoard.x, c.wallBoard.y, c.wallBoard.z, 29);
@@ -1185,13 +1191,41 @@ export class Apartment {
         this.dressProp(lg, 'jar', d.easel.x - 0.18, 0.02, d.easel.z - 0.12, 0.55);
         // leftover empty floor — wastebasket so the easel corner isn't bare plank
         this.meshCyl(lg, 0.12, 0.28, roomMat(0x4a4038, { rough: 0.9 }), d.easel.x - 0.42, 0.14, d.easel.z + 0.22, 10);
-        const under = new THREE.PointLight(level.lampColor, 1.8, 3.0, 2);
+        // leftover empty floor — paint tubes (cork wall stays the +X hero)
+        for (let i = 0; i < 3; i++) {
+          this.meshCyl(
+            lg,
+            0.025,
+            0.14,
+            roomMat([0x4a3a8a, 0x8a3a3a, 0xd8c070][i], { rough: 0.7 }),
+            d.easel.x - 0.52 + i * 0.06,
+            0.07,
+            d.easel.z + 0.08,
+            8,
+          );
+        }
+        this.dressProp(lg, 'book', d.fileCab.x + 0.08, 1.16, d.fileCab.z - 0.12, 0.7, -0.3);
+        // leftover empty floor at corkWall — stacked sketchbooks; do not replace cork
+        for (let i = 0; i < 3; i++) {
+          this.meshBox(
+            lg,
+            0.28,
+            0.03,
+            0.36,
+            roomMat([0x3a3a44, 0x5a4a3a, 0x2a3a4a][i], { rough: 0.8 }),
+            d.corkWall.x - 0.38,
+            0.04 + i * 0.035,
+            d.corkWall.z + 0.42,
+            0.2 + i * 0.1,
+          );
+        }
+        const under = new THREE.PointLight(level.lampColor, 2.2, 3.0, 2);
         under.position.set(d.backShelf.x, 1.4, d.backShelf.z + 0.2);
         lg.add(under);
-        const fileLight = new THREE.PointLight(level.lampColor, 1.4, 2.4, 2);
+        const fileLight = new THREE.PointLight(level.lampColor, 1.8, 2.4, 2);
         fileLight.position.set(d.fileCab.x - 0.15, 1.35, d.fileCab.z + 0.2);
         lg.add(fileLight);
-        const corkLight = new THREE.PointLight(level.lampColor, 1.6, 2.8, 2);
+        const corkLight = new THREE.PointLight(level.lampColor, 2.0, 2.8, 2);
         corkLight.position.set(d.corkWall.x - 0.35, d.corkWall.y, d.corkWall.z);
         lg.add(corkLight);
         break;
@@ -1209,7 +1243,7 @@ export class Apartment {
         // modest shade lamp so the nightstand reads warm, not a dead crate
         this.meshCyl(lg, 0.018, 0.22, roomMat(0xd8b25a, { metal: 0.18, rough: 0.4 }), r.nightstand.x - 0.42, 0.75, r.nightstand.z - 0.06, 8);
         this.meshCyl(lg, 0.11, 0.1, roomMat(0xf5e0b8, { rough: 0.88, emissive: 0xffb46a, emissiveIntensity: EMISSIVE.shade }), r.nightstand.x - 0.42, 0.92, r.nightstand.z - 0.06, 12);
-        const nsLight = new THREE.PointLight(level.lampColor, 1.7, 2.6, 2);
+        const nsLight = new THREE.PointLight(level.lampColor, 2.1, 2.6, 2);
         nsLight.position.set(r.nightstand.x - 0.42, 0.9, r.nightstand.z);
         lg.add(nsLight);
         const wardMat = surfaceMat(panelSurface(0x6a4a38, 31), [1.2, 2]);
@@ -1250,6 +1284,13 @@ export class Apartment {
         this.meshBox(lg, 0.22, 0.85, 0.2, roomMat(0xb88a9a, { rough: 1 }), r.robeHook.x + 0.16, r.robeHook.y - 0.1, r.robeHook.z + 0.08, 0.5);
         this.meshBox(lg, 0.18, 0.7, 0.18, roomMat(0x8a9ab8, { rough: 1 }), r.robeHook.x - 0.12, r.robeHook.y - 0.14, r.robeHook.z + 0.06, 0.15);
         this.meshBox(lg, 0.08, 0.55, 0.08, roomMat(0xd8c8b8, { rough: 1 }), r.robeHook.x + 0.04, r.robeHook.y - 0.22, r.robeHook.z + 0.1, 0.2);
+        // leftover empty floor by the robe — slippers so the hook isn't a wood void
+        this.meshBox(lg, 0.12, 0.04, 0.22, roomMat(0x6a4050, { rough: 0.95 }), r.robeHook.x - 0.18, 0.03, r.robeHook.z + 0.18, 0.25);
+        this.meshBox(lg, 0.12, 0.04, 0.22, roomMat(0x6a4050, { rough: 0.95 }), r.robeHook.x - 0.04, 0.03, r.robeHook.z + 0.22, 0.4);
+        this.dressProp(lg, 'plant', r.robeHook.x + 0.28, 0, r.robeHook.z - 0.18, 0.55);
+        // leftover empty floor by the wardrobe — shoeboxes past the +X face
+        this.meshBox(lg, 0.28, 0.12, 0.22, roomMat(0x8a6a48, { rough: 0.88 }), r.wardrobe.x + 0.22, 0.07, r.wardrobe.z + 0.38);
+        this.meshBox(lg, 0.26, 0.10, 0.20, roomMat(0x6a4a38, { rough: 0.88 }), r.wardrobe.x + 0.22, 0.18, r.wardrobe.z + 0.38, 0.15);
         // leftover empty floor by the stool — hamper so +Z isn't a wood void
         for (let i = 0; i < 3; i++) {
           const cloth = new THREE.Mesh(
@@ -1282,6 +1323,7 @@ export class Apartment {
           this.meshCyl(lg, 0.02, 0.72, darkWood, n.wineCart.x + lx, 0.36, n.wineCart.z + lz, 8);
         }
         this.dressProp(lg, 'bottle', n.wineCart.x, 0.78, n.wineCart.z);
+        this.dressProp(lg, 'bottle', n.wineCart.x - 0.14, 0.78, n.wineCart.z + 0.08, 0.8);
         this.dressProp(lg, 'wineglass', n.wineCart.x + 0.16, 0.78, n.wineCart.z + 0.04, 0.9);
         this.dressProp(lg, 'wineglass', n.wineCart.x - 0.16, 0.78, n.wineCart.z - 0.04, 0.9);
         this.meshBox(lg, 1.55, 0.82, 0.42, cartMat, n.portraitBuffet.x, n.portraitBuffet.y, n.portraitBuffet.z);
@@ -1297,16 +1339,21 @@ export class Apartment {
         this.dressProp(lg, 'plate', n.serveTrolley.x - 0.1, 0.82, n.serveTrolley.z, 0.8, 0.2);
         this.dressProp(lg, 'bowl', n.serveTrolley.x + 0.12, 0.82, n.serveTrolley.z, 0.75);
         this.dressProp(lg, 'wineglass', n.serveTrolley.x, 0.82, n.serveTrolley.z + 0.08, 0.7);
+        this.dressProp(lg, 'candle', n.serveTrolley.x + 0.08, 0.82, n.serveTrolley.z - 0.08, 0.7);
         this.dressProp(lg, 'plant', n.serveTrolley.x, 0.46, n.serveTrolley.z, 0.55);
         this.dressProp(lg, 'bottle', n.serveTrolley.x - 0.14, 0.46, n.serveTrolley.z, 0.75);
         this.meshBox(lg, 0.16, 0.02, 0.16, roomMat(0xd8c8b8, { rough: 0.98 }), n.serveTrolley.x + 0.14, 0.46, n.serveTrolley.z + 0.04, 0.2);
         // leftover empty floor — wine crate so the trolley corner isn't bare plank
         this.meshBox(lg, 0.32, 0.16, 0.22, roomMat(0x6a4a38, { rough: 0.85 }), n.serveTrolley.x + 0.38, 0.08, n.serveTrolley.z + 0.06);
         this.dressProp(lg, 'bottle', n.serveTrolley.x + 0.38, 0.18, n.serveTrolley.z + 0.06, 0.7);
-        const under = new THREE.PointLight(level.lampColor, 2.0, 3.2, 2);
+        // leftover empty floor by the wine cart — crate so +X isn't a void
+        this.meshBox(lg, 0.28, 0.14, 0.22, roomMat(0x6a4a38, { rough: 0.85 }), n.wineCart.x - 0.42, 0.07, n.wineCart.z + 0.22);
+        this.dressProp(lg, 'bottle', n.wineCart.x - 0.42, 0.16, n.wineCart.z + 0.22, 0.65);
+        this.dressProp(lg, 'plant', n.wineCart.x - 0.22, 0, n.wineCart.z + 0.32, 0.55);
+        const under = new THREE.PointLight(level.lampColor, 2.4, 3.2, 2);
         under.position.set(n.windowSideboard.x, 0.95, n.windowSideboard.z + 0.15);
         lg.add(under);
-        const trolleyLight = new THREE.PointLight(level.lampColor, 1.5, 2.5, 2);
+        const trolleyLight = new THREE.PointLight(level.lampColor, 1.9, 2.5, 2);
         trolleyLight.position.set(n.serveTrolley.x, 1.05, n.serveTrolley.z);
         lg.add(trolleyLight);
         this.leftoverWallBoard(lg, n.wallBoard.x, n.wallBoard.y, n.wallBoard.z, 19);
@@ -1400,7 +1447,9 @@ export class Apartment {
         // leftover empty surfaces only — do not redo BUILD 12 fridge/splash/hood/rack
         this.dressProp(lg, 'bowl', 2.48, 0.94, -0.80, 0.8, 0.25);
         this.meshBox(lg, 0.2, 0.04, 0.14, roomMat(0xd8c8b8, { rough: 0.98 }), 2.48, 0.94, -0.55);
+        this.dressProp(lg, 'mug', 2.48, 0.94, -1.05, 0.75);
         this.dressProp(lg, 'bowl', k.bakerRack.x, 0.46, k.bakerRack.z, 0.7);
+        this.dressProp(lg, 'jar', k.bakerRack.x + 0.12, 0.46, k.bakerRack.z, 0.6);
         this.meshBox(lg, 0.08, 0.10, 0.004, roomMat(0xe8dcc8, { rough: 0.9 }), k.fridge.x - 0.32, k.fridge.y + 0.48, k.fridge.z + 0.29);
         this.meshBox(lg, 0.06, 0.08, 0.004, roomMat(0xc8d8e8, { rough: 0.9 }), k.fridge.x - 0.32, k.fridge.y + 0.28, k.fridge.z + 0.29, 0.12);
         break;

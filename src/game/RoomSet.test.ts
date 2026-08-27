@@ -41,9 +41,9 @@ function slabOf(level: (typeof LEVELS)[number]) {
 
 describe('GS-ROOM-SET night rig lift', () => {
   it('lifts hemi/fill/moon without dumping key on the slab', () => {
-    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.62);
-    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.2);
-    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.70);
+    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.65);
+    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.8);
+    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.75);
     assert.equal(NIGHT_RIG.key, 4.8);
     assert.ok(NIGHT_RIG.key < NIGHT_RIG.fill);
     assert.ok(NIGHT_RIG.pendant <= 5);
@@ -144,7 +144,7 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     assert.equal(k.backCounter.z, -1.14);
     assert.equal(k.bakerRack.x, 1.52);
     assert.equal(NIGHT_RIG.key, 4.8);
-    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 12/);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 13/);
   });
 
   it('does not park new dressing on the play slab', () => {
@@ -211,10 +211,14 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
   it('fills leftover empty surfaces on coffee/desk/dresser/dining without new OTS-missing landmarks', () => {
     const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
     assert.match(apt, /leftover empty floor by the cart/);
+    assert.match(apt, /leftover empty floor by the speaker/);
     assert.match(apt, /polaroids on the splash/);
     assert.match(apt, /leftover empty floor — wastebasket/);
+    assert.match(apt, /leftover empty floor — paint tubes/);
     assert.match(apt, /leftover empty floor by the stool/);
+    assert.match(apt, /leftover empty floor by the robe/);
     assert.match(apt, /leftover empty floor — wine crate/);
+    assert.match(apt, /leftover empty floor by the wine cart/);
     assert.match(apt, /dresserRug/);
     assert.match(apt, /leftover empty \+X wall behind the wardrobe/);
     const shot = readFileSync(join(here, '../../tools/gs-room-detail-shot.mjs'), 'utf8');

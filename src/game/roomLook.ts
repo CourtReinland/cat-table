@@ -23,16 +23,18 @@ export const BLOOM = {
  *  keep cabinets from falling into a black cliff.
  *  GS-ROOM-SET: modest hemi/fill/moon lift so OTS backgrounds read. Key
  *  stays put — it dumps on the play slab and would flatten Suki's neighbor
- *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it. */
+ *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it.
+ *  GS-ROOM-DETAIL: another modest hemi/fill/moon/lamp lift so rooms read;
+ *  pendant stays (island pool). Fog stays. */
 export const NIGHT_RIG = {
-  hemi: 0.60,
-  moon: 0.64,
+  hemi: 0.63,
+  moon: 0.70,
   key: 4.8,
-  lamp: 9.5,
-  fill: 8.4,
+  lamp: 10.6,
+  fill: 9.4,
   pendant: 3.6,
-  tvGlow: 2.2,
-  chandelier: 6,
+  tvGlow: 2.4,
+  chandelier: 6.2,
   fogDensity: 0.022,
 } as const;
 
