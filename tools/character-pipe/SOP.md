@@ -106,3 +106,21 @@ Then bump the BUILD stamp in **both** `src/buildStamp.ts` and `vite.config.ts` (
 ## Boys / humanoids
 
 Mixamo or AccuRIG. Existing kit: `blender --background --python tools/blender/build_boyfriends.py` → `public/assets/models/boy-*.glb`. Do **not** Mixamo a cat.
+
+## Boy / human heads (Tripo)
+
+Hunyuan is **body-only**. Head / bust cards go through `tripo_mesh.py` at `--face-limit 5000`.
+
+```bash
+python tools/character-pipe/tripo_mesh.py \
+  --front bust.png \
+  --out head.glb \
+  --thumb head-thumb.png \
+  --face-limit 5000
+```
+
+Also real: `--no-pbr`, `--no-texture`, `--quad` (may return FBX), `--auto-size`, `--orientation default|align_image`, `--model-seed`, `--secrets-json`, `--backend fal|official`, `--tripo-secrets-json`. House path is Fal `tripo3d/h3.1/image-to-3d` (`FAL_KEY`, `fal_client`). Official Studio Smart Mesh P1 (`P1-20260311` on `openapi.tripo3d.ai`) needs a Tripo key we do not have — do not invent one.
+
+Steph: lashes as mesh; closed mouth already has teeth/tongue if the mesher is logical. Assemble untextured, keep parts separate.
+
+Do **not** overwrite `public/assets/models/boy-*.glb` from a first inspect. Ren owns **GS-ELI-BEAUTY**. Mixamo / AccuRIG only after **PASS** islands (logical parts or real cavity / lashes).
