@@ -106,3 +106,24 @@ Then bump the BUILD stamp in **both** `src/buildStamp.ts` and `vite.config.ts` (
 ## Boys / humanoids
 
 Mixamo or AccuRIG. Existing kit: `blender --background --python tools/blender/build_boyfriends.py` → `public/assets/models/boy-*.glb`. Do **not** Mixamo a cat.
+
+## Hair / face split (2026-08-25 iter1)
+
+Steph ([recipe](https://youtu.be/8PnuTqUYQgo)): head always separate; hair its own mesh. Tripo ~5k-tri smart-mesh head gives lashes-as-mesh + closed-mouth cavity (teeth/tongue already there). Hunyuan low-poly is **not** logically split (`Ctrl+L` fails).
+
+Living `hunyuan_mesh.py` is one front → one GLB. `bind_suki_stand.py` still `object.join()`s. That is the opposite of Steph assemble-untextured.
+
+**Iter1 score 13/30 FAIL-expected.** Imagine **can** emit a bust card and a no-face hair helmet if you bypass `imagine_tpose.py`'s four-on-floor lock:
+
+```bash
+python tools/character-pipe/imagine_part_card.py --kind bust --ref <2d.png> --out card.png
+python tools/character-pipe/imagine_part_card.py --kind hair --ref <2d.png> --out card.png
+```
+
+Also real: `--ref` repeatable, `--extra`, `--identity`, `--secrets-json`, `--aspect` (default `3:4`). Hair card: **front camera preferred** (iter1 came back rear).
+
+Hunyuan v3.1 Pro then returns two files that are still single `node_0` painted blobs (head 1174 islands, hair 3320, no cavity, lashes painted). `--face-count 20000` is rejected (API floor 40000). Raising face-count does **not** create Steph islands.
+
+Do **not** use 3D isolation viewports (`suki-stills-685` / `suki-model` beauty+face) as Imagine refs. **2D only.** Never Hunyuan the biped ortho.
+
+**Next mesher:** Tripo smart-mesh for the head. Hair card → sculpt-align → retopo. Assemble untextured, keep parts separate. Do **not** re-Hunyuan the whole-body stand as a substitute.

@@ -11,4 +11,4 @@ Court + incoming bots: repeat what already shipped in **this** repo. Stay **thre
 | [Pages + playtest](pages-playtest.md) | BUILD stamp, GitHub Pages, approved-art gate. |
 | [Forge review](forge-review.md) | After a ship branch is pushed, **before** the PR. Court merges. |
 
-Script table and longer recipe (kept as-is): [`tools/character-pipe/README.md`](../../tools/character-pipe/README.md). `SOP.md` is the Court-facing stepwise copy.
+Script table and longer recipe (kept as-is): [`tools/character-pipe/README.md`](../../tools/character-pipe/README.md). `SOP.md` is the Court-facing stepwise copy. Hair / face split (2026-08-25 iter1) is a short section on that same playbook — not a second pipe.
