@@ -11,4 +11,4 @@ Court + incoming bots: repeat what already shipped in **this** repo. Stay **thre
 | [Pages + playtest](pages-playtest.md) | BUILD stamp, GitHub Pages, approved-art gate. |
 | [Forge review](forge-review.md) | After a ship branch is pushed, **before** the PR. Court merges. |
 
-Script table and longer recipe (kept as-is): [`tools/character-pipe/README.md`](../../tools/character-pipe/README.md). `SOP.md` is the Court-facing stepwise copy.
+Script table and longer recipe (kept as-is): [`tools/character-pipe/README.md`](../../tools/character-pipe/README.md). `SOP.md` is the Court-facing stepwise copy. Boy / human heads (Tripo): Fal H3.1 FAIL (painted blob); Fal P1 is the working head (candidate, not PASS); Official Studio preferred when a key already exists. Hunyuan is body-only.
