@@ -14,6 +14,9 @@ import {
   yawRateForSpeed,
   isPlantStrafe,
   isPlantTurn,
+  quantizePlantAxes,
+  HEADING_LATERAL_ENTER,
+  HEADING_LATERAL_HOLD,
   resolveHeadingLock,
   resolvePlantLock,
   type PlantLock,
@@ -534,5 +537,162 @@ describe('GS-W-CIRCLE heading lock (side-offset OTS)', () => {
     assert.equal(OTS.back, 1.32);
     assert.equal(OTS.fov, 52);
     assert.equal(isPlantStrafe(AXES_W), false);
+  });
+});
+
+describe('GS-W-CIRCLE analog stick deadzone (thumb wobble)', () => {
+  it('heading quantize ignores |x| ≤ 0.32 while plant-lock still sees 0.05 analog A', () => {
+    assert.equal(HEADING_LATERAL_ENTER, 0.32);
+    assert.equal(HEADING_LATERAL_HOLD, 0.18);
+    assert.ok(HEADING_LATERAL_HOLD < HEADING_LATERAL_ENTER);
+
+    const wobble = { x: 0.2, z: -1 };
+    const plantQ = quantizePlantAxes(wobble);
+    assert.equal(plantQ.x, 1, 'plant-lock 0.05 still treats analog A as a cut');
+    const headingQ = quantizePlantAxes(wobble, { heading: true });
+    assert.equal(headingQ.x, 0, 'heading-lock 0.32 must eat 0.2 of thumb wobble');
+    assert.equal(headingQ.z, -1);
+
+    const justUnder = quantizePlantAxes({ x: HEADING_LATERAL_ENTER, z: -1 }, { heading: true });
+    assert.equal(justUnder.x, 0);
+    const justOver = quantizePlantAxes({ x: HEADING_LATERAL_ENTER + 0.01, z: -1 }, { heading: true });
+    assert.equal(justOver.x, 1);
+
+    const keysW = quantizePlantAxes(AXES_W, { heading: true });
+    assert.equal(keysW.x, 0);
+    assert.equal(keysW.z, -1);
+    const keysA = quantizePlantAxes(AXES_A, { heading: true });
+    assert.equal(keysA.x, -1);
+    assert.equal(keysA.z, 0);
+  });
+
+  it('small lateral jitter while forward is held keeps a straight heading — no circling', () => {
+    const frames = 90; // 1.5s
+    const settle = 20;
+    const wobbles = [0, 0.08, -0.12, 0.2, -0.28, 0.31, -0.05, 0.18];
+
+    let lock: PlantLock | null = null;
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    const pos = { x: 0, z: 0 };
+    const path: XZ[] = [{ x: 0, z: 0 }];
+    let yawAtSettle = 0;
+    const firstHeading = { x: 0, z: 0 };
+    for (let i = 0; i < frames; i++) {
+      const axes: XZ = { x: wobbles[i % wobbles.length], z: -1 };
+      const cam = otsCamDir(yaw, Math.hypot(vel.x, vel.z));
+      const r = resolveHeadingLock(axes, cam, lock);
+      lock = r.lock;
+      if (i === 0) {
+        assert.ok(lock);
+        firstHeading.x = lock.world.x;
+        firstHeading.z = lock.world.z;
+      }
+      const s = stepProwl(DT, vel, yaw, { x: r.move.x * WALK, z: r.move.z * WALK });
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+      pos.x += vel.x * DT;
+      pos.z += vel.z * DT;
+      path.push({ x: pos.x, z: pos.z });
+      if (i === settle - 1) yawAtSettle = yaw;
+    }
+    assert.ok(lock, 'forward stick must keep a heading lock through wobble');
+    almost(lock.world.x, firstHeading.x);
+    almost(lock.world.z, firstHeading.z);
+    assert.ok(
+      Math.abs(shortestAngle(yaw, yawAtSettle)) < 0.03,
+      `wobble must not keep yawing (Δ ${shortestAngle(yaw, yawAtSettle)})`,
+    );
+    const drift = maxCrossTrack(path.slice(settle));
+    assert.ok(drift < 0.02, `wobble path cross-track ${drift} is an arc, not a line`);
+
+    // Old 0.05 gate: |x| = 0.08 would have quantized as a cut and resnapshotted.
+    const oldCut = quantizePlantAxes({ x: 0.08, z: -1 });
+    assert.equal(oldCut.x, 1);
+    const held = resolveHeadingLock({ x: 0, z: -0.95 }, otsCamDir(0), null);
+    const jittered = resolveHeadingLock({ x: 0.08, z: -0.95 }, otsCamDir(0.3), held.lock);
+    assert.ok(jittered.lock);
+    almost(jittered.lock.world.x, held.lock!.world.x);
+    almost(jittered.lock.world.z, held.lock!.world.z);
+  });
+
+  it('full left/right with no forward pivots in place', () => {
+    let lock: PlantLock | null = null;
+    let yaw = 0;
+    let vel: XZ = { x: 0, z: 0 };
+    const pos = { x: 0, z: 0 };
+    const stickA: XZ = { x: -1, z: 0 };
+    for (let i = 0; i < 90; i++) {
+      const cam = otsCamDir(yaw);
+      assert.equal(isPlantTurn(stickA), true);
+      const r = resolveHeadingLock(stickA, cam, lock);
+      lock = r.lock;
+      const s = stepProwl(DT, vel, yaw, { x: r.move.x * WALK, z: r.move.z * WALK }, true);
+      vel = { x: s.x, z: s.z };
+      yaw = s.yaw;
+      pos.x += vel.x * DT;
+      pos.z += vel.z * DT;
+    }
+    assert.ok(lock, 'full left stick snapshots a world heading');
+    assert.ok(Math.hypot(vel.x, vel.z) < 0.02, `full left must not translate (${Math.hypot(vel.x, vel.z)})`);
+    assert.ok(Math.hypot(pos.x, pos.z) < 0.02, `full left travel ${Math.hypot(pos.x, pos.z)} must stay planted`);
+    assert.ok(Math.abs(yaw) > 0.8, `held left stick should yaw in place (yaw ${yaw})`);
+
+    const right = resolveHeadingLock({ x: 1, z: 0 }, otsCamDir(0), null);
+    const pivoted = stepFor(90, { x: 0, z: 0 }, 0, { x: right.move.x * WALK, z: right.move.z * WALK }, true);
+    assert.ok(Math.sign(pivoted.yaw) !== Math.sign(yaw), 'right stick should yaw the other way from left');
+    assert.ok(Math.abs(pivoted.yaw) > 0.8, `held right stick should yaw in place (yaw ${pivoted.yaw})`);
+    assert.ok(Math.hypot(pivoted.pos.x, pivoted.pos.z) < 0.02, 'right planted pivot must keep the feet still');
+  });
+
+  it('release stops dead and the next press takes a fresh heading', () => {
+    const cam = otsCamDir(0);
+    const held = resolveHeadingLock({ x: 0.1, z: -0.95 }, cam, null);
+    assert.ok(held.lock);
+    const still = resolveHeadingLock({ x: -0.22, z: -1 }, otsCamDir(0.5), held.lock);
+    assert.ok(still.lock);
+    almost(still.lock.world.x, held.lock.world.x);
+    almost(still.lock.world.z, held.lock.world.z);
+
+    const up = resolveHeadingLock({ x: 0, z: 0 }, cam, still.lock);
+    assert.equal(up.lock, null);
+    const halt = stepProwl(DT, { x: 0, z: WALK }, 0, { x: 0, z: 0 });
+    almost(halt.x, 0);
+    almost(halt.z, 0);
+    almost(halt.yawRate, 0);
+
+    const nextCam = otsCamDir(1.1);
+    const next = resolveHeadingLock({ x: 0.05, z: -1 }, nextCam, up.lock);
+    assert.ok(next.lock, 'next press after release must snapshot a fresh heading');
+    const oldDir = Math.atan2(held.lock.world.x, held.lock.world.z);
+    const newDir = Math.atan2(next.lock.world.x, next.lock.world.z);
+    assert.ok(
+      Math.abs(shortestAngle(oldDir, newDir)) > 0.4,
+      `fresh heading ${newDir} must not reuse the previous lock ${oldDir}`,
+    );
+  });
+
+  it('hysteresis holds a committed analog cut until |x| drops below 0.18', () => {
+    const cam = otsCamDir(0);
+    const cut = resolveHeadingLock({ x: 0.5, z: -0.7 }, cam, null);
+    assert.ok(cut.lock);
+    const cutQ = quantizePlantAxes(cut.lock.axes, { heading: true });
+    assert.equal(cutQ.x, 1);
+
+    const held = resolveHeadingLock({ x: 0.22, z: -0.8 }, cam, cut.lock);
+    assert.ok(held.lock);
+    almost(held.lock.world.x, cut.lock.world.x);
+    almost(held.lock.world.z, cut.lock.world.z);
+
+    const dropped = resolveHeadingLock({ x: 0.1, z: -1 }, cam, cut.lock);
+    assert.ok(dropped.lock);
+    const droppedQ = quantizePlantAxes(dropped.lock.axes, { heading: true, prev: cutQ });
+    assert.equal(droppedQ.x, 0, 'below 0.18 must leave the cut');
+    const cutDir = Math.atan2(cut.lock.world.x, cut.lock.world.z);
+    const fwdDir = Math.atan2(dropped.lock.world.x, dropped.lock.world.z);
+    assert.ok(
+      Math.abs(shortestAngle(cutDir, fwdDir)) > 0.2,
+      'leaving the cut resnapshots onto the live forward heading',
+    );
   });
 });
