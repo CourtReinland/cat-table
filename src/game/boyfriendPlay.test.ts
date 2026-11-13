@@ -164,8 +164,8 @@ describe('GS-HUMAN-SCOUT Eli GLB path is eli-only', () => {
     assert.match(boy, /this\.play\('Cuddle'/);
   });
 
-  it('visible stamp is BUILD 13', () => {
-    assert.match(BUILD_STAMP, /^BUILD 13\b/);
+  it('visible stamp is BUILD 14', () => {
+    assert.match(BUILD_STAMP, /^BUILD 14\b/);
   });
 
   it('boy-eli.glb is the textured Mixamo drop-in (glTF, clips, Head, no Cuddle)', () => {

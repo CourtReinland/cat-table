@@ -112,7 +112,7 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
 
 describe('GS-ROOM-SET leave the cat and camera alone', () => {
   it('does not retune OTS, Suki fluff, or the BUILD stamp', () => {
-    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 13/);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 14/);
     const suki = readFileSync(join(here, 'Suki.ts'), 'utf8');
     assert.match(suki, /toonifySukiCoat\(this\.inner\)/);
     const cam = readFileSync(join(here, 'CameraRig.ts'), 'utf8');
@@ -144,7 +144,7 @@ describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
     assert.equal(k.backCounter.z, -1.14);
     assert.equal(k.bakerRack.x, 1.52);
     assert.equal(NIGHT_RIG.key, 4.8);
-    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 13/);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 14/);
   });
 
   it('does not park new dressing on the play slab', () => {

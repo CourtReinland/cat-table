@@ -127,16 +127,50 @@ export function isSteerActive(speed: number, yawRate: number, speedFloor = 0.08)
   return speed > speedFloor || Math.abs(yawRate) > STEER.yawBusy;
 }
 
-/** Snapshotted world intent for body-locked (first-person) planted A/D/S. */
+/**
+ * Snapshotted world intent. First-person uses this for planted A/D/S
+ * (tank-spin). Third-person uses it for any held WASD/stick so a
+ * side-offset OTS look cannot live-remap W into a circle.
+ */
 export type PlantLock = { axes: XZ; world: XZ };
 
+/** Plant-lock / keyboard: tiny so analog A/D ease-off keeps a planted pivot. */
 const PLANT_AXIS_DEAD = 0.05;
 
-/** Quantize stick/WASD so analog wobble does not resnapshot the lock. */
-export function quantizePlantAxes(axes: XZ): XZ {
+/**
+ * Analog/touch heading lock. The 44px virtual stick treated any |x| > 0.05
+ * (~2px of thumb wobble) as a new direction, snapping heading ~45° and
+ * bringing the W-circle back. Enter a lateral cut at 0.32 (~14px); hysteresis
+ * holds that cut until |x| drops below 0.18. Keyboard WASD is digital ±1/0
+ * and still clears both thresholds immediately.
+ */
+export const HEADING_LATERAL_ENTER = 0.32;
+export const HEADING_LATERAL_HOLD = 0.18;
+
+export type QuantizeOpts = { heading?: boolean; prev?: XZ | null };
+
+function axisZ(axes: XZ): number {
+  return axes.z > PLANT_AXIS_DEAD ? 1 : axes.z < -PLANT_AXIS_DEAD ? -1 : 0;
+}
+
+/**
+ * Quantize stick/WASD so analog wobble does not resnapshot the lock.
+ * Default (plant-lock) keeps the 0.05 gate. Heading-lock uses the analog
+ * lateral pair above; pass `prev` as the previous heading-quantized axes
+ * so hysteresis can hold a committed cut.
+ */
+export function quantizePlantAxes(axes: XZ, opts?: QuantizeOpts): XZ {
+  const z = axisZ(axes);
+  if (!opts?.heading) {
+    return {
+      x: Math.abs(axes.x) <= PLANT_AXIS_DEAD ? 0 : Math.sign(axes.x),
+      z,
+    };
+  }
+  const xDead = opts.prev && opts.prev.x !== 0 ? HEADING_LATERAL_HOLD : HEADING_LATERAL_ENTER;
   return {
-    x: Math.abs(axes.x) <= PLANT_AXIS_DEAD ? 0 : Math.sign(axes.x),
-    z: axes.z > PLANT_AXIS_DEAD ? 1 : axes.z < -PLANT_AXIS_DEAD ? -1 : 0,
+    x: Math.abs(axes.x) <= xDead ? 0 : Math.sign(axes.x),
+    z,
   };
 }
 
@@ -177,7 +211,7 @@ function scaleLockedHeading(heading: XZ, axes: XZ): XZ {
  * planted; keep it until they are released so she turns into it and walks.
  * Scale by hypot(axes) each frame so analog ease still scrapes.
  * W-only stays live. In-gait cuts (already moving) stay live. Third-person
- * follow should not call this.
+ * follow uses `resolveHeadingLock` so OTS side-offset cannot orbit W.
  */
 export function resolvePlantLock(
   axes: XZ,
@@ -193,6 +227,42 @@ export function resolvePlantLock(
   }
 
   if (spd >= STEER.plantSpeed) return { move: live, lock: null };
+
+  const heading = unitXZ(live);
+  return {
+    move: scaleLockedHeading(heading, axes),
+    lock: { axes: { x: axes.x, z: axes.z }, world: heading },
+  };
+}
+
+function sameHeadingAxes(lockAxes: XZ, axes: XZ): boolean {
+  const prevQ = quantizePlantAxes(lockAxes, { heading: true });
+  const q = quantizePlantAxes(axes, { heading: true, prev: prevQ });
+  return prevQ.x === q.x && prevQ.z === q.z;
+}
+
+/**
+ * Snapshot camera-relative world heading while the same quantized keys
+ * stay down. Close OTS sits `OTS.side` off the spine, so live
+ * `getWorldDirection` is slightly inward of cat heading; yaws toward it,
+ * the follow cam yaws with her, camDir updates, she circles. Hold the
+ * press-frame heading until release or a quantized axis change. Analog
+ * lateral uses HEADING_LATERAL_ENTER / HOLD so thumb wobble cannot
+ * resnapshot; keyboard W is digital and unchanged.
+ */
+export function resolveHeadingLock(
+  axes: XZ,
+  camDir: XZ,
+  lock: PlantLock | null,
+): { move: XZ; lock: PlantLock | null } {
+  const live = cameraRelativeMove(axes, camDir);
+  const prevQ = lock ? quantizePlantAxes(lock.axes, { heading: true }) : null;
+  const q = quantizePlantAxes(axes, { heading: true, prev: prevQ });
+  if (q.x === 0 && q.z === 0) return { move: live, lock: null };
+
+  if (lock && sameHeadingAxes(lock.axes, axes)) {
+    return { move: scaleLockedHeading(lock.world, axes), lock };
+  }
 
   const heading = unitXZ(live);
   return {
