@@ -41,9 +41,9 @@ function slabOf(level: (typeof LEVELS)[number]) {
 
 describe('GS-ROOM-SET night rig lift', () => {
   it('lifts hemi/fill/moon without dumping key on the slab', () => {
-    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.62);
-    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.2);
-    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.70);
+    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.65);
+    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.8);
+    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.75);
     assert.equal(NIGHT_RIG.key, 4.8);
     assert.ok(NIGHT_RIG.key < NIGHT_RIG.fill);
     assert.ok(NIGHT_RIG.pendant <= 5);
@@ -89,10 +89,10 @@ describe('GS-ROOM-SET OTS-readable fringe', () => {
 
   it('puts OTS-near dressing on every other level', () => {
     const checks: { id: string; keys: string[] }[] = [
-      { id: 'coffee', keys: ['backConsole', 'loungeChair'] },
-      { id: 'desk', keys: ['backShelf', 'fileCab'] },
-      { id: 'dresser', keys: ['nightstand', 'wardrobe'] },
-      { id: 'dining', keys: ['wineCart', 'windowSideboard'] },
+      { id: 'coffee', keys: ['backConsole', 'loungeChair', 'snackCart', 'speaker', 'wallBoard'] },
+      { id: 'desk', keys: ['backShelf', 'fileCab', 'easel', 'pinboard', 'corkWall', 'wallBoard'] },
+      { id: 'dresser', keys: ['nightstand', 'wardrobe', 'vanityStool', 'robeHook', 'wallBoard'] },
+      { id: 'dining', keys: ['wineCart', 'windowSideboard', 'guestChair', 'serveTrolley', 'wallBoard'] },
     ];
     for (const { id, keys } of checks) {
       const level = LEVELS.find((l) => l.id === id)!;
@@ -130,6 +130,125 @@ describe('GS-ROOM-SET leave the cat and camera alone', () => {
     assert.match(apt, /tileSurface/);
     assert.match(apt, /panelSurface/);
     assert.match(apt, /marbleSurface/);
+    assert.match(apt, /fabricSurface/);
+    assert.match(apt, /rugSurface/);
+    assert.match(apt, /dressProp\(/);
+  });
+});
+
+describe('GS-ROOM-DETAIL deepen coffee/desk/dresser/dining', () => {
+  it('does not move kitchen BUILD 12 landmarks or bump the stamp', () => {
+    const k = SET_DRESS.kitchen;
+    assert.equal(k.fridge.x, 2.78);
+    assert.equal(k.fridge.z, 0.22);
+    assert.equal(k.backCounter.z, -1.14);
+    assert.equal(k.bakerRack.x, 1.52);
+    assert.equal(NIGHT_RIG.key, 4.8);
+    assert.match(readFileSync(join(here, '../buildStamp.ts'), 'utf8'), /BUILD 13/);
+  });
+
+  it('does not park new dressing on the play slab', () => {
+    for (const id of ['coffee', 'desk', 'dresser', 'dining'] as const) {
+      const level = LEVELS.find((l) => l.id === id)!;
+      const slab = slabOf(level);
+      const dress = SET_DRESS[id];
+      for (const [name, p] of Object.entries(dress)) {
+        const onSlab = p.x >= slab.minX && p.x <= slab.maxX && p.z >= slab.minZ && p.z <= slab.maxZ;
+        assert.equal(onSlab, false, `${id}.${name} @ ${p.x},${p.z} sits on the smashable slab`);
+      }
+    }
+  });
+
+  it('keeps coffee table good-form (lower shelf) and an OTS-right snack cart', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /lower shelf so the table reads as furniture/);
+    assert.match(apt, /SET_DRESS\.coffee/);
+    assert.equal(SET_DRESS.coffee.snackCart.z > 1.1, true);
+    const coffee = LEVELS.find((l) => l.id === 'coffee')!;
+    const cam = otsCam(coffee);
+    assert.ok(pointsInView(cam, [new THREE.Vector3(SET_DRESS.coffee.snackCart.x, SET_DRESS.coffee.snackCart.y, SET_DRESS.coffee.snackCart.z)], 0.98));
+  });
+
+  it('plants a desk easel and pinboard in spawn OTS', () => {
+    const desk = LEVELS.find((l) => l.id === 'desk')!;
+    const cam = otsCam(desk);
+    for (const name of ['easel', 'pinboard'] as const) {
+      const p = SET_DRESS.desk[name];
+      assert.ok(pointsInView(cam, [new THREE.Vector3(p.x, p.y, p.z)], 0.98), `desk.${name} misses spawn OTS`);
+    }
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /shaker drawer fronts so the pedestals read as a desk/);
+    assert.match(apt, /leftover empty \+X BACK WALL/);
+    assert.match(apt, /leftoverWallBoard/);
+    assert.doesNotMatch(apt, /farBoard/);
+    const wall = SET_DRESS.desk.corkWall;
+    assert.ok(pointsInView(cam, [new THREE.Vector3(wall.x, wall.y, wall.z)], 0.98), 'desk.corkWall misses spawn OTS');
+    assert.equal(SET_DRESS.desk.fileCab.x, 2.32);
+    assert.equal(SET_DRESS.desk.backShelf.z, -1.10);
+  });
+
+  it('drops the leftover dresser stool that sat on the OTS-right fringe twice', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.doesNotMatch(apt, /cyl\(0\.2, 0\.08, fabric, 0\.95, 0\.42, 1\.35\)/);
+    assert.equal(SET_DRESS.dresser.vanityStool.x, 1.18);
+    assert.equal(SET_DRESS.dresser.vanityStool.z, 1.38);
+  });
+
+  it('seats dining guests on the OTS-right and a serving trolley off-slab', () => {
+    const dining = LEVELS.find((l) => l.id === 'dining')!;
+    const cam = otsCam(dining);
+    const g = SET_DRESS.dining.guestChair;
+    const t = SET_DRESS.dining.serveTrolley;
+    assert.ok(pointsInView(cam, [new THREE.Vector3(g.x, g.y, g.z)], 0.98), 'guestChair misses spawn OTS');
+    assert.ok(pointsInView(cam, [new THREE.Vector3(t.x, t.y, t.z)], 0.98), 'serveTrolley misses spawn OTS');
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /two chairs on the window/);
+    assert.match(apt, /d \/ 2 \+ 0\.55/);
+    assert.match(apt, /n\.guestChair\.x/);
+    assert.match(apt, /n\.guestChair\.z/);
+  });
+
+  it('fills leftover empty surfaces on coffee/desk/dresser/dining without new OTS-missing landmarks', () => {
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /leftover empty floor by the cart/);
+    assert.match(apt, /leftover empty floor by the speaker/);
+    assert.match(apt, /polaroids on the splash/);
+    assert.match(apt, /leftover empty floor — wastebasket/);
+    assert.match(apt, /leftover empty floor — paint tubes/);
+    assert.match(apt, /leftover empty floor by the stool/);
+    assert.match(apt, /leftover empty floor by the robe/);
+    assert.match(apt, /leftover empty floor — wine crate/);
+    assert.match(apt, /leftover empty floor by the wine cart/);
+    assert.match(apt, /dresserRug/);
+    assert.match(apt, /leftover empty \+X wall behind the wardrobe/);
+    for (const id of ['coffee', 'desk', 'dresser', 'dining'] as const) {
+      assert.equal(SET_DRESS[id].wallBoard.x, 3.55, `${id}.wallBoard must sit beside the front posters`);
+      assert.equal(SET_DRESS[id].wallBoard.z, 5.16, `${id}.wallBoard must share the front-poster plane, not hang at 4.72`);
+    }
+    const shot = readFileSync(join(here, '../../tools/gs-room-detail-shot.mjs'), 'utf8');
+    assert.match(shot, /auto=1&level=N&instant=1/);
+    assert.match(shot, /searchParams\.set\('instant', '1'\)/);
+    assert.match(shot, /searchParams\.set\('level', String\(i\)\)/);
+    const game = readFileSync(join(here, 'Game.ts'), 'utf8');
+    assert.match(game, /q\.get\('instant'\) === '1'/);
+    assert.match(game, /if \(this\.autopilot && instant\)/);
+    assert.match(game, /this\.startPlaying\(\)/);
+    assert.match(game, /else if \(this\.autopilot\)/);
+    assert.match(shot, /phase === 'playing'/);
+    assert.doesNotMatch(shot, /waitForFunction\(\(\) => window\.__cat, \{ timeout: 20000 \}\)/);
+  });
+
+  it('leaves Suki coat, OTS numbers, and smashable placement alone', () => {
+    const suki = readFileSync(join(here, 'Suki.ts'), 'utf8');
+    assert.match(suki, /toonifySukiCoat\(this\.inner\)/);
+    const cam = readFileSync(join(here, 'CameraRig.ts'), 'utf8');
+    assert.match(cam, /back: 1\.32/);
+    assert.match(cam, /side: 0\.18/);
+    const apt = readFileSync(join(here, 'Apartment.ts'), 'utf8');
+    assert.match(apt, /this\.catSpawn\.set\(-w \/ 2 \+ 0\.35/);
+    assert.match(apt, /visual\.group\.position\.set\(x, counterRestY\(this\.surface\.topY\), z\)/);
+    assert.doesNotMatch(apt, /toonifySukiCoat/);
+    assert.equal(NIGHT_RIG.key, 4.8);
   });
 });
 

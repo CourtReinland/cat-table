@@ -27,6 +27,11 @@ import { cameraRelativeMove, lookToCamDir, resolveHeadingLock, resolvePlantLock,
 import { pawHitsProp } from './pawHit';
 import { PAW_HIT_RADIUS } from './sukiGlb';
 import { CameraRig, DEFAULT_FP_CAM, OTS, PORTRAIT, portraitPose, stillsPortraitRequested } from './CameraRig';
+import {
+  cineRiseLookAt,
+  cineShouldSitThenStand,
+  CINE_RISE_POS,
+} from './boyfriendPlay';
 
 type Phase =
   | 'loading'
@@ -129,6 +134,8 @@ export class Game {
   private boyFrom = new THREE.Vector3();
   private catFrom = new THREE.Vector3();
   private cuddlePoint = new THREE.Vector3();
+  /** t=1.2 look baked at cine start (island stand vs couch sit). */
+  private cineRiseLook = new THREE.Vector3();
   private dlgIndex = 0;
   private dlgLines: Line[] = [];
 
@@ -157,8 +164,11 @@ export class Game {
     this.bindUnlock();
 
     // URL test hooks: ?auto=1&level=2&instant=1&quality=low
+    // Live Pages still gates later levels on save.unlocked (title picker).
+    // Local stills / playtest jump with auto+level; instant skips the intro card.
     const q = new URLSearchParams(location.search);
     this.autopilot = q.get('auto') === '1';
+    const instant = q.get('instant') === '1';
     this.portraitCam = stillsPortraitRequested() || q.get('portrait') === '1';
     const forcedQ = q.get('quality');
     if (forcedQ === 'low' || forcedQ === 'medium' || forcedQ === 'high') {
@@ -174,7 +184,11 @@ export class Game {
     stage('boot: first frame…');
     this.clock.start();
     this.loop();
-    if (this.autopilot) this.showIntro(lvl);
+    if (this.autopilot && instant) {
+      this.startPlaying();
+    } else if (this.autopilot) {
+      this.showIntro(lvl);
+    }
   }
 
   // ── setup ────────────────────────────────────────────────────────────────
@@ -886,6 +900,9 @@ export class Game {
     this.boyFrom.copy(bf.group.position);
     this.catFrom.copy(this.apartment.cat.group.position);
     this.cuddlePoint.copy(this.apartment.cuddleSpot);
+    const spawnPose = bf.pose === 'stand' ? 'stand' : 'sit';
+    const riseLook = cineRiseLookAt({ pos: this.boyFrom, pose: spawnPose });
+    this.cineRiseLook.set(riseLook.x, riseLook.y, riseLook.z);
     bf.lookAt(this.apartment.cat.group.position.clone());
     this.ui.showHud(false);
     this.ui.hideHint();
@@ -902,9 +919,12 @@ export class Game {
     const ease = (x: number) => x * x * (3 - 2 * x);
     const seg = (a: number, b: number) => ease(THREE.MathUtils.clamp((t - a) / (b - a), 0, 1));
 
-    // boyfriend: stand (0.2–1.0), walk (1.0–2.6), kneel (2.6–3.3), cuddle (3.6+)
-    if (t < 0.2) bf.setPose('sit', 0.3);
-    if (t >= 0.2 && t < 1.0 && this.cineT - dt < 0.2) bf.setPose('stand', 0.7);
+    // boyfriend: sit dates rise (0.2–1.0), then walk (1.0–2.6), kneel, cuddle.
+    // Kitchen Eli is already standing — do not play floating Idle_Sit or Mixamo StandUp.
+    if (cineShouldSitThenStand(bf.pose)) {
+      if (t < 0.2) bf.setPose('sit', 0.3);
+      if (t >= 0.2 && t < 1.0 && this.cineT - dt < 0.2) bf.setPose('stand', 0.7);
+    }
     if (t >= 1.0 && this.cineT - dt < 1.0) bf.setPose('walk', 0.4);
     if (t >= 1.0 && t < 2.6) {
       const k = seg(1.0, 2.6);
@@ -929,10 +949,14 @@ export class Game {
       cat.speed = 0;
     }
 
-    // camera keyframes
+    // camera keyframes — t=1.2 look is island stand (Eli) or couch sit, not leftover sofa.
     const camKeys = [
       { t: 0, pos: this.cineFrom, look: this.cineLookFrom },
-      { t: 1.2, pos: new THREE.Vector3(-2.6, 2.0, 3.3), look: new THREE.Vector3(-1.9, 1.0, -1.5) },
+      {
+        t: 1.2,
+        pos: new THREE.Vector3(CINE_RISE_POS.x, CINE_RISE_POS.y, CINE_RISE_POS.z),
+        look: this.cineRiseLook,
+      },
       { t: 2.8, pos: new THREE.Vector3(-1.6, 1.5, 3.0), look: new THREE.Vector3(0.1, 0.9, 1.2) },
       { t: 4.0, pos: new THREE.Vector3(1.95, 1.55, 3.7), look: new THREE.Vector3(0.4, 0.62, 1.45) },
     ];

@@ -23,16 +23,18 @@ export const BLOOM = {
  *  keep cabinets from falling into a black cliff.
  *  GS-ROOM-SET: modest hemi/fill/moon lift so OTS backgrounds read. Key
  *  stays put — it dumps on the play slab and would flatten Suki's neighbor
- *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it. */
+ *  granite. Coat is unlit paper (Toon.ts) so hemi does not blow it.
+ *  GS-ROOM-DETAIL: another modest hemi/fill/moon/lamp lift so rooms read;
+ *  pendant stays (island pool). Fog stays. */
 export const NIGHT_RIG = {
-  hemi: 0.60,
-  moon: 0.64,
+  hemi: 0.63,
+  moon: 0.70,
   key: 4.8,
-  lamp: 9.5,
-  fill: 8.4,
+  lamp: 10.6,
+  fill: 9.4,
   pendant: 3.6,
-  tvGlow: 2.2,
-  chandelier: 6,
+  tvGlow: 2.4,
+  chandelier: 6.2,
   fogDensity: 0.022,
 } as const;
 
@@ -56,21 +58,47 @@ export const SET_DRESS = {
     backConsole: { x: 0.35, y: 0.28, z: -1.06 },
     loungeChair: { x: 2.42, y: 0.42, z: 0.15 },
     portraitLamp: { x: -3.55, y: 0.85, z: 0.62 },
+    /** OTS-right snack cart — kitchen baker-rack analogue. */
+    snackCart: { x: 0.88, y: 0.62, z: 1.64 },
+    /** Speaker by the lounge, window side of the +X vanishing point. */
+    speaker: { x: 2.08, y: 0.38, z: -0.58 },
+    /** Leftover +Z wall void (OTS-right navy) — do not cover GS-ROOM-SET posters. */
+    wallBoard: { x: 3.55, y: 1.62, z: 5.16 },
   },
   desk: {
     backShelf: { x: 0.25, y: 1.15, z: -1.10 },
     fileCab: { x: 2.32, y: 0.58, z: 0.18 },
     portraitCart: { x: -3.42, y: 0.55, z: 0.58 },
+    /** OTS-right easel (Kai leftover) so the +Z wall is not a navy slab. */
+    easel: { x: 1.42, y: 0.92, z: 1.54 },
+    /** Cork pinboard on the shelf's room face. */
+    pinboard: { x: 0.25, y: 1.72, z: -0.94 },
+    /** +X cork wall (kitchen-fridge analogue) — play OTS looks into this, not the −Z splash. */
+    corkWall: { x: 2.72, y: 1.50, z: 0.30 },
+    /** Leftover +Z wall void (OTS-right navy) — keep the two GS-ROOM-SET posters. */
+    wallBoard: { x: 3.55, y: 1.65, z: 5.16 },
   },
   dresser: {
     nightstand: { x: 0.15, y: 0.55, z: -0.96 },
     wardrobe: { x: 2.18, y: 1.10, z: 0.18 },
     portraitHamper: { x: -3.22, y: 0.22, z: 0.68 },
+    /** OTS-right vanity stool (replaces the leftover cylinder that sat nowhere). */
+    vanityStool: { x: 1.18, y: 0.42, z: 1.38 },
+    /** Robe on a hook near the wardrobe, +Z fringe. */
+    robeHook: { x: 1.92, y: 1.28, z: 1.10 },
+    /** Leftover +Z wall void (OTS-right navy). */
+    wallBoard: { x: 3.55, y: 1.58, z: 5.16 },
   },
   dining: {
     wineCart: { x: 2.88, y: 0.55, z: 0.18 },
     portraitBuffet: { x: -3.72, y: 0.48, z: 0.42 },
     windowSideboard: { x: 1.15, y: 0.42, z: -1.72 },
+    /** OTS-right guest chair — BUILD 12 only seated the window (−Z) side. */
+    guestChair: { x: 0.72, y: 0.55, z: 1.70 },
+    /** Serving trolley on the +Z fringe, plates readable in play OTS. */
+    serveTrolley: { x: 1.48, y: 0.55, z: 1.62 },
+    /** Leftover +Z wall void (OTS-right navy). */
+    wallBoard: { x: 3.55, y: 1.62, z: 5.16 },
   },
 } as const;
 

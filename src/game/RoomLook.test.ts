@@ -67,10 +67,10 @@ describe('GS-ROOM-LIGHT night rig', () => {
     assert.ok(luminance(fill) < 0.32, `fill too bright`);
     assert.ok(luminance(NIGHT_AMBIENT.ground) < 0.12);
     assert.ok(luminance(NIGHT_AMBIENT.rim) > 0.45, 'rim should read warm peach');
-    // GS-ROOM-SET modest lift; fog/sky/ground stay captain-owned from COLOR
-    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.62, `hemi ${NIGHT_RIG.hemi} modest OTS lift`);
-    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.2, `fill ${NIGHT_RIG.fill}`);
-    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.70, `moon ${NIGHT_RIG.moon}`);
+    // GS-ROOM-DETAIL modest lift on the SET base; fog/sky/ground stay COLOR
+    assert.ok(NIGHT_RIG.hemi >= 0.55 && NIGHT_RIG.hemi <= 0.65, `hemi ${NIGHT_RIG.hemi} modest OTS lift`);
+    assert.ok(NIGHT_RIG.fill >= 7.8 && NIGHT_RIG.fill <= 9.8, `fill ${NIGHT_RIG.fill}`);
+    assert.ok(NIGHT_RIG.moon >= 0.60 && NIGHT_RIG.moon <= 0.75, `moon ${NIGHT_RIG.moon}`);
     assert.equal(NIGHT_RIG.key, 4.8);
     assert.equal(NIGHT_RIG.fogDensity, 0.022);
     assert.equal(NIGHT_AMBIENT.sky, 0x43384c);

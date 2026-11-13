@@ -1,9 +1,11 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { toonify, outlineCharacter } from './Toon';
 import type { BoyDef } from '../data/content';
+import { boyGlbUrl, findHeadBone, idleStandIsBind } from './boyfriendPlay';
 
-type PoseName = 'sit' | 'stand' | 'walk' | 'kneel' | 'cuddle';
+export type PoseName = 'sit' | 'stand' | 'walk' | 'kneel' | 'cuddle';
 
 const gltfCache = new Map<string, any>();
 
@@ -14,7 +16,7 @@ export async function preloadBoys(ids: string[]) {
     ids.map(async (id) => {
       if (gltfCache.has(id)) return;
       try {
-        const gltf = await loader.loadAsync(`assets/models/boy-${id}.glb`);
+        const gltf = await loader.loadAsync(boyGlbUrl(id));
         gltfCache.set(id, gltf);
       } catch (err) {
         console.warn(`[bf] boy-${id}.glb unavailable`, err);
@@ -40,12 +42,18 @@ function exclaimTexture() {
 }
 let exclaimTex: THREE.CanvasTexture | null = null;
 
-/** GLB boyfriend: Blender-built rig, clip-driven poses + procedural head look-at. */
+/** GLB boyfriend: clip-driven poses + procedural head look-at.
+ *  Mixamo Eli is the boy-eli play mesh. Kitchen date starts Idle_Stand (1-frame T-pose bind)
+ *  or rest T-pose if that clip is missing. No floating sit. No invented face.
+ *  setPose('cuddle') no-ops when the drop-in has no Cuddle clip.
+ */
 export class Boyfriend {
   group = new THREE.Group();
   def: BoyDef;
   walking = false;
   lookTarget: THREE.Vector3 | null = null;
+  /** Last requested pose. Kitchen Eli boots 'stand'; couch dates 'sit'. */
+  pose: PoseName = 'stand';
 
   private mixer: THREE.AnimationMixer | null = null;
   private actions = new Map<string, THREE.AnimationAction>();
@@ -61,12 +69,14 @@ export class Boyfriend {
     this.def = def;
     const src = gltfCache.get(def.id);
     if (src) {
-      const inner = src.scene.clone(true) as THREE.Group;
+      // Skinned Mixamo Eli shares Skeleton under Object3D.clone; rebind per instance.
+      const inner = SkeletonUtils.clone(src.scene) as THREE.Group;
       inner.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) m.castShadow = true;
       });
       this.group.add(inner);
+      // Drop-in already has a Head node. Do not rename the rig or mutate cached clips.
       toonify(inner);
       // warmer outline for the boys — separates them from Suki (dark plum)
       // and reads as "romance lead" rim light
@@ -83,7 +93,7 @@ export class Boyfriend {
         // NLA track names come through clean: Idle_Sit, Walk, Cuddle…
         this.actions.set(clip.name, this.mixer.clipAction(clip));
       }
-      this.headBone = inner.getObjectByName('Head') ?? null;
+      this.headBone = findHeadBone(inner);
       this.ready = true;
     } else {
       console.warn(`[bf] no glb for ${def.id}; boyfriend invisible this level`);
@@ -96,13 +106,17 @@ export class Boyfriend {
     this.exclaim.visible = false;
     this.group.add(this.exclaim);
 
-    this.setPose('sit', 0.01);
+    // Kitchen date: Idle_Stand (or bind T-pose if the clip is missing).
+    // Apartment overrides with boyPlayPlacement — sit is couch rooms only.
+    this.setPose('stand', 0.01);
   }
 
   private play(name: string, fade = 0.3, once = false) {
     if (!this.mixer) return;
     const next = this.actions.get(name);
     if (!next) return;
+    // Mixamo Eli Idle_Stand is a 1-frame bind. Clay Idle_Stand is a ~2.5s loop.
+    if (name === 'Idle_Stand' && idleStandIsBind(next.getClip().duration)) once = true;
     if (next === this.current && !once) return;
     next.reset();
     if (once) {
@@ -118,15 +132,24 @@ export class Boyfriend {
 
   setPose(name: PoseName, time = 0.6) {
     this.walking = name === 'walk';
+    this.pose = name;
     switch (name) {
       case 'sit':
         this.play('Idle_Sit', time);
         break;
-      case 'stand':
-        this.play('StandUp', time, true);
-        this.pendingAfter = { at: 0.9, clip: 'Idle_Stand', fade: 0.3 };
-        this.oneShotUntil = 0.9;
+      case 'stand': {
+        const sit = this.actions.get('Idle_Sit');
+        const fromSit = !!this.current && !!sit && this.current === sit;
+        if (fromSit && this.actions.has('StandUp')) {
+          this.play('StandUp', time, true);
+          this.pendingAfter = { at: 0.9, clip: 'Idle_Stand', fade: 0.3 };
+          this.oneShotUntil = 0.9;
+        } else {
+          // Kitchen spawn / rest: Idle_Stand bind or looping idle. Missing clip → T-pose rest.
+          this.play('Idle_Stand', time);
+        }
         break;
+      }
       case 'walk':
         this.play('Walk', time);
         break;
